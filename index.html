@@ -1814,7 +1814,69 @@ let currentRollState = Math.random(); // 這是控制底片風格的靜態亂數
     function updateLeverUI() { const isEndOfRoll = isRollMode && currentFrame >= 36; if (!isFilmAdvanced || isEndOfRoll) { readyLight.classList.add('active'); leverBase.classList.add('glow'); } else { readyLight.classList.remove('active'); leverBase.classList.remove('glow'); } }
 
     document.getElementById('enter-fs-btn').addEventListener('click', () => { startFullscreenAndCamera(); });
-    function startFullscreenAndCamera() { const el = document.documentElement; const rfs = el.requestFullscreen || el.webkitRequestFullScreen; if (rfs) { rfs.call(el).then(() => { initSystem().then(initCamera); if(isOrientationLocked && screen.orientation && screen.orientation.lock) { screen.orientation.lock('landscape').catch(()=>{}); } }).catch(() => { initSystem().then(initCamera); }); } }
+    async function startFullscreenAndCamera() {
+    // 1. 重置所有狀態
+    releaseCameraResources();
+    webGLRenderer = new WebGLRenderer(processCanvas);
+    const fsPrompt = document.getElementById('fullscreen-prompt');
+    const cameraContainer = document.getElementById('camera-container');
+    const fsViewfinder = document.getElementById('fs-viewfinder');
+    const el = document.documentElement;
+    const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.webkitRequestFullscreen;
+    const isIPhone = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream; // ★ 修正：包含 iPad
+
+    // 2. 隱藏提示與 UI
+    if (fsPrompt) fsPrompt.style.display = 'none';
+    if (cameraContainer) cameraContainer.style.display = 'none';
+    if (fsViewfinder) fsViewfinder.style.display = 'none';
+
+    // 3. 初始化系統
+    await initSystem();
+
+    if (isIPhone) {
+        // iOS 不請求全屏，直接啟動相機
+        console.log("iOS device detected, skipping fullscreen.");
+        if (cameraContainer) cameraContainer.style.display = 'block';
+        try {
+            await initCamera();
+        } catch (err) {
+            console.error("Camera init failed on iOS:", err);
+            if (fsPrompt) fsPrompt.style.display = 'flex';
+            if (cameraContainer) cameraContainer.style.display = 'none';
+        }
+    } else if (rfs) {
+        // 非 iOS，嘗試全屏
+        try {
+            await rfs.call(el);
+            if (cameraContainer) cameraContainer.style.display = 'block';
+            await initCamera();
+            if (isOrientationLocked && screen.orientation?.lock) {
+                await screen.orientation.lock('landscape').catch(() => {});
+            }
+        } catch (err) {
+            console.warn('Fullscreen failed, falling back to normal mode', err);
+            if (cameraContainer) cameraContainer.style.display = 'block';
+            try {
+                await initCamera();
+            } catch (initErr) {
+                console.error("Fallback camera init failed:", initErr);
+                if (fsPrompt) fsPrompt.style.display = 'flex';
+                if (cameraContainer) cameraContainer.style.display = 'none';
+            }
+        }
+    } else {
+        // 完全不支援全屏 API
+        console.warn("Fullscreen API not supported.");
+        if (cameraContainer) cameraContainer.style.display = 'block';
+        try {
+            await initCamera();
+        } catch (err) {
+            console.error("Camera init failed without fullscreen:", err);
+            if (fsPrompt) fsPrompt.style.display = 'flex';
+            if (cameraContainer) cameraContainer.style.display = 'none';
+        }
+    }
+}
    async function initCamera() { 
         try { 
             if(video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); } 
@@ -1842,7 +1904,33 @@ let currentRollState = Math.random(); // 這是控制底片風格的靜態亂數
             console.error("Camera Error", err); 
         } 
     }
-    function enforceFullscreen() { if (!document.fullscreenElement) { fsPrompt.style.display = 'flex'; document.getElementById('camera-container').style.display = 'none'; fsViewfinder.style.display = 'none'; } }
+    function enforceFullscreen() {
+    const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    const fsPrompt = document.getElementById('fullscreen-prompt');
+    const cameraContainer = document.getElementById('camera-container');
+    const fsViewfinder = document.getElementById('fs-viewfinder');
+
+    if (!isFullscreen) {
+        // 退出全屏：釋放資源 + 顯示 POWER ON 按鈕
+        releaseCameraResources();
+        if (cameraContainer) cameraContainer.style.display = 'none';
+        if (fsViewfinder) fsViewfinder.style.display = 'none';
+        if (fsPrompt) {
+            fsPrompt.style.display = 'flex';
+            // ★ 確保按鈕事件存在（防止多次綁定失效）
+            const btn = document.getElementById('enter-fs-btn');
+            if (btn) {
+                // 移除舊監聽器避免重複
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                newBtn.addEventListener('click', startFullscreenAndCamera);
+            }
+        }
+    } else {
+        // 進入全屏：隱藏提示
+        if (fsPrompt) fsPrompt.style.display = 'none';
+    }
+}
     document.addEventListener('fullscreenchange', enforceFullscreen);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); video.srcObject = null; } if(shutterAudio) { shutterAudio.pause(); shutterAudio.currentTime = 0; } } else if (document.visibilityState === 'visible') { enforceFullscreen(); setTimeout(() => { if (!video.srcObject || !video.srcObject.active) { initCamera(); } }, 300); } });
     orientationBtn.addEventListener('click', async () => { isOrientationLocked = !isOrientationLocked; orientationBtn.classList.toggle('locked', isOrientationLocked); localStorage.setItem('orientationLocked', isOrientationLocked); if (isOrientationLocked) { try { if (screen.orientation && screen.orientation.lock) { await screen.orientation.lock('landscape'); } } catch (e) { } } else { try { if (screen.orientation && screen.orientation.unlock) { screen.orientation.unlock(); } } catch (e) {} } });
@@ -2675,6 +2763,22 @@ function updateFSGuideFrame() {
     frame.style.width = (actualImgW * 0.85) + 'px';
     frame.style.height = (actualImgH * 0.85) + 'px';
 }
+
+    function releaseCameraResources() {
+    if (video.srcObject) {
+        const tracks = video.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+        video.srcObject = null;
+    }
+    if (shutterAudio) {
+        shutterAudio.pause();
+        shutterAudio.currentTime = 0;
+    }
+    // 不要在此處強制 destroy WebGL context；讓 startFullscreenAndCamera 重建即可
+}
+
+    // 確保初始綁定一次（防止 enforceFullscreen 中 cloneNode 前無事件）
+document.getElementById('enter-fs-btn')?.addEventListener('click', startFullscreenAndCamera);
 
     
 </script>
