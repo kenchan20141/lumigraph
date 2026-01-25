@@ -847,6 +847,44 @@ const MODEL = "deepseek-chat";
 let progressInterval = null;
 const HISTORY_STORAGE_KEY = 'literaryInquiryHistory';
 
+
+
+
+
+// --- 輔助函數：安全獲取 Firebase Token ---
+async function getAuthToken() {
+    return new Promise((resolve) => {
+        // 如果 Firebase 尚未載入，直接回傳 null
+        if (typeof firebase === 'undefined' || !firebase.auth) {
+            resolve(null);
+            return;
+        }
+        
+        const user = firebase.auth().currentUser;
+        if (user) {
+            // 如果已有使用者，直接獲取 Token
+            user.getIdToken().then(resolve).catch(e => {
+                console.error("Token error:", e);
+                resolve(null);
+            });
+        } else {
+            // 如果初始化中，等待狀態改變
+            const unsubscribe = firebase.auth().onAuthStateChanged(u => {
+                unsubscribe();
+                if (u) {
+                    u.getIdToken().then(resolve).catch(() => resolve(null));
+                } else {
+                    resolve(null); // 未登入
+                }
+            });
+        }
+    });
+}
+
+
+
+
+	
 /**
  * 檢查文本是否只包含中文字符以及指定的標點符號。
  */
@@ -1151,15 +1189,25 @@ async function identifyTextContent(textContent) {
     }
 
     try {
-        // 使用 text/plain 並確保不發送複雜 Header 以避免 CORS 預檢失敗
+        // 1. 獲取 Token (新增)
+        const token = await getAuthToken();
+        
+        // 2. 如果未登入，這裡可以選擇報錯或傳空值 (視你的業務需求)
+        // 為了符合嚴格後端，建議這裡提示 (雖然權限鎖可能已經擋過)
+        if (!token) {
+            console.warn("未偵測到登入 Token，請求可能會被後端拒絕");
+        }
+
         const response = await fetch(API_URL, {
             method: 'POST',
-            redirect: 'follow', // GAS 必須設定為 follow
+            redirect: 'follow', 
             cache: 'no-cache',
             headers: { 
                 'Content-Type': 'text/plain;charset=utf-8' 
             },
+            // 3. 在 body 中加入 token (修訂)
             body: JSON.stringify({
+                token: token, // <--- 關鍵修改
                 task: 'identify',
                 textContent: textContent 
             })
@@ -1171,6 +1219,12 @@ async function identifyTextContent(textContent) {
 
         const data = await response.json();
         
+        // 處理權限錯誤 (新增)
+        if (data.isAuthError) {
+            alert("驗證失敗：請先登入學校帳號後再試。");
+            throw new Error(data.error);
+        }
+
         if (data.error) {
             throw new Error(data.error);
         }
@@ -1182,8 +1236,7 @@ async function identifyTextContent(textContent) {
         throw new Error('後端回傳的資料格式無效');
 
     } catch (error) {
-        console.warn('文本識別過程中發生錯誤 (可能是CORS或網絡問題):', error);
-        // 發生錯誤時回傳預設空值，讓流程不中斷
+        console.warn('文本識別過程中發生錯誤:', error);
         return { author: "", title: "", isBanned: false };
     }
 }
@@ -1270,6 +1323,14 @@ async function continueWithGeneration(author, title, content, theme, questions) 
     startProgressSimulation();
 
     try {
+        // 1. 獲取 Token (新增)
+        const token = await getAuthToken();
+
+        // 如果後端嚴格要求驗證，這裡可以先擋
+        if (!token) {
+            throw new Error("無法確認您的登入身分，請重新登入後再試。");
+        }
+
         const securityCharter = await constructPrompt(title, author, content, questions, theme);
         
         let response;
@@ -1280,15 +1341,16 @@ async function continueWithGeneration(author, title, content, theme, questions) 
 
         while (!success && retryCount < maxRetries) {
             try {
-                // 這裡發送請求給 GAS
                 response = await fetch(API_URL, {
                     method: 'POST',
-                    redirect: 'follow', // 關鍵：必須跟隨 Google 的重定向
-                    cache: 'no-cache',  // 避免快取干擾
+                    redirect: 'follow',
+                    cache: 'no-cache',
                     headers: { 
-                        'Content-Type': 'text/plain;charset=utf-8' // 避免觸發 OPTIONS 請求
+                        'Content-Type': 'text/plain;charset=utf-8' 
                     },
+                    // 2. 在 body 中加入 token (修訂)
                     body: JSON.stringify({
+                        token: token, // <--- 關鍵修改
                         task: 'generate',
                         author: author,
                         title: title,
@@ -1303,13 +1365,17 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                     throw new Error(`伺服器連線錯誤，狀態碼: ${response.status}`);
                 }
 
-                // 嘗試解析 JSON，若 GAS 報錯回傳 HTML 這裡會拋出 SyntaxError
                 const textResult = await response.text();
                 try {
                     data = JSON.parse(textResult);
                 } catch (e) {
                     console.error("GAS 回傳非 JSON 內容:", textResult);
-                    throw new Error("伺服器回傳格式錯誤 (可能是 GAS 發生內部錯誤)");
+                    throw new Error("伺服器回傳格式錯誤");
+                }
+
+                // 3. 檢查是否為權限錯誤 (新增)
+                if (data.isAuthError) {
+                    throw new Error(data.error); // 直接拋出錯誤，不需要重試
                 }
 
                 if (data.error) {
@@ -1323,27 +1389,27 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                 success = true;
 
             } catch (error) {
-                // 若是禁書或關鍵字錯誤，不重試
-                if (error.message.includes('不在本系統的服務範圍內') || error.message.includes('受限的關鍵詞')) {
+                // 如果是權限錯誤、禁書或關鍵字攔截，不重試
+                if (error.message.includes('Unauthorized') || 
+                    error.message.includes('不在本系統的服務範圍內') || 
+                    error.message.includes('受限的關鍵詞')) {
                     throw error;
                 }
 
                 console.warn(`嘗試第 ${retryCount + 1} 次失敗:`, error);
                 retryCount++;
                 
-                // 判斷是否重試
                 const errorStr = error.message || "";
                 const isRetryable = errorStr.includes('Unexpected token') || 
                                     errorStr.includes('SyntaxError') ||
                                     errorStr.includes('連線失敗') ||
-                                    errorStr.includes('Failed to fetch'); // 包含 CORS 錯誤
+                                    errorStr.includes('Failed to fetch');
 
                 if (retryCount < maxRetries && isRetryable) {
                     const progressBarInner = document.getElementById('progress-bar-inner');
                     const progressText = document.getElementById('progress-text');
                     if (progressBarInner) progressBarInner.style.width = '0%';
                     if (progressText) progressText.textContent = `伺服器忙碌，重新嘗試中 (${retryCount}/${maxRetries})...`;
-                    
                     await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); 
                 } else {
                     throw error;
@@ -1355,7 +1421,7 @@ async function continueWithGeneration(author, title, content, theme, questions) 
             throw new Error('無法從 AI 伺服器取得有效回應，請檢查網路連線後重試');
         }
 
-        // --- 以下處理回應數據 (保持原邏輯) ---
+        // --- 以下處理回應數據 (保持不變) ---
         const progressText = document.getElementById('progress-text');
         if (progressText) progressText.textContent = '處理回應中...';
 
@@ -1367,7 +1433,6 @@ async function continueWithGeneration(author, title, content, theme, questions) 
         const parser = new DOMParser();
         const doc = parser.parseFromString(generatedHtml, 'text/html');
 
-        // 為所有文本元素添加 contenteditable
         const contentSelectors = 'h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote, div.content, div.transition-text';
         const elements = doc.querySelectorAll(contentSelectors);
         elements.forEach(el => {
@@ -1376,7 +1441,6 @@ async function continueWithGeneration(author, title, content, theme, questions) 
 
         const mainPageUrl = window.location.href;
 
-        // 注入互動腳本
         const scriptContent = `
             function goBack() {
                 if (confirm('您確定要返回主頁嗎？將不會儲存任何變更。')) {
@@ -1453,11 +1517,10 @@ async function continueWithGeneration(author, title, content, theme, questions) 
         console.error('Error:', error);
         let errorMsg = error.message || "未知錯誤";
         
-        // 針對 CORS / Fetch 失敗給予更明確的提示
         if (errorMsg.includes("Failed to fetch") || errorMsg.includes("NetworkError")) {
-            errorMsg = "無法連線至伺服器。請檢查：\n1. 您的網絡連線\n2. GAS 部署權限是否設為「任何人 (Anyone)」";
+            errorMsg = "無法連線至伺服器。請檢查網絡連線或後端部署狀態。";
         } else if (errorMsg.includes("Unexpected token") || errorMsg.includes("SyntaxError")) {
-            errorMsg = "伺服器回應異常 (可能是 Google 服務暫時繁忙或配額已滿)，請稍後再試。";
+            errorMsg = "伺服器回應異常，請稍後再試。";
         }
         
         alert(`生成失敗：${errorMsg}`);
