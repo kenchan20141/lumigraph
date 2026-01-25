@@ -1308,10 +1308,7 @@ async function continueWithGeneration(author, title, content, theme, questions) 
     try {
         // 1. 獲取 Token
         const token = await getAuthToken();
-        if (!token) {
-            // 雖然權限鎖可能已經擋過，但這裡做最後防線
-            throw new Error("無法確認您的登入身分，請重新登入後再試。");
-        }
+        if (!token) throw new Error("無法確認您的登入身分，請重新登入後再試。");
 
         const securityCharter = await constructPrompt(title, author, content, questions, theme);
         
@@ -1328,7 +1325,7 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                     redirect: 'follow',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
-                        token: token, // <--- 關鍵：必須傳送
+                        token: token,
                         task: 'generate',
                         author: author,
                         title: title,
@@ -1349,47 +1346,33 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                     throw new Error("伺服器回傳格式錯誤");
                 }
 
-                // 2. 處理權限錯誤
                 if (data.isAuthError) throw new Error(data.error);
-
-                if (data.error) {
-                    if (data.isBanned) throw new Error(data.error);
-                    throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
-                }
+                if (data.error) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
 
                 success = true;
 
             } catch (error) {
-                // 不重試的情況
-                if (error.message.includes('Unauthorized') || 
-                    error.message.includes('不在本系統的服務範圍內') || 
-                    error.message.includes('受限的關鍵詞')) {
+                if (error.message.includes('Unauthorized') || error.message.includes('不在本系統的服務範圍內') || error.message.includes('受限的關鍵詞')) {
                     throw error;
                 }
-
                 console.warn(`Retry ${retryCount + 1} failed:`, error);
                 retryCount++;
-                
-                // 判斷是否可重試
-                const isRetryable = error.message.includes('Unexpected token') || 
-                                    error.message.includes('SyntaxError') ||
-                                    error.message.includes('Failed to fetch');
-
-                if (retryCount < maxRetries && isRetryable) {
-                    const progressBarInner = document.getElementById('progress-bar-inner');
-                    const progressText = document.getElementById('progress-text');
-                    if (progressBarInner) progressBarInner.style.width = '0%';
-                    if (progressText) progressText.textContent = `伺服器忙碌，重試中 (${retryCount}/${maxRetries})...`;
-                    await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); 
-                } else {
-                    throw error;
-                }
+                if (retryCount < maxRetries) await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); 
+                else throw error;
             }
         }
 
         if (!success) throw new Error('無法從 AI 伺服器取得回應，請重試');
 
-        // --- 處理成功回應 (渲染 HTML) ---
+        // --- 成功回應處理 ---
+        
+        // ★★★ 新增：在前端 Console 也打印一份 Log (預防 Blob 視窗無法查看) ★★★
+        if (data._provider_log) {
+            console.group("🤖 [Server Response Log] AI Provider Info");
+            console.log(data._provider_log);
+            console.groupEnd();
+        }
+
         const progressText = document.getElementById('progress-text');
         if (progressText) progressText.textContent = '處理回應中...';
 
@@ -1398,10 +1381,10 @@ async function continueWithGeneration(author, title, content, theme, questions) 
         }
 
         let generatedHtml = cleanGeneratedHtml(data.choices[0].message.content);
+        
+        // 解析並增強 HTML
         const parser = new DOMParser();
         const doc = parser.parseFromString(generatedHtml, 'text/html');
-
-        // 添加 contenteditable
         const contentSelectors = 'h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote, div.content, div.transition-text';
         doc.querySelectorAll(contentSelectors).forEach(el => el.setAttribute('contenteditable', 'true'));
 
@@ -1413,7 +1396,7 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                 btns.forEach(b => b.style.display = 'none');
                 if(document.activeElement) document.activeElement.blur();
                 setTimeout(() => {
-                    btns.forEach(b => b.style.display = 'flex'); // Assuming flex for buttons
+                    btns.forEach(b => b.style.display = 'flex'); 
                     const blob = new Blob([document.documentElement.outerHTML], {type: 'text/html;charset=utf-8'});
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
@@ -1430,11 +1413,11 @@ async function continueWithGeneration(author, title, content, theme, questions) 
         
         // 儲存歷史
         let actualTheme = theme;
-        // ... (省略提取主題邏輯，保持原樣) ...
         saveToHistory(title, actualTheme, finalHtml);
         
         completeProgress();
         
+        // 跳轉到 Blob
         setTimeout(() => {
             const blob = new Blob([finalHtml], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
