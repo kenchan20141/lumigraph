@@ -2,6 +2,18 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+
+<meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    connect-src 'self' https://script.google.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://content.google.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://*.firebaseio.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https://i.ibb.co;
+">
+
+
+	
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>文學專題探究</title>
 <style>
@@ -828,7 +840,7 @@ hr.field-separator {
 
 <script>
 // --- API Configuration ---
-const API_URL = "https://script.google.com/macros/s/AKfycbxHH2N6zOlX5P3jAsl83k7YrRPpRm0qyPqATakJdVU3TuqH_M7T2T_UqzCmivmzq09zog/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbwEqdFxQvZ94bwEZBmHScMIiWt9L9VhxI1KQavRh1uFjEfarwPc619gICPwYVeB6vY0RQ/exec"; 
 const MODEL = "deepseek-chat";
 
 // --- Global Variables ---
@@ -1698,7 +1710,14 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <script>
-// 2. Firebase 設定初始化 (與神思完全一致)
+// =======================================================
+// === [神思系統] Firebase SDK 與 大數據收集模組 (修訂版) ===
+// =======================================================
+
+// 定義全域變數，解決 database is not defined 問題
+var database; 
+var auth;
+
 const firebaseConfig = {
   apiKey: "AIzaSyBgwrgn2m343mRJb0WjzUhteiospegXhvI",
   authDomain: "sansidata.firebaseapp.com",
@@ -1713,10 +1732,17 @@ const firebaseConfig = {
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
-        console.log("Firebase 初始化成功！");
+        // 初始化全域變數
+        database = firebase.database();
+        auth = firebase.auth();
+        console.log("Firebase 初始化成功，Database 已就緒！");
     } catch (e) {
         console.error("Firebase 初始化失敗：", e);
     }
+} else if (typeof firebase !== 'undefined' && firebase.apps.length) {
+    // 如果已經初始化過，直接獲取實例
+    database = firebase.database();
+    auth = firebase.auth();
 }
 
 // 3. 大數據收集邏輯 (訪客/學生 瀏覽時間統計)
