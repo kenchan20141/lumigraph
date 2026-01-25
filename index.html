@@ -1139,11 +1139,14 @@ async function identifyTextContent(textContent) {
     }
 
     try {
-        // 使用 text/plain 避免 CORS OPTION 請求問題，後端一樣能解析
+        // 使用 text/plain 並確保不發送複雜 Header 以避免 CORS 預檢失敗
         const response = await fetch(API_URL, {
             method: 'POST',
-            redirect: 'follow', // 關鍵：必須跟隨 Google 的重定向
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            redirect: 'follow', // GAS 必須設定為 follow
+            cache: 'no-cache',
+            headers: { 
+                'Content-Type': 'text/plain;charset=utf-8' 
+            },
             body: JSON.stringify({
                 task: 'identify',
                 textContent: textContent 
@@ -1156,12 +1159,10 @@ async function identifyTextContent(textContent) {
 
         const data = await response.json();
         
-        // 處理 GAS 回傳的錯誤結構
         if (data.error) {
             throw new Error(data.error);
         }
 
-        // 後端現在回傳 { result: { author, title, isBanned, banType } }
         if (data && data.result) {
             return data.result;
         }
@@ -1169,10 +1170,12 @@ async function identifyTextContent(textContent) {
         throw new Error('後端回傳的資料格式無效');
 
     } catch (error) {
-        console.error('文本識別過程中發生錯誤:', error);
+        console.warn('文本識別過程中發生錯誤 (可能是CORS或網絡問題):', error);
+        // 發生錯誤時回傳預設空值，讓流程不中斷
         return { author: "", title: "", isBanned: false };
     }
 }
+
     
 function showDetectionModal(detectedContent, isBanned, author, title, content, theme, questions) {
     const modal = document.getElementById('detection-modal');
@@ -1255,7 +1258,6 @@ async function continueWithGeneration(author, title, content, theme, questions) 
     startProgressSimulation();
 
     try {
-        // 雖然主要 Prompt 構建邏輯已移至後端，但我們仍傳遞安全憲章作為第一道防線
         const securityCharter = await constructPrompt(title, author, content, questions, theme);
         
         let response;
@@ -1266,12 +1268,13 @@ async function continueWithGeneration(author, title, content, theme, questions) 
 
         while (!success && retryCount < maxRetries) {
             try {
-                // 發送請求至 Google Apps Script Web App
+                // 這裡發送請求給 GAS
                 response = await fetch(API_URL, {
                     method: 'POST',
-                    redirect: 'follow', // 關鍵：必須設定為跟隨重定向，因為 GAS 會進行轉址
+                    redirect: 'follow', // 關鍵：必須跟隨 Google 的重定向
+                    cache: 'no-cache',  // 避免快取干擾
                     headers: { 
-                        'Content-Type': 'text/plain;charset=utf-8' // 關鍵：使用 text/plain 避免觸發複雜的 CORS 預檢 (Options request)
+                        'Content-Type': 'text/plain;charset=utf-8' // 避免觸發 OPTIONS 請求
                     },
                     body: JSON.stringify({
                         task: 'generate',
@@ -1280,7 +1283,7 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                         content: content,
                         theme: theme,
                         questions: questions,
-                        securityCharter: securityCharter // 傳遞憲章
+                        securityCharter: securityCharter
                     })
                 });
 
@@ -1288,14 +1291,18 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                     throw new Error(`伺服器連線錯誤，狀態碼: ${response.status}`);
                 }
 
-                // 解析 JSON 回應
-                data = await response.json();
+                // 嘗試解析 JSON，若 GAS 報錯回傳 HTML 這裡會拋出 SyntaxError
+                const textResult = await response.text();
+                try {
+                    data = JSON.parse(textResult);
+                } catch (e) {
+                    console.error("GAS 回傳非 JSON 內容:", textResult);
+                    throw new Error("伺服器回傳格式錯誤 (可能是 GAS 發生內部錯誤)");
+                }
 
-                // 檢查後端是否回傳邏輯錯誤
                 if (data.error) {
-                    // 特別處理禁書錯誤 (403 邏輯由後端 isBanned 旗標控制)
                     if (data.isBanned) {
-                        throw new Error(data.error); // 直接拋出錯誤，不需要重試
+                        throw new Error(data.error);
                     }
                     const errorMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
                     throw new Error(errorMsg); 
@@ -1304,7 +1311,7 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                 success = true;
 
             } catch (error) {
-                // 如果是禁書錯誤或關鍵字攔截，不再重試，直接拋出
+                // 若是禁書或關鍵字錯誤，不重試
                 if (error.message.includes('不在本系統的服務範圍內') || error.message.includes('受限的關鍵詞')) {
                     throw error;
                 }
@@ -1312,20 +1319,20 @@ async function continueWithGeneration(author, title, content, theme, questions) 
                 console.warn(`嘗試第 ${retryCount + 1} 次失敗:`, error);
                 retryCount++;
                 
-                const errorStr = error.message || JSON.stringify(error);
-                // 判斷是否重試：GAS 有時會因為冷啟動超時或回傳 HTML 錯誤頁面導致 JSON 解析失敗
-                const isRetryable = errorStr.includes('Unexpected token') || // 通常是回傳了 HTML 錯誤頁
+                // 判斷是否重試
+                const errorStr = error.message || "";
+                const isRetryable = errorStr.includes('Unexpected token') || 
                                     errorStr.includes('SyntaxError') ||
                                     errorStr.includes('連線失敗') ||
-                                    errorStr.includes('Fetch');
+                                    errorStr.includes('Failed to fetch'); // 包含 CORS 錯誤
 
                 if (retryCount < maxRetries && isRetryable) {
                     const progressBarInner = document.getElementById('progress-bar-inner');
                     const progressText = document.getElementById('progress-text');
                     if (progressBarInner) progressBarInner.style.width = '0%';
                     if (progressText) progressText.textContent = `伺服器忙碌，重新嘗試中 (${retryCount}/${maxRetries})...`;
-                    // 指數退避策略，稍微增加等待時間
-                    await new Promise(resolve => setTimeout(resolve, 1500 * retryCount)); 
+                    
+                    await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); 
                 } else {
                     throw error;
                 }
@@ -1333,22 +1340,14 @@ async function continueWithGeneration(author, title, content, theme, questions) 
         }
 
         if (!success) {
-            // 如果跑完重試迴圈仍未成功
-            const progressBarInner = document.getElementById('progress-bar-inner');
-            const progressText = document.getElementById('progress-text');
-            if (progressBarInner) progressBarInner.style.width = '0%';
-            if (progressText) progressText.textContent = '生成失敗，請重試';
-            setLoadingState(false);
-            if (progressInterval) clearInterval(progressInterval);
             throw new Error('無法從 AI 伺服器取得有效回應，請檢查網路連線後重試');
         }
 
+        // --- 以下處理回應數據 (保持原邏輯) ---
         const progressText = document.getElementById('progress-text');
         if (progressText) progressText.textContent = '處理回應中...';
 
-        // 驗證回傳資料結構
         if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
-            console.error("無效的資料結構:", data);
             throw new Error('AI 回應格式無效，缺漏必要的內容欄位');
         }
 
@@ -1356,65 +1355,49 @@ async function continueWithGeneration(author, title, content, theme, questions) 
         const parser = new DOMParser();
         const doc = parser.parseFromString(generatedHtml, 'text/html');
 
-        // 為所有文本元素添加 contenteditable 屬性，方便用戶修改
+        // 為所有文本元素添加 contenteditable
         const contentSelectors = 'h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote, div.content, div.transition-text';
         const elements = doc.querySelectorAll(contentSelectors);
         elements.forEach(el => {
             el.setAttribute('contenteditable', 'true');
         });
 
-        // 獲取當前頁面 URL，用於「返回主頁」按鈕
         const mainPageUrl = window.location.href;
 
-        // 注入互動腳本 (包含儲存與返回功能)
+        // 注入互動腳本
         const scriptContent = `
             function goBack() {
                 if (confirm('您確定要返回主頁嗎？將不會儲存任何變更。')) {
                     window.location.href = '${mainPageUrl}';
                 }
             }
-
             function saveChanges() {
-                // 暫時隱藏按鈕，以免被截圖或儲存進去
                 const backButton = document.querySelector('.back-btn');
                 const saveButton = document.querySelector('.save-btn');
                 const footer = document.querySelector('.copyright-footer');
-                
                 if (backButton) backButton.style.display = 'none';
                 if (saveButton) saveButton.style.display = 'none';
                 if (footer) footer.style.display = 'none';
-
-                // 移除焦點，確保編輯狀態結束
                 if (document.activeElement && document.activeElement.hasAttribute('contenteditable')) {
                     document.activeElement.blur();
                 }
-
                 setTimeout(() => {
-                    // 恢復按鈕顯示
                     if (backButton) backButton.style.display = 'flex';
                     if (saveButton) saveButton.style.display = 'flex';
                     if (footer) footer.style.display = 'block';
-                    
-                    // 獲取當前 HTML 並建立 Blob
                     const updatedHtml = document.documentElement.outerHTML;
                     const blob = new Blob([updatedHtml], { type: 'text/html;charset=utf-8' });
                     const url = URL.createObjectURL(blob);
-                    
-                    // 建立下載連結
                     const a = document.createElement('a');
                     a.href = url;
-                    
-                    // 根據標題生成檔名
                     let filename = '文學探究結果.html';
                     const h1Element = document.querySelector('h1');
                     if (h1Element) {
                         const titleText = h1Element.textContent.trim();
                         if (titleText) {
-                            // 移除檔名中的非法字元
                             filename = titleText.replace(/[\\\\\\/?%*:|"<>\\.\\s]/g, '_') + '.html';
                         }
                     }
-                    
                     a.download = filename;
                     document.body.appendChild(a);
                     a.click();
@@ -1430,33 +1413,24 @@ async function continueWithGeneration(author, title, content, theme, questions) 
 
         const finalHtml = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
         
-        // 為了歷史紀錄，嘗試從生成的 HTML 中提取真實的探究主題
+        let actualTheme = theme;
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = finalHtml;
-        // 嘗試定位主題所在的表格單元格 (根據 Prompt 的 HTML 結構)
-        // 通常是第二行第二列，或者是帶有特定標記的單元格
-        let actualTheme = theme; // 預設使用用戶輸入的主題
         const tableRows = tempDiv.querySelectorAll('.info-table tr');
         if (tableRows.length >= 2) {
              const themeCell = tableRows[1].querySelector('td:nth-child(2)');
-             if (themeCell) {
-                 actualTheme = themeCell.textContent.trim();
-             }
+             if (themeCell) actualTheme = themeCell.textContent.trim();
         }
 
-        // 儲存至歷史紀錄
         saveToHistory(title, actualTheme, finalHtml);
         completeProgress();
         
-        // 延遲跳轉，確保進度條跑完
         setTimeout(() => {
             try {
-                // 使用 Blob URL 進行跳轉，體驗更流暢
                 const blob = new Blob([finalHtml], { type: 'text/html' });
                 const url = URL.createObjectURL(blob);
                 window.location.assign(url);
             } catch (navError) {
-                console.error("使用 Blob URL 導航失敗，退回至原始 document.write 方法:", navError);
                 document.open();
                 document.write(finalHtml);
                 document.close();
@@ -1465,15 +1439,16 @@ async function continueWithGeneration(author, title, content, theme, questions) 
 
     } catch (error) {
         console.error('Error:', error);
-        const errorMsg = error.message || JSON.stringify(error);
+        let errorMsg = error.message || "未知錯誤";
         
-        // 給用戶更友善的提示
-        let userMsg = `生成過程中發生錯誤：${errorMsg}`;
-        if (errorMsg.includes("Unexpected token") || errorMsg.includes("SyntaxError")) {
-            userMsg = "伺服器回應異常 (可能是 Google 服務暫時繁忙)，請稍後再試。";
+        // 針對 CORS / Fetch 失敗給予更明確的提示
+        if (errorMsg.includes("Failed to fetch") || errorMsg.includes("NetworkError")) {
+            errorMsg = "無法連線至伺服器。請檢查：\n1. 您的網絡連線\n2. GAS 部署權限是否設為「任何人 (Anyone)」";
+        } else if (errorMsg.includes("Unexpected token") || errorMsg.includes("SyntaxError")) {
+            errorMsg = "伺服器回應異常 (可能是 Google 服務暫時繁忙或配額已滿)，請稍後再試。";
         }
         
-        alert(userMsg);
+        alert(`生成失敗：${errorMsg}`);
         setLoadingState(false);
         if (progressInterval) clearInterval(progressInterval);
     }
