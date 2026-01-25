@@ -1823,48 +1823,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 4. [核心] 全域請求攔截器 (Auto Token Injector)
-    (function() {
-        // 防止與嚴格鎖衝突，這裡針對後端 API 進行二次攔截
-        const originalFetch = window.fetch; 
-        const TARGET_URL_PART = "script.google.com"; // 攔截發往 GAS 的請求
-
-        window.fetch = async function(url, options) {
-            // 檢查是否為發往後端的 POST 請求
-            if (typeof url === 'string' && url.includes(TARGET_URL_PART) && options && options.method === 'POST') {
-                
-                console.log("[TokenInjector] 偵測到後端請求，準備注入 Token...");
-
-                const user = await new Promise((resolve) => {
-                    if (firebase.auth().currentUser) {
-                        resolve(firebase.auth().currentUser);
-                    } else {
-                        const unsubscribe = firebase.auth().onAuthStateChanged(u => {
-                            unsubscribe();
-                            resolve(u);
-                        });
-                        setTimeout(() => resolve(null), 2000);
-                    }
-                });
-
-                if (user) {
-                    try {
-                        const token = await user.getIdToken(true);
-                        let bodyData = JSON.parse(options.body);
-                        bodyData.token = token; // ★ 強制注入 Token
-                        options.body = JSON.stringify(bodyData);
-                        console.log("[TokenInjector] Token 注入成功！");
-                    } catch (e) {
-                        console.error("[TokenInjector] Token 獲取失敗:", e);
-                    }
-                } else {
-                    console.warn("[TokenInjector] 用戶未登入，無法注入 Token");
-                    // 這裡不需阻擋，因為「嚴格權限鎖」已經在前面擋過了
-                }
-            }
-            return originalFetch(url, options);
-        };
-    })();
+  
 </script>
 
 <!-- === [還原版] 神思大數據收集模組 (30秒=1分鐘邏輯) === -->
