@@ -3490,7 +3490,7 @@ async function handleReaderClick(e) {
 
 
 // ==========================================
-// === [修訂版] 筆順演練模組邏輯 (含自動載入) ===
+// === [修復版] 筆順演練模組邏輯 (含除錯與強制啟動) ===
 // ==========================================
 
 // 狀態變數
@@ -3498,7 +3498,7 @@ let hanziWriterInstance = null;
 let currentStrokeVocab = '';
 let currentStrokeCharIndex = 0;
 
-// DOM 元素 (動態獲取以確保安全)
+// DOM 元素獲取 helper
 function getStrokeElements() {
     return {
         modal: document.getElementById('stroke-modal'),
@@ -3511,67 +3511,52 @@ function getStrokeElements() {
     };
 }
 
-// 事件監聽初始化 (確保 DOM 載入後執行)
+// 初始化監聽器
 document.addEventListener('DOMContentLoaded', () => {
     const els = getStrokeElements();
     if (els.modal) {
         els.closeBtn.addEventListener('click', closeStrokeModal);
-        els.modal.addEventListener('click', (e) => { if (e.target === els.modal) closeStrokeModal(); });
+        // 點擊遮罩關閉
+        els.modal.addEventListener('click', (e) => { 
+            if (e.target === els.modal) closeStrokeModal(); 
+        });
+        // 綁定按鈕事件
         els.animateBtn.addEventListener('click', animateStrokeChar);
         els.quizBtn.addEventListener('click', startStrokeQuiz);
+        
+        console.log("筆順演練模組已就緒");
     }
 });
 
-// ★★★ [核心修復] 動態載入 HanziWriter 函式庫 ★★★
+// 動態載入函式庫 (防止 HanziWriter 未定義錯誤)
 function loadHanziWriterLib() {
     return new Promise((resolve, reject) => {
-        // 如果已經存在，直接回傳
         if (typeof HanziWriter !== 'undefined') {
             resolve();
             return;
         }
-        
-        console.log("正在動態載入 Hanzi Writer...");
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js';
-        script.onload = () => {
-            console.log("Hanzi Writer 載入成功");
-            resolve();
-        };
-        script.onerror = () => {
-            reject(new Error("無法載入筆順函式庫，請檢查網路連線。"));
-        };
+        script.onload = () => { console.log("Hanzi Writer 載入成功"); resolve(); };
+        script.onerror = () => reject(new Error("無法載入筆順函式庫，請檢查網路。"));
         document.head.appendChild(script);
     });
 }
 
-// 1. 開啟彈窗 (改為 async 以等待函式庫載入)
+// 1. 開啟彈窗
 async function openStrokeModal(vocab) {
     const els = getStrokeElements();
-    
-    // 安全檢查
-    if (!els.modal || !els.charSwitcher || !els.targetDiv) {
-        console.error("錯誤：找不到筆順演練的 HTML 元素，請檢查 HTML 結構是否完整。");
-        return;
-    }
+    if (!els.modal) return;
 
-    // 顯示載入中
-    els.statusText.textContent = "正在載入筆順資料庫...";
+    els.statusText.textContent = "載入中...";
     els.modal.classList.add('is-visible');
 
     try {
-        // 等待函式庫載入完成
-        await loadHanziWriterLib();
-
+        await loadHanziWriterLib(); // 確保庫已載入
         currentStrokeVocab = vocab;
         currentStrokeCharIndex = 0;
-        
-        // 生成字元切換按鈕
         renderCharSwitcher();
-        
-        // 初始化第一個字
         initHanziWriter(currentStrokeVocab[0]);
-
     } catch (error) {
         alert(error.message);
         closeStrokeModal();
@@ -3582,21 +3567,19 @@ async function openStrokeModal(vocab) {
 function closeStrokeModal() {
     const els = getStrokeElements();
     if (els.modal) els.modal.classList.remove('is-visible');
-    
-    // 停止動畫或測驗
+    // 清除實例防止佔用資源
     if (hanziWriterInstance) {
-        try {
-            hanziWriterInstance.cancelQuiz();
-            hanziWriterInstance.hideCharacter(); 
-        } catch(e) { console.warn(e); }
+        // 嘗試銷毀舊實例 (如果 API 支援)
+        // HanziWriter 沒有 destroy 方法，但我們可以清空 DOM
+        hanziWriterInstance = null;
     }
+    if (els.targetDiv) els.targetDiv.innerHTML = '';
 }
 
 // 3. 生成字元切換器
 function renderCharSwitcher() {
     const els = getStrokeElements();
     if (!els.charSwitcher) return;
-
     els.charSwitcher.innerHTML = '';
     
     if (currentStrokeVocab.length <= 1) {
@@ -3610,10 +3593,8 @@ function renderCharSwitcher() {
         btn.className = `char-btn ${i === 0 ? 'active' : ''}`;
         btn.textContent = currentStrokeVocab[i];
         btn.addEventListener('click', () => {
-            // 切換按鈕狀態
             document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            // 切換字元
             currentStrokeCharIndex = i;
             initHanziWriter(currentStrokeVocab[i]);
         });
@@ -3621,29 +3602,18 @@ function renderCharSwitcher() {
     }
 }
 
-// 4. 初始化 Hanzi Writer (繪製漢字)
+// 4. 初始化 Hanzi Writer (關鍵函式)
 function initHanziWriter(char) {
     const els = getStrokeElements();
     if (!els.targetDiv) return;
 
-    els.targetDiv.innerHTML = ''; // 清空舊的
+    // ★ 強制清空容器，防止重複堆疊
+    els.targetDiv.innerHTML = ''; 
     els.statusText.textContent = "載入字型數據中...";
     els.statusText.style.color = 'var(--text-secondary-light)';
 
-    // 判斷當前主題顏色
     const isDark = document.body.classList.contains('dark-mode');
     
-    // 定義顏色 (對應您的 CSS 變數)
-    const strokeColor = isDark ? '#7A9E9F' : '#5e7067'; // 筆畫色
-    const radicalColor = isDark ? '#d69a92' : '#d69a92'; // 部首色
-    const outlineColor = isDark ? '#5C554E' : '#e0ddd7'; // 輪廓色
-    
-    // 確保 HanziWriter 已定義
-    if (typeof HanziWriter === 'undefined') {
-        els.statusText.textContent = "錯誤：核心庫未載入";
-        return;
-    }
-
     try {
         hanziWriterInstance = HanziWriter.create('hanzi-target', char, {
             width: 300,
@@ -3652,36 +3622,37 @@ function initHanziWriter(char) {
             showOutline: true,
             strokeAnimationSpeed: 1,
             delayBetweenStrokes: 200,
-            
-            // 顏色設定
-            strokeColor: strokeColor,
-            radicalColor: radicalColor,
-            outlineColor: outlineColor,
-            drawingColor: strokeColor, // 手寫時的顏色
-            drawingWidth: 20,          // 手寫筆觸粗細
-            
+            strokeColor: isDark ? '#7A9E9F' : '#5e7067',
+            radicalColor: '#d69a92',
+            outlineColor: isDark ? '#5C554E' : '#e0ddd7',
+            drawingColor: isDark ? '#7A9E9F' : '#5e7067',
+            drawingWidth: 25, // 稍微加粗筆觸
             showHintAfterMisses: 1,
             highlightOnComplete: true
         });
 
-        // 監聽載入完成 (使用 quiz 測試數據是否就緒)
-        // 注意：HanziWriter 載入 SVG 是非同步的
+        // 載入完成後的回調
         setTimeout(() => {
              els.statusText.textContent = `當前字元：${char}。請選擇「播放」或「測驗」。`;
-             // 嘗試自動播放以確認載入成功
-             hanziWriterInstance.animateCharacter();
+             hanziWriterInstance.animateCharacter(); // 自動播放一次證明載入成功
         }, 600);
 
     } catch (e) {
-        console.error(e);
-        els.statusText.textContent = "字型載入失敗";
+        console.error("Init Error:", e);
+        els.statusText.textContent = "字型載入失敗，請重試。";
     }
 }
 
 // 5. 播放動畫
 function animateStrokeChar() {
     const els = getStrokeElements();
-    if (!hanziWriterInstance) return;
+    if (!hanziWriterInstance) {
+        alert("請等待字型載入完成");
+        return;
+    }
+    
+    // ★ 關鍵：先取消測驗狀態，才能播放動畫
+    hanziWriterInstance.cancelQuiz();
     
     els.statusText.textContent = "演示筆順中...";
     els.statusText.style.color = 'var(--accent-color)';
@@ -3693,39 +3664,56 @@ function animateStrokeChar() {
     });
 }
 
-// 6. 開始測驗
+// 6. 開始測驗 (修復點：增加錯誤提示與狀態重置)
 function startStrokeQuiz() {
+    console.log("按鈕點擊：開始測驗"); // Debug Log
     const els = getStrokeElements();
-    if (!hanziWriterInstance) return;
     
-    els.statusText.textContent = "測驗開始！請跟著寫...";
-    els.statusText.style.color = 'var(--accent-color)';
+    if (!hanziWriterInstance) {
+        console.error("HanziWriter 實例未找到");
+        alert("資料尚未載入完成，請稍候再試，或重新打開此視窗。");
+        return;
+    }
     
+    // ★ 關鍵：強制重置狀態，防止之前的動畫卡住測驗
+    try {
+        hanziWriterInstance.cancelQuiz();
+        hanziWriterInstance.hideCharacter(); // 隱藏範例字，準備讓使用者寫
+    } catch(e) {
+        console.warn("重置狀態時發生微小錯誤，忽略:", e);
+    }
+    
+    els.statusText.textContent = "測驗開始！請用滑鼠或手指書寫...";
+    els.statusText.style.color = '#E65100'; // 顯眼的橘色提示
+    
+    // 啟動測驗
     hanziWriterInstance.quiz({
         onMistake: function(strokeData) {
+            console.log("寫錯了");
             els.statusText.textContent = "筆順錯誤，請看提示。";
-            els.statusText.style.color = '#e74c3c'; // 紅色
+            els.statusText.style.color = '#e74c3c';
             if (navigator.vibrate) navigator.vibrate(100);
         },
         onCorrectStroke: function(strokeData) {
+            console.log("寫對了");
             els.statusText.textContent = "正確！繼續下一筆。";
             els.statusText.style.color = 'var(--accent-color)';
         },
         onComplete: function(summaryData) {
+            console.log("完成");
             els.statusText.textContent = `恭喜完成！錯誤次數: ${summaryData.totalMistakes}`;
-            els.statusText.style.color = '#4CAF50'; // 綠色
+            els.statusText.style.color = '#4CAF50';
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             
-            // 2秒後提示切換下一個字
+            // 提示下一個字
             if (currentStrokeVocab.length > 1 && currentStrokeCharIndex < currentStrokeVocab.length - 1) {
                 setTimeout(() => {
-                   els.statusText.textContent = `太棒了！請點擊上方切換下一個字：「${currentStrokeVocab[currentStrokeCharIndex+1]}」`; 
+                   els.statusText.textContent = `太棒了！請切換下一個字：「${currentStrokeVocab[currentStrokeCharIndex+1]}」`; 
                 }, 2000);
             }
         }
     });
 }
-
 	
   
 function showToast(message, type = 'info') {
