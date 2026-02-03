@@ -1646,6 +1646,41 @@ input[type="text"]:not(.no-modal-editor):hover {
 <p>Copyright © 2025 陳冠健. All rights reserved.</p>
 </footer>
 
+
+
+
+<!-- [修正] 必須確保這段 HTML 存在於 body 內，JavaScript 才能抓到元素 -->
+<div class="stroke-modal" id="stroke-modal">
+    <div class="stroke-modal-content">
+        <div class="stroke-header">
+            <h2>筆順演練</h2>
+            <button class="icon-btn" id="stroke-close-btn" title="關閉">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        
+        <!-- 這就是報錯的 ID，必須存在 -->
+        <div class="char-switcher" id="stroke-char-switcher"></div>
+
+        <div class="stroke-status" id="stroke-status-text">準備就緒</div>
+
+        <div class="hanzi-container-wrapper">
+            <div id="hanzi-target"></div>
+        </div>
+
+        <div class="stroke-controls">
+            <button id="stroke-animate-btn" class="secondary-btn">
+                <span class="btn-text">播放動畫</span>
+            </button>
+            <button id="stroke-quiz-btn" class="submit-btn" style="margin-top:0;">
+                <span class="btn-text">開始測驗</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+	
 <div class="vocab-toast" id="vocab-toast"></div>
 
 
@@ -3303,13 +3338,22 @@ if (strokeModal) {
     strokeQuizBtn.addEventListener('click', startStrokeQuiz);
 }
 
-// 1. 開啟彈窗
+// 修改您之前的 openStrokeModal 函式開頭
 function openStrokeModal(vocab) {
+    // [安全檢查] 重新獲取元素，確保元素存在
+    const strokeModal = document.getElementById('stroke-modal');
+    const strokeCharSwitcher = document.getElementById('stroke-char-switcher');
+    
+    if (!strokeModal || !strokeCharSwitcher) {
+        console.error("找不到筆順演練的 HTML 元素，請檢查是否已貼上 HTML 代碼。");
+        return;
+    }
+
     currentStrokeVocab = vocab;
     currentStrokeCharIndex = 0;
     
     // 生成字元切換按鈕
-    renderCharSwitcher();
+    renderCharSwitcher(); // 注意：renderCharSwitcher 內部也要確保能抓到 strokeCharSwitcher
     
     // 顯示視窗
     strokeModal.classList.add('is-visible');
@@ -3522,35 +3566,36 @@ renderHistory();
 
 
 function renderHistory() {
-const tab = state.activeHistoryTab;
-let items = tab === 'lookup' ? [...state.lookupHistory] : [...state.polishingHistory];
-const term = historySearch.value.trim();
+    const tab = state.activeHistoryTab;
+    let items = tab === 'lookup' ? [...state.lookupHistory] : [...state.polishingHistory];
+    const term = historySearch.value.trim();
 
-if (term) {
-const lowerCaseTerm = term.toLowerCase();
-if (tab === 'lookup') {
-items = items.filter(i => i.vocab && i.vocab.toLowerCase().includes(lowerCaseTerm));
-} else { // polishing
-items = items.filter(i => i.title && i.title.toLowerCase().includes(lowerCaseTerm));
-}
-}
+    if (term) {
+        const lowerCaseTerm = term.toLowerCase();
+        if (tab === 'lookup') {
+            items = items.filter(i => i.vocab && i.vocab.toLowerCase().includes(lowerCaseTerm));
+        } else { // polishing
+            items = items.filter(i => i.title && i.title.toLowerCase().includes(lowerCaseTerm));
+        }
+    }
 
-items.sort((a, b) => {
-const sortOrder = historySort.value;
-if (sortOrder === 'date_asc') {
-return new Date(a.generatedDate) - new Date(b.generatedDate);
-}
-return new Date(b.generatedDate) - new Date(a.generatedDate);
-});
+    items.sort((a, b) => {
+        const sortOrder = historySort.value;
+        if (sortOrder === 'date_asc') {
+            return new Date(a.generatedDate) - new Date(b.generatedDate);
+        }
+        return new Date(b.generatedDate) - new Date(a.generatedDate);
+    });
 
-if (items.length === 0) {
-const msg = term ? '找不到符合條件的紀錄。' :
-tab === 'lookup' ? '目前沒有詞彙表。' : '目前沒有潤色紀錄。';
-historyList.innerHTML = `<li class="no-history-msg">${msg}</li>`;
-} else {
-historyList.innerHTML = items.map((item, index) => {
-if (tab === 'lookup') {
-return `
+    if (items.length === 0) {
+        const msg = term ? '找不到符合條件的紀錄。' :
+            tab === 'lookup' ? '目前沒有詞彙表。' : '目前沒有潤色紀錄。';
+        historyList.innerHTML = `<li class="no-history-msg">${msg}</li>`;
+    } else {
+        historyList.innerHTML = items.map((item, index) => {
+            if (tab === 'lookup') {
+                // [修訂] 在歷史紀錄中加入筆順演練按鈕
+                return `
 <li data-history-id="${item.id}" data-type="lookup">
 <div class="history-item-content">
 <div class="history-list-item-title">${index + 1}. ${item.vocab}</div>
@@ -3559,6 +3604,9 @@ ${new Date(item.generatedDate).toLocaleDateString('zh-TW')}
 </div>
 </div>
 <div class="history-item-actions">
+<button class="icon-btn practice-stroke-history-btn" data-vocab="${item.vocab}" title="筆順演練">
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="15"></line></svg>
+</button>
 <button class="icon-btn regenerate-history-btn" title="重新生成此詞彙的解釋與例句">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8h-6V2l2.25 2.25A12.012 12.012 0 0 0 12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 9-4.25 9-4.25"/></svg>
 </button>
@@ -3567,9 +3615,9 @@ ${new Date(item.generatedDate).toLocaleDateString('zh-TW')}
 </button>
 </div>
 </li>`;
-} else { // polishing
-const polishType = item.type === 'word-polish-result' ? '詞彙潤色' : '文句潤色';
-return `
+            } else { // polishing
+                const polishType = item.type === 'word-polish-result' ? '詞彙潤色' : '文句潤色';
+                return `
 <li data-history-id="${item.id}" data-type="polishing">
 <div class="history-item-content">
 <div class="history-list-item-title">${index + 1}. ${item.title}</div>
@@ -3586,11 +3634,13 @@ ${polishType} - ${new Date(item.generatedDate).toLocaleDateString('zh-TW')}
 </button>
 </div>
 </li>`;
-}
-}).join('');
-}
+            }
+        }).join('');
+    }
 }
 
+
+	
 async function regenerateLookupHistoryItem(id, element) {
 const item = state.lookupHistory.find(i => i.id === id);
 if (!item) return;
@@ -3616,56 +3666,66 @@ element.classList.remove('is-loading');
 }
 
 function handleHistoryListClick(e) {
-const li = e.target.closest('li[data-history-id]');
-if (!li) return;
+    const li = e.target.closest('li[data-history-id]');
+    if (!li) return;
 
-const id = li.dataset.historyId;
-const type = li.dataset.type;
-const sourceArray = type === 'lookup' ? state.lookupHistory : state.polishingHistory;
-const item = sourceArray.find(i => i.id === id);
-if (!item) return;
+    const id = li.dataset.historyId;
+    const type = li.dataset.type;
+    const sourceArray = type === 'lookup' ? state.lookupHistory : state.polishingHistory;
+    const item = sourceArray.find(i => i.id === id);
+    if (!item) return;
 
-const title = item.vocab || item.title;
+    const title = item.vocab || item.title;
 
-if (e.target.closest('.edit-history-title-btn')) {
-const newTitle = prompt('請修訂此紀錄的篇名：', item.title);
-if (newTitle && newTitle.trim() !== '' && newTitle.trim() !== item.title) {
-item.title = newTitle.trim();
-localStorage.setItem('polishingHistory_v1', JSON.stringify(state.polishingHistory));
-renderHistory();
-showToast('篇名已修訂', 'success');
-}
-return; 
-}
+    // [新增] 歷史紀錄中的筆順演練按鈕
+    if (e.target.closest('.practice-stroke-history-btn')) {
+        // 直接開啟筆順彈窗，不進入閱讀模式
+        if (item.vocab) {
+            openStrokeModal(item.vocab);
+        }
+        return;
+    }
 
-if (e.target.closest('.regenerate-history-btn')) {
-if (confirm(`您確定要重新生成「${title}」的解釋與例句嗎？這將會覆蓋現有紀錄。`)) {
-regenerateLookupHistoryItem(id, li);
-}
-return;
-}
+    if (e.target.closest('.edit-history-title-btn')) {
+        const newTitle = prompt('請修訂此紀錄的篇名：', item.title);
+        if (newTitle && newTitle.trim() !== '' && newTitle.trim() !== item.title) {
+            item.title = newTitle.trim();
+            localStorage.setItem('polishingHistory_v1', JSON.stringify(state.polishingHistory));
+            renderHistory();
+            showToast('篇名已修訂', 'success');
+        }
+        return;
+    }
 
-if (e.target.closest('.delete-history-btn')) {
-if (confirm(`您確定要刪除「${title}」這筆紀錄嗎？`)) {
-if(type === 'lookup'){
-state.lookupHistory = state.lookupHistory.filter(i => i.id !== id);
-localStorage.setItem('vocabHistory_v3', JSON.stringify(state.lookupHistory));
-} else {
-state.polishingHistory = state.polishingHistory.filter(i => i.id !== id);
-localStorage.setItem('polishingHistory_v1', JSON.stringify(state.polishingHistory));
-}
-renderHistory();
-}
-return;
-}
+    if (e.target.closest('.regenerate-history-btn')) {
+        if (confirm(`您確定要重新生成「${title}」的解釋與例句嗎？這將會覆蓋現有紀錄。`)) {
+            regenerateLookupHistoryItem(id, li);
+        }
+        return;
+    }
 
-if (e.target.closest('.history-item-content')) {
-state.currentResults = [item];
-state.currentPageNum = 0;
-displayResultsAsBook(state.currentResults);
-switchToReaderView();
-hideHistory();
-}
+    if (e.target.closest('.delete-history-btn')) {
+        if (confirm(`您確定要刪除「${title}」這筆紀錄嗎？`)) {
+            if (type === 'lookup') {
+                state.lookupHistory = state.lookupHistory.filter(i => i.id !== id);
+                localStorage.setItem('vocabHistory_v3', JSON.stringify(state.lookupHistory));
+            } else {
+                state.polishingHistory = state.polishingHistory.filter(i => i.id !== id);
+                localStorage.setItem('polishingHistory_v1', JSON.stringify(state.polishingHistory));
+            }
+            renderHistory();
+        }
+        return;
+    }
+
+    // 點擊項目本身進入閱讀模式 (如果沒有點到上面的按鈕)
+    if (e.target.closest('.history-item-content')) {
+        state.currentResults = [item];
+        state.currentPageNum = 0;
+        displayResultsAsBook(state.currentResults);
+        switchToReaderView();
+        hideHistory();
+    }
 }
 
 async function savePolishedWordToHistory(word, element) {
