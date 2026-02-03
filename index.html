@@ -1492,6 +1492,14 @@ input[type="text"]:not(.no-modal-editor):hover {
     background-color: rgba(255,255,255,0.1);
 }
 
+	/* [修復] 強制讓視窗可以被點擊 */
+.stroke-modal-content {
+    pointer-events: auto !important;
+}
+.stroke-modal {
+    pointer-events: auto !important;
+}
+
 </style>
 </head>
 <body class="light-mode">
@@ -3490,13 +3498,14 @@ async function handleReaderClick(e) {
 
 
 // ==========================================
-// === [修復版] 筆順演練模組邏輯 (含除錯與強制啟動) ===
+// === [終極修復版] 筆順演練模組 (延遲綁定) ===
 // ==========================================
 
 // 狀態變數
 let hanziWriterInstance = null;
 let currentStrokeVocab = '';
 let currentStrokeCharIndex = 0;
+let isStrokeEventsBound = false; // 關鍵：標記是否已經綁定過按鈕
 
 // DOM 元素獲取 helper
 function getStrokeElements() {
@@ -3511,24 +3520,50 @@ function getStrokeElements() {
     };
 }
 
-// 初始化監聽器
-document.addEventListener('DOMContentLoaded', () => {
-    const els = getStrokeElements();
-    if (els.modal) {
-        els.closeBtn.addEventListener('click', closeStrokeModal);
-        // 點擊遮罩關閉
-        els.modal.addEventListener('click', (e) => { 
-            if (e.target === els.modal) closeStrokeModal(); 
-        });
-        // 綁定按鈕事件
-        els.animateBtn.addEventListener('click', animateStrokeChar);
-        els.quizBtn.addEventListener('click', startStrokeQuiz);
-        
-        console.log("筆順演練模組已就緒");
-    }
-});
+// 核心修復：綁定按鈕功能的函式 (只執行一次)
+function bindStrokeModalEvents() {
+    if (isStrokeEventsBound) return; // 如果已經綁定過，就跳過
 
-// 動態載入函式庫 (防止 HanziWriter 未定義錯誤)
+    const els = getStrokeElements();
+    
+    // 檢查元素是否存在
+    if (!els.modal || !els.closeBtn || !els.animateBtn || !els.quizBtn) {
+        console.error("找不到筆順視窗的按鈕元素，無法綁定事件！");
+        return;
+    }
+
+    console.log("正在綁定筆順視窗按鈕事件...");
+
+    // 1. 關閉按鈕
+    els.closeBtn.onclick = function() {
+        console.log("點擊關閉");
+        closeStrokeModal();
+    };
+
+    // 2. 點擊遮罩關閉
+    els.modal.onclick = function(e) {
+        if (e.target === els.modal) {
+            closeStrokeModal();
+        }
+    };
+
+    // 3. 播放動畫按鈕
+    els.animateBtn.onclick = function() {
+        console.log("點擊播放動畫");
+        animateStrokeChar();
+    };
+
+    // 4. 開始測驗按鈕
+    els.quizBtn.onclick = function() {
+        console.log("點擊開始測驗");
+        startStrokeQuiz();
+    };
+
+    isStrokeEventsBound = true; // 標記為已綁定
+    console.log("按鈕事件綁定成功！");
+}
+
+// 動態載入函式庫
 function loadHanziWriterLib() {
     return new Promise((resolve, reject) => {
         if (typeof HanziWriter !== 'undefined') {
@@ -3543,16 +3578,26 @@ function loadHanziWriterLib() {
     });
 }
 
-// 1. 開啟彈窗
+// 1. 開啟彈窗 (進入點)
 async function openStrokeModal(vocab) {
+    console.log("嘗試開啟筆順視窗:", vocab);
+    
     const els = getStrokeElements();
-    if (!els.modal) return;
+    
+    // [關鍵修復] 在開啟視窗時，才嘗試綁定按鈕
+    // 這樣能確保 HTML 元素一定存在
+    bindStrokeModalEvents(); 
+
+    if (!els.modal) {
+        alert("錯誤：找不到筆順視窗 HTML，請檢查代碼是否完整。");
+        return;
+    }
 
     els.statusText.textContent = "載入中...";
     els.modal.classList.add('is-visible');
 
     try {
-        await loadHanziWriterLib(); // 確保庫已載入
+        await loadHanziWriterLib(); 
         currentStrokeVocab = vocab;
         currentStrokeCharIndex = 0;
         renderCharSwitcher();
@@ -3567,10 +3612,9 @@ async function openStrokeModal(vocab) {
 function closeStrokeModal() {
     const els = getStrokeElements();
     if (els.modal) els.modal.classList.remove('is-visible');
-    // 清除實例防止佔用資源
+    
     if (hanziWriterInstance) {
-        // 嘗試銷毀舊實例 (如果 API 支援)
-        // HanziWriter 沒有 destroy 方法，但我們可以清空 DOM
+        // 清除實例
         hanziWriterInstance = null;
     }
     if (els.targetDiv) els.targetDiv.innerHTML = '';
@@ -3592,22 +3636,24 @@ function renderCharSwitcher() {
         const btn = document.createElement('button');
         btn.className = `char-btn ${i === 0 ? 'active' : ''}`;
         btn.textContent = currentStrokeVocab[i];
-        btn.addEventListener('click', () => {
+        
+        // 這裡直接使用 onclick 屬性，最穩當
+        btn.onclick = function() {
             document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentStrokeCharIndex = i;
             initHanziWriter(currentStrokeVocab[i]);
-        });
+        };
+        
         els.charSwitcher.appendChild(btn);
     }
 }
 
-// 4. 初始化 Hanzi Writer (關鍵函式)
+// 4. 初始化 Hanzi Writer
 function initHanziWriter(char) {
     const els = getStrokeElements();
     if (!els.targetDiv) return;
 
-    // ★ 強制清空容器，防止重複堆疊
     els.targetDiv.innerHTML = ''; 
     els.statusText.textContent = "載入字型數據中...";
     els.statusText.style.color = 'var(--text-secondary-light)';
@@ -3626,15 +3672,14 @@ function initHanziWriter(char) {
             radicalColor: '#d69a92',
             outlineColor: isDark ? '#5C554E' : '#e0ddd7',
             drawingColor: isDark ? '#7A9E9F' : '#5e7067',
-            drawingWidth: 25, // 稍微加粗筆觸
+            drawingWidth: 25,
             showHintAfterMisses: 1,
             highlightOnComplete: true
         });
 
-        // 載入完成後的回調
         setTimeout(() => {
              els.statusText.textContent = `當前字元：${char}。請選擇「播放」或「測驗」。`;
-             hanziWriterInstance.animateCharacter(); // 自動播放一次證明載入成功
+             hanziWriterInstance.animateCharacter();
         }, 600);
 
     } catch (e) {
@@ -3651,7 +3696,6 @@ function animateStrokeChar() {
         return;
     }
     
-    // ★ 關鍵：先取消測驗狀態，才能播放動畫
     hanziWriterInstance.cancelQuiz();
     
     els.statusText.textContent = "演示筆順中...";
@@ -3664,48 +3708,38 @@ function animateStrokeChar() {
     });
 }
 
-// 6. 開始測驗 (修復點：增加錯誤提示與狀態重置)
+// 6. 開始測驗
 function startStrokeQuiz() {
-    console.log("按鈕點擊：開始測驗"); // Debug Log
     const els = getStrokeElements();
     
     if (!hanziWriterInstance) {
-        console.error("HanziWriter 實例未找到");
-        alert("資料尚未載入完成，請稍候再試，或重新打開此視窗。");
+        alert("資料尚未載入完成");
         return;
     }
     
-    // ★ 關鍵：強制重置狀態，防止之前的動畫卡住測驗
     try {
         hanziWriterInstance.cancelQuiz();
-        hanziWriterInstance.hideCharacter(); // 隱藏範例字，準備讓使用者寫
-    } catch(e) {
-        console.warn("重置狀態時發生微小錯誤，忽略:", e);
-    }
+        hanziWriterInstance.hideCharacter();
+    } catch(e) { console.warn(e); }
     
     els.statusText.textContent = "測驗開始！請用滑鼠或手指書寫...";
-    els.statusText.style.color = '#E65100'; // 顯眼的橘色提示
+    els.statusText.style.color = '#E65100'; 
     
-    // 啟動測驗
     hanziWriterInstance.quiz({
         onMistake: function(strokeData) {
-            console.log("寫錯了");
             els.statusText.textContent = "筆順錯誤，請看提示。";
             els.statusText.style.color = '#e74c3c';
             if (navigator.vibrate) navigator.vibrate(100);
         },
         onCorrectStroke: function(strokeData) {
-            console.log("寫對了");
             els.statusText.textContent = "正確！繼續下一筆。";
             els.statusText.style.color = 'var(--accent-color)';
         },
         onComplete: function(summaryData) {
-            console.log("完成");
             els.statusText.textContent = `恭喜完成！錯誤次數: ${summaryData.totalMistakes}`;
             els.statusText.style.color = '#4CAF50';
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             
-            // 提示下一個字
             if (currentStrokeVocab.length > 1 && currentStrokeCharIndex < currentStrokeVocab.length - 1) {
                 setTimeout(() => {
                    els.statusText.textContent = `太棒了！請切換下一個字：「${currentStrokeVocab[currentStrokeCharIndex+1]}」`; 
