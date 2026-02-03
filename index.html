@@ -1315,6 +1315,182 @@ input[type="text"]:not(.no-modal-editor):hover {
     background-color: #d32f2f;
 }
 
+	/* =========================================
+   === [修復] 筆順演練視窗樣式 (請貼入 style 標籤內) ===
+   ========================================= */
+
+/* 1. 外層遮罩：確保預設不佔位 (display: none)，並浮在最上層 */
+.stroke-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75); /* 半透明黑底 */
+    z-index: 9999; /* 確保層級最高，蓋過其他內容 */
+    
+    /* 彈性佈局：讓內容置中 */
+    display: none; /* 預設隱藏 */
+    justify-content: center;
+    align-items: center;
+    
+    backdrop-filter: blur(4px); /* 背景模糊效果 */
+}
+
+/* 當視窗被啟動時的樣式 */
+.stroke-modal.is-visible {
+    display: flex !important; /* 強制顯示 */
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* 簡單的淡入動畫 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 2. 視窗本體 */
+.stroke-modal-content {
+    background-color: #fdfcf8; /* 預設亮色底 */
+    width: 90%;
+    max-width: 420px; /* 限制最大寬度 */
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #ccc;
+}
+
+/* Dark Mode 支援 */
+.dark-mode .stroke-modal-content {
+    background-color: #2C302E;
+    border-color: #5C554E;
+    color: #E0D9D1;
+}
+
+/* 3. 標題區 */
+.stroke-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #ddd;
+}
+.dark-mode .stroke-header { border-bottom-color: #555; }
+
+.stroke-header h2 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.4rem;
+    margin: 0;
+    font-weight: bold;
+}
+
+/* 4. 字元切換按鈕 (多字時顯示) */
+.char-switcher {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 10px;
+}
+
+.char-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #ccc;
+    background: transparent;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.dark-mode .char-btn {
+    border-color: #666;
+    color: #bbb;
+}
+
+.char-btn.active {
+    background-color: #7A9E9F; /* 主題色 */
+    color: #fff;
+    border-color: #7A9E9F;
+    transform: scale(1.1);
+    font-weight: bold;
+}
+
+/* 5. 狀態提示文字 */
+.stroke-status {
+    height: 1.5rem;
+    font-size: 0.95rem;
+    color: #7A9E9F;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* 6. 米字格容器 (關鍵) */
+.hanzi-container-wrapper {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin-bottom: 1.5rem;
+    background-color: #fff;
+    border: 3px solid #8d6e63;
+    
+    /* 米字格背景線條 */
+    background-image: 
+        linear-gradient(to right, #d69a92 1px, transparent 1px),
+        linear-gradient(to bottom, #d69a92 1px, transparent 1px),
+        linear-gradient(45deg, transparent 49.5%, #d69a92 49.5%, #d69a92 50.5%, transparent 50.5%),
+        linear-gradient(-45deg, transparent 49.5%, #d69a92 49.5%, #d69a92 50.5%, transparent 50.5%);
+    background-size: 100% 100%;
+    background-position: center;
+    cursor: crosshair; /* 讓滑鼠變成十字，提示可書寫 */
+}
+
+/* Dark Mode 讓米字格稍暗一點以免刺眼 */
+.dark-mode .hanzi-container-wrapper {
+    filter: brightness(0.85);
+}
+
+#hanzi-target {
+    width: 100%;
+    height: 100%;
+}
+
+/* 7. 底部控制按鈕 */
+.stroke-controls {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+}
+
+.stroke-controls button {
+    flex: 1; /* 按鈕平均分配寬度 */
+}
+
+/* 修正關閉按鈕樣式 */
+#stroke-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+}
+#stroke-close-btn:hover {
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 50%;
+}
+.dark-mode #stroke-close-btn:hover {
+    background-color: rgba(255,255,255,0.1);
+}
 
 </style>
 </head>
