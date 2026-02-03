@@ -3655,7 +3655,7 @@ function initHanziWriter(char) {
     if (!els.targetDiv) return;
 
     els.targetDiv.innerHTML = ''; 
-    els.statusText.textContent = "載入字型數據中...";
+    els.statusText.textContent = "載入中..."; // 簡化載入提示
     els.statusText.style.color = 'var(--text-secondary-light)';
 
     const isDark = document.body.classList.contains('dark-mode');
@@ -3678,13 +3678,15 @@ function initHanziWriter(char) {
         });
 
         setTimeout(() => {
-             els.statusText.textContent = `當前字元：${char}。請選擇「播放」或「測驗」。`;
+             // ★★★ 修改點：載入完成後清空文字，保持介面簡潔 ★★★
+             els.statusText.textContent = ""; 
+             
              hanziWriterInstance.animateCharacter();
         }, 600);
 
     } catch (e) {
         console.error("Init Error:", e);
-        els.statusText.textContent = "字型載入失敗，請重試。";
+        els.statusText.textContent = "載入失敗";
     }
 }
 
