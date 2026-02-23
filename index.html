@@ -1099,7 +1099,7 @@
             return actual;
         }
 
-        function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
+     function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
             if (spendEnergy(cost) > 0) {
                 // 1. 顯示心力消耗
                 showFeedback('btn-' + actionId, `-${cost} E`, 'var(--accent-night)', 0);
@@ -1136,7 +1136,10 @@
                     triggerStudentDialogue(s, actionId, idx);
                 });
                 
-                let msg = name + (isBonus ? " (教學相長！)" : "");
+                // --- 修改處：不再顯示 (教學相長！) ---
+                let msg = name; 
+                // --- 修改結束 ---
+
                 if (growReading && limitReached) setStatus(msg + " 但有學生達資質上限。", true); else setStatus(msg);
                 
                 if (actionId !== 'hea') { 
