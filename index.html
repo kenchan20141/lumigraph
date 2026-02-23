@@ -1,677 +1,1094 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>煙火三篇 · 獨立複製工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>教育的維度 - 極致流暢版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg-color: #F2F0EB;
+            --panel-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #5E5A54;
+            --text-sub: #9C9893;
+            
+            /* --- 莫蘭迪色系 (教學行動 & 粒子) --- */
+            --accent-read: #7C9473;  /* 霧灰綠 (閱讀) */
+            --accent-fun: #CF8E8E;   /* 藕粉色 (趣味) */
+            --accent-plan: #7B9ACC;  /* 霧霾藍 (備課) */
+            --accent-drill: #C59458; /* 髒橘色 (操練) */
+            
+            --accent-admin: #8D857F; /* 岩灰色 (行政) */
+            --accent-dse: #A65E5E;   /* 磚紅色 (DSE) */
+            
+            /* --- 學生資質標籤顏色 --- */
+            --color-high: #4E6C50;
+            --color-avg: #667C89;
+            --color-low: #A67B5B;
+            
+            --shadow: 0 5px 20px rgba(0,0,0,0.08);
         }
-        
+
         body {
-            font-family: "Microsoft JhengHei", "微軟正黑體", "PingFang TC", "sans-serif";
-            line-height: 1.8;
-            color: #333;
-            background: linear-gradient(135deg, #0c142b, #1a2a6c, #2c3e50);
-            padding: 20px;
-            min-height: 100vh;
-            background-attachment: fixed;
-        }
-        
-        .container {
-            max-width: 950px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.94);
-            border-radius: 20px;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.45);
+            margin: 0;
             overflow: hidden;
-            position: relative;
+            background-color: var(--bg-color);
+            font-family: 'Noto Serif TC', serif;
+            color: var(--text-main);
+            user-select: none;
+            touch-action: none; 
         }
-        
-        header {
-            background: linear-gradient(120deg, #8e2de2, #4a00e0, #2c0080);
-            color: white;
-            text-align: center;
-            padding: 40px 20px 30px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        header::before {
-            content: "";
+
+        #canvas-container {
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-            transform: rotate(30deg);
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 1;
         }
-        
-        h1 {
-            font-size: 3.2rem;
-            margin-bottom: 15px;
-            text-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
-            position: relative;
-            letter-spacing: 4px;
-            font-weight: 800;
-            background: linear-gradient(to right, #fff, #ffd700, #fff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-stroke: 0.5px rgba(255,255,255,0.7);
-        }
-        
-        .subtitle {
-            font-size: 1.4rem;
-            opacity: 0.95;
-            max-width: 700px;
-            margin: 15px auto 0;
-            position: relative;
-            line-height: 1.6;
-            font-weight: 300;
-        }
-        
-        .intro-text {
-            background: rgba(0, 20, 40, 0.65);
-            border-left: 4px solid #4fc3f7;
-            padding: 18px 25px;
-            margin: 25px auto 35px;
-            max-width: 800px;
-            border-radius: 0 10px 10px 0;
-            color: #e3f2fd;
-            font-size: 1.15rem;
-            line-height: 1.7;
-        }
-        
-        .article-section {
-            padding: 35px;
-            border-bottom: 2px dashed #e0e0e0;
-            position: relative;
-            transition: background 0.3s ease;
-        }
-        
-        .article-section:last-child {
-            border-bottom: none;
-        }
-        
-        .article-section:hover {
-            background: rgba(248, 249, 250, 0.75);
-        }
-        
-        .article-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        
-        .article-title {
-            font-size: 2.3rem;
-            color: #c62828;
-            font-weight: 700;
-            letter-spacing: 2.5px;
-            position: relative;
-            display: inline-block;
-        }
-        
-        .article-title::after {
-            content: "";
+
+        #labels-container {
             position: absolute;
-            bottom: -8px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #d93e3e, #e05d22, #d93e3e, transparent);
-            border-radius: 2px;
-        }
-        
-        .copy-container {
-            text-align: right;
-            position: relative;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
             z-index: 10;
         }
-        
-        .copy-btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24, #d93e3e);
-            color: white;
-            border: none;
-            padding: 14px 38px;
-            font-size: 1.25rem;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.35s ease;
-            box-shadow: 0 4px 15px rgba(220, 50, 50, 0.45);
-            font-weight: 600;
-            letter-spacing: 1.2px;
-            position: relative;
-            overflow: hidden;
-            min-width: 180px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .copy-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 22px rgba(220, 50, 50, 0.6);
-            background: linear-gradient(45deg, #ff5252, #e64a19, #c62828);
-        }
-        
-        .copy-btn:active {
-            transform: translateY(1px);
-        }
-        
-        .copy-btn::after {
-            content: "";
+        .student-label {
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 70%);
-            transform: scale(0);
-            transition: transform 0.5s ease;
-            z-index: -1;
-        }
-        
-        .copy-btn.clicked::after {
-            transform: scale(1);
-        }
-        
-        .copy-btn:disabled {
-            background: #9e9e9e;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .copy-btn::before {
-            content: "✓";
-            position: absolute;
-            opacity: 0;
-            transform: scale(0.8);
-            transition: all 0.3s ease;
-        }
-        
-        .copy-btn.copied::before {
-            opacity: 1;
-            transform: scale(1);
-        }
-        
-        .copy-btn.copied span {
-            opacity: 0;
-        }
-        
-        .status-message {
-            margin-top: 12px;
-            font-size: 1.05rem;
-            min-height: 26px;
-            font-weight: 500;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            color: #2e7d32;
-            text-align: right;
-            padding-right: 5px;
-        }
-        
-        .status-message.show {
-            opacity: 1;
-        }
-        
-        .article-content {
-            font-size: 1.18rem;
-            color: #2c3e50;
-            line-height: 2.05;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            max-width: 100%;
-            padding: 5px 3px;
-            font-family: "Microsoft JhengHei", "微軟正黑體", "Songti TC", serif;
-            position: relative;
-            background: transparent;
-            border-left: 3px solid #ffe082;
-            padding-left: 25px;
-            margin-left: -5px;
-        }
-        
-        .article-content::selection {
-            background-color: #ffecb3;
-            color: #5d4037;
-        }
-        
-        footer {
-            text-align: center;
-            padding: 30px 25px;
-            color: #4a5568;
-            font-size: 1.1rem;
-            background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            margin-top: 10px;
-            line-height: 1.6;
-        }
-        
-        .instructions {
-            background: #e8f5e9;
-            border-left: 4px solid #43a047;
-            padding: 16px 22px;
-            margin: 28px 35px 35px;
-            border-radius: 0 10px 10px 0;
-            font-size: 1.12rem;
-            font-weight: 500;
-            color: #1b5e20;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .divider {
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #d93e3e, #e05d22, #d93e3e, transparent);
-            margin: 25px auto 35px;
-            width: 75%;
-            border-radius: 2px;
-            opacity: 0.85;
-        }
-        
-        @media (max-width: 768px) {
-            .article-section {
-                padding: 28px 25px;
-            }
-            
-            h1 {
-                font-size: 2.6rem;
-                letter-spacing: 2px;
-            }
-            
-            .subtitle {
-                font-size: 1.25rem;
-            }
-            
-            .article-title {
-                font-size: 2.0rem;
-            }
-            
-            .copy-btn {
-                padding: 12px 30px;
-                font-size: 1.15rem;
-                min-width: 160px;
-            }
-            
-            .article-content {
-                font-size: 1.08rem;
-                line-height: 1.95;
-                padding-left: 20px;
-            }
-            
-            .intro-text {
-                font-size: 1.05rem;
-                padding: 15px 20px;
-                margin: 20px auto 30px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .article-section {
-                padding: 25px 20px;
-            }
-            
-            h1 {
-                font-size: 2.3rem;
-                padding: 0 8px;
-            }
-            
-            .subtitle {
-                font-size: 1.15rem;
-                padding: 0 10px;
-            }
-            
-            .article-title {
-                font-size: 1.85rem;
-                letter-spacing: 1.5px;
-            }
-            
-            .copy-btn {
-                padding: 11px 25px;
-                font-size: 1.08rem;
-                width: 100%;
-                max-width: 220px;
-                margin-top: 8px;
-            }
-            
-            .copy-container {
-                text-align: center;
-                width: 100%;
-            }
-            
-            .article-content {
-                font-size: 1.03rem;
-                line-height: 1.88;
-                padding-left: 18px;
-            }
-            
-            .article-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 12px;
-            }
-            
-            .instructions {
-                margin: 22px 20px 28px;
-                font-size: 1.05rem;
-                padding: 14px 18px;
-            }
-            
-            .intro-text {
-                font-size: 1rem;
-                padding: 14px 18px;
-                margin: 18px auto 25px;
-            }
-        }
-        
-        .sparkle {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            pointer-events: none;
-            opacity: 0.85;
-            animation: sparkle 1.5s ease-out forwards;
-            z-index: 1000;
-        }
-        
-        @keyframes sparkle {
-            0% {
-                transform: scale(0) translate(0, 0);
-                opacity: 0.9;
-            }
-            50% {
-                opacity: 1;
-            }
-            100% {
-                transform: scale(1) translate(var(--tx, 0), var(--ty, 0));
-                opacity: 0;
-            }
-        }
-        
-        .article-number {
-            display: inline-block;
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #d93e3e, #c62828);
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 36px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
             font-weight: bold;
-            font-size: 1.3rem;
-            margin-right: 12px;
-            flex-shrink: 0;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            transform: translate(-50%, -100%);
+            white-space: nowrap;
+            transition: opacity 0.3s;
+            border: 1px solid rgba(0,0,0,0.05);
         }
+
+        /* =========================================
+           頂部儀表板
+           ========================================= */
+        #top-dashboard {
+            position: absolute;
+            top: 0; left: 0; width: 100%;
+            height: auto;
+            max-height: 45vh;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: var(--shadow);
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            gap: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .dash-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-right: 20px;
+            border-right: 1px solid rgba(0,0,0,0.08);
+            min-width: 130px;
+        }
+        .dash-section:last-child { border-right: none; padding-right: 0; }
+
+        .section-title {
+            font-size: 12px; color: var(--text-sub);
+            text-transform: uppercase; letter-spacing: 1.5px;
+            margin-bottom: 10px; font-weight: bold;
+        }
+
+        .stat-row { display: flex; gap: 20px; align-items: flex-end; }
+        .stat-box { display: flex; flex-direction: column; min-width: 35px; }
+        .stat-label { font-size: 11px; color: var(--text-sub); margin-bottom: 2px; }
+        .stat-value { font-size: 16px; font-weight: bold; color: var(--text-main); height: 24px; display: flex; align-items: center; }
         
-        .highlight {
-            background: linear-gradient(120deg, rgba(255,235,179,0.4) 0%, rgba(255,235,179,0.4) 100%);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-weight: 500;
+        /* 年齡修訂樣式 */
+        .editable {
+            cursor: pointer;
+            transition: color 0.2s;
+            border-bottom: 1px solid transparent;
+        }
+        .editable:hover { border-bottom: 1px dashed var(--text-sub); }
+        
+        /* 內嵌輸入框樣式 */
+        .inline-input {
+            width: 40px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+            border: none;
+            border-bottom: 2px solid var(--accent-dse);
+            background: transparent;
+            outline: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        button {
+            border: none; background: #fff; padding: 8px 12px; border-radius: 10px;
+            font-family: inherit; color: var(--text-main); cursor: pointer;
+            transition: all 0.2s; display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            min-width: 90px;
+            position: relative; /* For bonus positioning if needed, though we use absolute body */
+        }
+        button:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 5px 12px rgba(0,0,0,0.1); }
+        button:active:not(:disabled) { transform: scale(0.96); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+
+        .btn-icon { font-size: 18px; margin-bottom: 4px; }
+        .btn-txt { font-size: 11px; font-weight: bold; }
+        .btn-cost { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+
+        /* 使用莫蘭迪色變數 */
+        .btn-read { border-bottom: 3px solid var(--accent-read); }
+        .btn-fun { border-bottom: 3px solid var(--accent-fun); }
+        .btn-plan { border-bottom: 3px solid var(--accent-plan); }
+        .btn-drill { border-bottom: 3px solid var(--accent-drill); }
+        .btn-admin { border-bottom: 3px solid var(--accent-admin); background: #f9f9f9; }
+        .btn-system { background: #eee; border: none; }
+
+        #btn-dse {
+            background: var(--accent-dse); color: #fff;
+            font-weight: bold; border: none;
+            display: none; width: 100%;
+            animation: pulse 2s infinite;
+            margin-top: 8px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        @keyframes pulse { 0% { opacity:1; } 50% { opacity:0.85; } 100% { opacity:1; } }
+
+        .admin-box {
+            display: flex; flex-direction: column; gap: 5px; font-size: 11px; margin-bottom: 8px;
+        }
+        input[type=range] { width: 100%; accent-color: var(--accent-admin); cursor: pointer; }
+
+        #status-text {
+            font-size: 12px; font-weight: bold; color: var(--accent-plan);
+            margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 250px;
+        }
+        .warning-text { color: var(--accent-dse) !important; animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        /* 學生需求指示器 */
+        #need-indicator {
+            background: #fff;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+            color: var(--text-main);
+        }
+        .need-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+        /* Bonus 漂浮文字樣式 */
+        .floating-bonus {
+            position: absolute;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 100;
+            animation: floatUp 1.2s ease-out forwards;
+            white-space: nowrap;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8); opacity: 0; }
+            20% { transform: translateY(-10px) scale(1.1); opacity: 1; }
+            100% { transform: translateY(-30px) scale(1); opacity: 0; }
+        }
+
+        @media (max-width: 800px) {
+            #top-dashboard {
+                padding: 12px; gap: 12px; justify-content: flex-start; flex-direction: row; flex-wrap: wrap;
+            }
+            .dash-section {
+                border-right: none; padding-right: 0; 
+                flex: 1 1 auto; 
+                margin-bottom: 5px;
+            }
+            .stat-row { gap: 15px; } 
+            .stat-value { font-size: 15px; }
+            .dash-section.action-section {
+                flex: 1 1 100%;
+                order: 3;
+            }
+            .action-section .btn-group {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 8px;
+                -webkit-overflow-scrolling: touch;
+            }
+            button { padding: 8px 6px; min-width: 80px; flex-shrink: 0; }
+        }
+
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 50;
+            display: none; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        #modal-box {
+            background: #fff; width: 85%; max-width: 450px;
+            padding: 30px; border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            text-align: center; border: 2px solid var(--text-main);
+        }
+        .grade-list { 
+            background: #f9f9f9; padding: 15px; border-radius: 10px; 
+            margin: 20px 0; text-align: left; font-family: monospace; font-size: 14px; max-height: 250px; overflow-y: auto;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>煙 火 三 篇</h1>
-            <p class="subtitle">獨立複製 · 完整保留段落格式 · 繁體中文散文</p>
-        </header>
-        
-        <div class="intro-text">
-            本頁面收錄三篇以「煙火」為主題的散文，每篇皆可<strong>獨立一鍵複製</strong>。點擊每篇文章右上角的「複製本文」按鈕，即可完整複製該篇文章的所有文字與段落格式（包含空行與縮排），無需手動選取。
+
+    <div id="canvas-container"></div>
+    <div id="labels-container"></div>
+
+    <div id="top-dashboard">
+        <div class="dash-section">
+            <div class="section-title">教師狀態</div>
+            <div class="stat-row">
+                <div class="stat-box">
+                    <span class="stat-label">年齡</span>
+                    <!-- 移除括號提示，直接點擊數字 -->
+                    <span class="stat-value editable" id="disp-age">22</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">心力</span><span class="stat-value" id="disp-energy" style="color:var(--accent-plan)">10.0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">恢復</span><span class="stat-value" id="disp-recover">3/3</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">年級</span><span class="stat-value" id="disp-grade">中一</span>
+                </div>
+            </div>
+            <div id="status-text">準備教學...</div>
         </div>
-        
-        <div class="instructions">
-            📌 使用說明：點擊每篇文章右上角的「<span class="highlight">複製本文</span>」按鈕，即可複製該篇完整內容（含所有段落與空行）
+
+        <div class="dash-section" style="flex:0 0 auto;">
+            <div class="section-title">學生人數</div>
+            <select id="sel-student-count" style="padding:6px; border-radius:6px; font-size:13px;">
+                <option value="1">1 人</option>
+                <option value="2">2 人</option>
+                <option value="3">3 人</option>
+                <option value="4">4 人</option>
+                <option value="5" selected>5 人</option>
+            </select>
         </div>
-        
-        <!-- 文章一 -->
-        <section class="article-section">
-            <div class="article-header">
-                <h2 class="article-title"><span class="article-number">一</span>煙火</h2>
-                <div class="copy-container">
-                    <button class="copy-btn" data-target="article1">
-                        <span>✨ 複製本文</span>
-                    </button>
-                    <div class="status-message" id="status1">已複製《煙火》一全文！</div>
-                </div>
+
+        <div class="dash-section action-section" style="flex: 2;">
+            <div class="section-title">教學行動</div>
+            
+            <div id="need-indicator">
+                <span>學生當前需求:</span>
+                <span id="need-dot" class="need-dot" style="background:var(--accent-read);"></span>
+                <span id="need-text" style="color:var(--accent-read);">增加閱讀量</span>
             </div>
-            <div class="article-content" id="article1">回鄉的我凝望著門前的「河流」，沉默不語。那場璀璨的煙火又在我杳遠的回憶隱然綻放。
-我記得，故鄉梁莊的那夜是樸素的，是低調的，就像默默俯身收割莊稼的農民；我記得，那時祖屋的遠處種著桑樹，樹上迴響著清亮的蟬聲，而近處蜿蜒著一道河，河畔的蘆葦總傳來蛙鳴；那是元旦，鄰居李叔親切地送上祝福，又從吳鎮的煙火廠帶來了龍吐珠，與村民慶賀新春。煙花在夜幕訇然盛放之時，七歲的我正環抱著爺爺的頸項。所有的澄黃、亮綠和緋紅倏爾煥爛在我的眼眸。火光乍現，煙花便瞬即璀璨而華麗地枯萎了，只賸下硝煙和火藥的氣息。
-我哭了，爺爺以為我被煙火嚇壞了，瞬即摩娑著我的背。
-其實，我不過是驚詫於一切美好的幻滅。
-後來，我才瞭解人生有許多事情都注定是一場美好的幻滅，如同煙火。
-爺爺是我的留守歲月最璀璨的印記。我從村校放學回家時，爺爺總會捧著熱氣騰騰的、白花花的饅頭迎接著我。阿念，吃吧，快點吃吧。爺爺沙啞的聲線仍猶在耳。童年的我總喜歡伏在爺爺的背上諦聽著時間，一秒，兩秒，是多麼沉穩的幸福呢。背並不厚實，但卻溫暖和煦。時間仿佛會一直定格在這一幀。然而在我九歲那年，爺爺死了，就淹死在門前的河。建築公司在河底挖沙蓋樓，河道看來平靜，卻暗藏漩渦。爺爺游泳時被暗湧拉扯到河底，就活活淹死了。短短數年的歲月，在人生裡不過是一場倉卒燃燒的煙火，爺爺在我的回憶裡綻放過澄黃、亮綠和緋紅，卻連一縷硝煙都沒有遺下，只遺下了一件濡濕的、皺巴巴的汗衣，儼如因衰老而再無能為力綻放的煙花。
-還有門前的河流，在爺爺死後十年，已經沉默得如患上了失語症，河水乾涸，河床裸露，像被歲月無情強暴了一樣。夏蟬和青蛙，都憂鬱得噤聲不語，遷徙到回憶之外。李叔前年在電鍍廠中毒過身了。童年時一切一切的美好，都如海市蜃樓般驟然無存。歲月燃點了一場煙花，最後只遺下沉重的回憶，以及沉重地回憶的我。煙火再璀璨，也是匆促的。
-本來我是這樣認為的。
-直至又再離鄉之際，我才赫然窺探到煙火的秘密。
-村口的大樹懸掛著纍纍碩大的林柿，那一個個橘橙的果實每年都爛在樹上，沒有村民採摘，連雀鳥都不屑一顧。在我準備踏出村口時，一顆飽滿的柿子掉落到我面前。我啃咬了一口，還是一如回憶的苦澀、難吃，我急不及待將咀嚼中的柿肉吐出來，且棄之如敝屣。我倏爾發現，縱然梁莊物換星移已不知幾度秋，但仍有許多回憶的遺跡，比如是眼前這棵金玉其外的柿樹。它的果實仍然是澀的，我想，是因為它仍然鮮活、茂盛、強壯，是因為它仍未枯謝、凋零、衰敝。假如它成為了歲月匆促幻滅的過客，也許那味道會是甘甜的苦澀，也許我會懷念那苦澀。
-我再次凝望著那乾涸的河道。曩昔我嫌棄過蟬囀蛙鳴聒耳，擾人清夢；我埋怨過蘆葦纖長，阻礙了我的視野；我拒絕過爺爺的饅頭，因為寡淡無味，因為我想吃肉香滿溢的五香肘子啊，不想吃寡淡的、慘白的饅頭。我討厭過李叔蠟黃的臉色，討厭過他衣衫襤褸，討厭過他渾身汗臭，我討厭過李叔的一切。諷刺的是，隨著物和事匆促的面目全非，我竟爾留戀上一切我討厭過的。
-於是我開始明白煙花的璀璨，在於它的匆促和幻滅。
-時間會過濾掉所有人和事的雜質，隨著泯滅變易，我們開始犯賤地珍惜，然而珍惜的唯一意義僅在於遺憾，但正因為遺憾，才體現到事物的璀璨。倘若爺爺和李叔仍然在世，倘若門前的河仍然流淌不斷，倘若蟬聲蛙鳴依舊，倘若絢爛永恆，那麼一切便將腐爛而不再璀璨，他們和它們都將蛻變成被棄如敝屣的柿子。我曾以為煙火再璀璨，也是匆促的。但原來我錯了。原來煙火璀璨，正因為匆促。一旦煙火永恆，它將失去生命，教人徒然目眩。
-離鄉的這夜，恰巧是元旦。是夜天陰，無雨。梁莊寂寥如一場夢，再沒有盛放的煙火。因為，煙花從此只在我的回憶裡燦爛地綻開、匆促地結果。</div>
-        </section>
-        
-        <div class="divider"></div>
-        
-        <!-- 文章二 -->
-        <section class="article-section">
-            <div class="article-header">
-                <h2 class="article-title"><span class="article-number">二</span>煙火</h2>
-                <div class="copy-container">
-                    <button class="copy-btn" data-target="article2">
-                        <span>✨ 複製本文</span>
-                    </button>
-                    <div class="status-message" id="status2">已複製《煙火》二全文！</div>
-                </div>
+
+            <div class="btn-group">
+                <button id="btn-read" class="btn-read">
+                    <span class="btn-icon">📚</span>
+                    <span class="btn-txt">增加閱讀量</span>
+                    <span class="btn-cost">-1.0</span>
+                </button>
+                <button id="btn-fun" class="btn-fun">
+                    <span class="btn-icon">🍬</span>
+                    <span class="btn-txt">設計趣味教學</span>
+                    <span class="btn-cost">-3.0</span>
+                </button>
+                <button id="btn-plan" class="btn-plan">
+                    <span class="btn-icon">📝</span>
+                    <span class="btn-txt">認真備課</span>
+                    <span class="btn-cost">-3.0</span>
+                </button>
+                <button id="btn-drill" class="btn-drill">
+                    <span class="btn-icon">⚔️</span>
+                    <span class="btn-txt">操練與批改</span>
+                    <span class="btn-cost">-3.0</span>
+                </button>
             </div>
-            <div class="article-content" id="article2">春節，最好看的莫過於煙火；最能給人帶來快樂的莫過於煙火；最受人們喜愛的莫過於煙火。
+        </div>
 
-　　我也愛煙火，愛那美麗。明亮的煙火。鄉村斑駁燦爛的煙火，總是讓我難以忘懷的。
-
-　　我的老家在鄉村，一個小小的鄉村，每次過年我都要回去，今年也不例外。
-
-　　天黑了，沒有月亮，也沒有星星，沒有一點兒光亮。人們都在家裡守着電視，等待着春節聯歡晚會的開始，周圍一片寂靜。突然，「轟」一聲，打破了這片寂靜。我連忙跑出去看，原來有人開始放煙火了。
-
-　　那煙火，離我是那麼的近，綻放在我的頭頂。巨響後，它便像無數個小星星，組成了圓球狀。有紅色，綠色，黃色，紫色……五彩繽紛，十分美麗。
-
-　　接着，所有的人都開始放煙火了。周圍響聲不段，「轟轟轟」就像打雷似的，天空也被煙火映成了五顏六色。
-
-　　我站在樓頂，看着這些美麗的景色。因為鄉村群山環繞，所以，當四面八方的煙火升起時，會顯得很有層次感。這裡近，那裡遠。這裡看到了煙火的全部形態，那裡卻只看到了一個點和些許亮光。
-
-　　不知怎麼的，我突然感到了一種幸福。看着那綻放的煙火，心裡就像有一股暖流通過。
-
-　　「煙火，能讓人幸福？」我不禁問自己。
-
-　　「是的，但我不知為什麼。」我在心裡想着。
-
-　　看着煙火，我陷入了幻想中。我幻想我和我的家人一起坐下來吃團圓飯，有說有笑，一個不缺，一個不少；我幻想我和朋友們能高高興興地度過每一天，沒有煩惱，沒有爭吵；我幻想我以後的生活豐富多彩；我幻想我心想事成，所有的願望都實現；我幻想我能和蘇醒見面，仔細地看他的樣子，陶醉地聽着他的歌聲……我幻想着一切美好的畫面，心中突然充實了許多。
-
-　　那可愛的煙火，像孩子純真的笑臉，所以讓人幸福。那明亮的煙火像無數顆閃閃的充滿愛的眼睛，所以讓人幸福。那漂亮的煙火，像曇花一現般，剛綻放就墜落，它用它最精彩的瞬間帶給了人們幸福，也留給了人們遐想的空間，去幻想自己想要的幸福。
-
-　　我站在那兒，看着煙火，心卻早已飛走了，飛向了煙火帶給我的幸福。</div>
-        </section>
-        
-        <div class="divider"></div>
-        
-        <!-- 文章三 -->
-        <section class="article-section">
-            <div class="article-header">
-                <h2 class="article-title"><span class="article-number">三</span>煙火</h2>
-                <div class="copy-container">
-                    <button class="copy-btn" data-target="article3">
-                        <span>✨ 複製本文</span>
-                    </button>
-                    <div class="status-message" id="status3">已複製《煙火》三全文！</div>
-                </div>
+        <div class="dash-section">
+            <div class="section-title">行政/系統</div>
+            <div class="admin-box">
+                <span>行政消耗: <span id="val-admin">3.0</span></span>
+                <input type="range" id="rng-admin" min="0.1" max="10" step="0.1" value="3.0">
             </div>
-            <div class="article-content" id="article3">曾經華麗麗的過場
-
-　　轉眼變成落寞的退場
-
-　　來不及謝幕
-
-　　——煙火
-
-　　還記得昨天晚上看的煙火嗎？我們獃獃地望着天空，看着那一星火光散開成了一大團星星點點的火光。看着煙火再我們頭上散開，嚇得急忙往後退，笑着。　
-
-　　——你喜歡煙花嗎
-
-　　——喜歡啊。
-
-　　我們都喜歡這個華麗麗的東西，但我覺得它是個悲劇吧。只是停留在天空的那兩三秒鐘，讓人們笑着，轉眼就無影無蹤，或許這就是它的使命。我不希望我們的友誼也這樣，雖然有一段的華華麗麗，但是結果我不想要。
-
-　　寧願不要一段讓全世界記住的友誼，也要保留那份留在兩個人心底的東西。
-
-　　你是個直爽的姑娘，所以會有很多朋友，而我不是。我不如你那麼什麼事都可以忘掉，一乾二淨，我也不會永遠讓別人開心。或許我是我的任性，想要萬事都唯我獨尊，讓別人圍着自己轉，我知道這是不可能的。除了同學，我朋友很少很少，知己也就更不用提，雖然我接納別人的條件很簡單，但沒有幾個人可以符合這些簡單的條件。而你憑着你的直爽和「口無遮攔」闖入了我的世界。
-
-　　——我們會彼此記住一輩子麼
-
-　　——或許吧
-
-　　——你不許忘記我
-
-　　——知道啦。
-
-　　簡簡單單的約定，卻早已烙在心底。我不指望我們永遠都記住這份小承諾，但是現在必須記着。
-
-　　沒有任何一段情會持續到天荒地老
-
-　　沒有任何海誓山盟會守到海枯石爛
-
-　　但至少，我們還遵守着這小承諾，已經足夠。
-
-　　或許我們的友情如同那煙火，匆匆地來了又匆匆地去了，沒有帶走什麼，也沒有留下什麼，灰也隨着風飄轉而去，但是我們現在要珍惜。這個你明白的，雖然你有點沒心沒肺，但是我知道，你的感情的細膩和懂得珍惜。
-
-　　自從你成為我同桌時起，我已經開始慢慢接受你，我知道你內心的乾淨和善良，你或許沒有青春期孩子的多愁善感，但是你的直爽已經塑造了一個可人憐的你。　
-
-　　——你覺得我們的友情會不會像煙花一樣
-
-　　——丫頭，你必須學會相信自己。
-
-　　——哦。
-
-　　我從來不相信什麼海誓山盟，一切只是一段沒有結果的約定。我們現在這樣已經足夠，至少彼此記得我們的友誼。那個常常揚起嘴角的女孩，那個沒心沒肺地瘋跑的女孩，不可以忘記。
-
-　　我已經把你當成知己了，不要令我失望。聽說過麼？有時天上會出現兩道彩虹，因為一條是另一條的倒影。我希望，我們會像那兩道彩虹一樣，同時出現，同時消失。我們不必永遠停留在天空中，被全世界記住。
-
-　　向日葵記得和太陽的約定
-
-　　蝴蝶記得和花兒的約定
-
-　　魚兒記得和海水的約定
-
-　　我們也要彼此記住，我們的約定。　
-
-　　——我覺得我是你的知音　
-
-　　——那我願意為你彈琴</div>
-        </section>
-        
-        <footer>
-            <p>煙火三篇 · 獨立複製工具</p>
-            <p style="margin-top: 8px; font-size: 0.95rem; color: #5a6268;">每篇文章皆可獨立複製 · 完整保留原始段落與空行格式 · 繁體中文</p>
-            <p style="margin-top: 5px; font-size: 0.9rem; color: #718096;">設計理念：煙火之美在於瞬間璀璨，文字之珍在於情感永存</p>
-        </footer>
+            <div class="btn-group">
+                <button id="btn-admin" class="btn-admin">
+                    <span class="btn-icon">📑</span><span class="btn-txt">應付行政</span>
+                </button>
+                <button id="btn-recover" class="btn-system">
+                    <span class="btn-icon">⚡</span><span class="btn-txt">休息恢復</span>
+                </button>
+                <button id="btn-next" class="btn-system">
+                    <span class="btn-icon">📅</span><span class="btn-txt">下一學年</span>
+                </button>
+            </div>
+            <button id="btn-dse">🔥 學生應考 DSE 🔥</button>
+        </div>
     </div>
 
+    <div id="modal-overlay">
+        <div id="modal-box">
+            <div style="font-size:50px;">👴</div>
+            <h2 style="color:var(--accent-dse); margin:10px 0;">校長室召見</h2>
+            <div class="grade-list" id="dse-results"></div>
+            <p id="principal-msg" style="text-align:left; line-height:1.6; color:#444;"></p>
+            <button id="btn-restart" style="width:100%; background:#333; color:#fff; padding:15px; border-radius:10px; font-weight:bold;">重新開始</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // 創建煙火效果
-            function createSparkle(x, y) {
-                const sparkle = document.createElement('div');
-                sparkle.classList.add('sparkle');
+        // ==========================================
+        // 1. 設定與初始化
+        // ==========================================
+        const style = getComputedStyle(document.body);
+        const CONFIG = {
+            colors: {
+                bg: 0xF2F0EB,
+                glassInnate: 0x95a5a6, 
+                glassRead: parseInt(style.getPropertyValue('--accent-read').trim().replace('#', '0x')),
+                pRead: parseInt(style.getPropertyValue('--accent-read').trim().replace('#', '0x')),
+                pFun: parseInt(style.getPropertyValue('--accent-fun').trim().replace('#', '0x')),
+                pPlan: parseInt(style.getPropertyValue('--accent-plan').trim().replace('#', '0x')),
+                pDrill: parseInt(style.getPropertyValue('--accent-drill').trim().replace('#', '0x')),
+                pReject: 0xAAAAAA,
                 
-                // 隨機大小
-                const size = Math.random() * 8 + 4;
-                sparkle.style.width = `${size}px`;
-                sparkle.style.height = `${size}px`;
-                
-                // 隨機位置偏移
-                const tx = (Math.random() - 0.5) * 100;
-                const ty = (Math.random() - 0.5) * 100;
-                sparkle.style.setProperty('--tx', `${tx}px`);
-                sparkle.style.setProperty('--ty', `${ty}px`);
-                
-                // 設置初始位置
-                sparkle.style.left = `${x}px`;
-                sparkle.style.top = `${y}px`;
-                
-                document.body.appendChild(sparkle);
-                
-                // 移除動畫完成的元素
-                setTimeout(() => {
-                    if (sparkle.parentNode) {
-                        sparkle.parentNode.removeChild(sparkle);
-                    }
-                }, 1500);
+                // CSS 字串形式供獎勵提示使用
+                cssRead: style.getPropertyValue('--accent-read').trim(),
+                cssFun: style.getPropertyValue('--accent-fun').trim(),
+                cssPlan: style.getPropertyValue('--accent-plan').trim(),
+                cssDrill: style.getPropertyValue('--accent-drill').trim()
+            },
+            maxRecoveries: 3,
+            globalRenderLimit: 12.0 
+        };
+
+        const TEACHER = { 
+            age: 22, 
+            maxEnergy: 10, 
+            currentEnergy: 10, 
+            recoveriesLeft: 3,
+            energyDebt: 0 
+        };
+
+        let currentNeed = 'read'; 
+
+        function calcMaxEnergy() {
+            let base = 10;
+            if (TEACHER.age > 25) {
+                base -= (TEACHER.age - 25) * 0.2;
             }
+            TEACHER.maxEnergy = Math.max(2.0, base);
+            if(TEACHER.currentEnergy > TEACHER.maxEnergy) {
+                TEACHER.currentEnergy = TEACHER.maxEnergy;
+            }
+        }
+        calcMaxEnergy();
+
+        // ==========================================
+        // 直接年齡修訂 (Requirement 1)
+        // ==========================================
+        const ageEl = document.getElementById('disp-age');
+        ageEl.addEventListener('click', function() {
+            if (this.querySelector('input')) return; // 已經在編輯中
+
+            const currentVal = this.innerText;
+            this.innerHTML = '';
             
-            // 為所有複製按鈕添加事件監聽
-            const copyButtons = document.querySelectorAll('.copy-btn');
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = currentVal;
+            input.className = 'inline-input';
             
-            copyButtons.forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const targetId = button.getAttribute('data-target');
-                    const articleContent = document.getElementById(targetId);
-                    const statusId = `status${targetId.slice(-1)}`;
-                    const statusMessage = document.getElementById(statusId);
+            // 儲存邏輯
+            const save = () => {
+                let val = parseInt(input.value);
+                if (!isNaN(val) && val > 0 && val < 100) {
+                    TEACHER.age = val;
+                    calcMaxEnergy();
+                    this.innerText = val; // 恢復文字顯示
+                    updateUI(); // 更新相關數值(心力上限)
+                } else {
+                    this.innerText = TEACHER.age; // 恢復原值
+                }
+            };
+
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                }
+            });
+
+            this.appendChild(input);
+            input.focus();
+        });
+
+        // ==========================================
+        // 獎勵提示 (Requirement 2)
+        // ==========================================
+        function showFloatingBonus(x, y, color) {
+            const el = document.createElement('div');
+            el.className = 'floating-bonus';
+            el.innerText = '+Bonus';
+            el.style.color = color;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.body.appendChild(el);
+            
+            // 動畫結束後移除
+            setTimeout(() => {
+                el.remove();
+            }, 1200);
+        }
+
+        const STUDENT_TYPES = {
+            HIGH: { id: 'high', name: '天資聰穎', color: style.getPropertyValue('--color-high').trim(), growRate: [0.5, 0.8], baseScale: 2.0, rejectRate: 0.1, canGrow: true, maxHeight: 6.0 },
+            AVG:  { id: 'avg',  name: '資質平庸', color: style.getPropertyValue('--color-avg').trim(), growRate: [0.2, 0.4], baseScale: 1.0, rejectRate: 0.3, canGrow: true, maxHeight: 3.0 },
+            LOW:  { id: 'low',  name: '資質駑鈍', color: style.getPropertyValue('--color-low').trim(), growRate: [0.05, 0.1], baseScale: 0.25, rejectRate: 0.6, canGrow: false, maxHeight: 1.5 }
+        };
+
+        const GRADES = ["中一", "中二", "中三", "中四", "中五", "中六"];
+        let currentGradeIndex = 0;
+        let students = [];
+        let particles = [];
+        let isDseMode = false;
+        let hasDoneAdmin = false; 
+        let controls; 
+
+        // ==========================================
+        // Three.js 場景 (省略部分與前版相同)
+        // ==========================================
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(CONFIG.colors.bg, 20, 90);
+
+        const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 150);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = false;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableRotate = false; 
+        controls.enablePan = false;    
+        controls.enableZoom = true;    
+        controls.minDistance = 20;     
+        controls.maxDistance = 80;     
+        controls.zoomSpeed = 1.0;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(0, 30, 20);
+        scene.add(dirLight);
+
+        const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(500, 500),
+            new THREE.MeshStandardMaterial({ color: CONFIG.colors.bg, roughness: 1 })
+        );
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = -2; 
+        scene.add(plane);
+
+        const matGlassInnate = new THREE.MeshPhysicalMaterial({
+            color: CONFIG.colors.glassInnate,
+            metalness: 0.1, roughness: 0.1,
+            transmission: 0.6, transparent: true, opacity: 0.9,
+            side: THREE.DoubleSide
+        });
+
+        const matGlassRead = new THREE.MeshPhysicalMaterial({
+            color: CONFIG.colors.glassRead,
+            metalness: 0.0, roughness: 0.1,
+            transmission: 0.5, transparent: true, opacity: 0.8,
+            side: THREE.DoubleSide
+        });
+
+        // ==========================================
+        // 學生類別
+        // ==========================================
+        class Student {
+            constructor(id, xPos, typeOverride = null) {
+                this.id = id;
+                this.xPos = xPos;
+                if (typeOverride) {
+                    this.type = typeOverride;
+                } else {
+                    const rand = Math.random();
+                    if (rand < 0.2) this.type = STUDENT_TYPES.HIGH;
+                    else if (rand < 0.7) this.type = STUDENT_TYPES.AVG;
+                    else this.type = STUDENT_TYPES.LOW;
+                }
+
+                this.baseHeight = 0.8 * this.type.baseScale; 
+                this.readingHeight = 0; 
+                this.landedParticles = [];
+
+                this.labelEl = document.createElement('div');
+                this.labelEl.className = 'student-label';
+                document.getElementById('labels-container').appendChild(this.labelEl);
+                this.updateLabelText();
+
+                this.group = new THREE.Group();
+                this.group.position.set(xPos, 0, 0); 
+                scene.add(this.group);
+
+                this.baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), matGlassInnate);
+                this.group.add(this.baseMesh);
+                
+                const bottomCap = new THREE.Mesh(new THREE.CircleGeometry(2, 64), matGlassInnate);
+                bottomCap.rotation.x = -Math.PI/2;
+                this.group.add(bottomCap);
+
+                this.readGroup = new THREE.Group();
+                this.group.add(this.readGroup);
+
+                this.readMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), matGlassRead);
+                this.readGroup.add(this.readMesh);
+
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.05, 16, 100), new THREE.MeshStandardMaterial({color: 0x7f8c8d}));
+                ring.rotation.x = Math.PI/2;
+                this.readGroup.add(ring);
+
+                this.updateVisuals(true);
+            }
+
+            getTotalHeight() { return this.baseHeight + this.readingHeight; }
+            getRimY() { return this.getTotalHeight(); }
+
+            tryGrowReading() {
+                if (!this.type.canGrow || this.getTotalHeight() >= this.type.maxHeight) {
+                    this.shake();
+                    return false;
+                }
+                this.readingHeight += 0.4;
+                this.updateVisuals();
+                return true;
+            }
+
+            growGrade() {
+                if (this.getTotalHeight() >= this.type.maxHeight) return;
+                const min = this.type.growRate[0];
+                const max = this.type.growRate[1];
+                let growth = Math.random() * (max - min) + min;
+                if (this.getTotalHeight() + growth > this.type.maxHeight) growth = this.type.maxHeight - this.getTotalHeight();
+                this.baseHeight += growth;
+                this.updateVisuals();
+            }
+
+            shake() { gsap.to(this.group.position, { x: this.xPos + 0.1, duration: 0.05, yoyo: true, repeat: 3 }); }
+
+            updateLabelText() {
+                this.labelEl.innerHTML = `<span style="color:${this.type.color}">${this.type.name}</span>: ${this.landedParticles.length}`;
+            }
+
+            updateVisuals(instant = false) {
+                const dur = instant ? 0 : 0.8;
+                gsap.to(this.baseMesh.scale, { y: this.baseHeight, duration: dur });
+                gsap.to(this.baseMesh.position, { y: this.baseHeight / 2, duration: dur });
+
+                const readH = Math.max(0.01, this.readingHeight);
+                gsap.to(this.readGroup.position, { y: this.baseHeight, duration: dur });
+                gsap.to(this.readMesh.scale, { y: readH, duration: dur });
+                gsap.to(this.readMesh.position, { y: readH / 2, duration: dur });
+            }
+
+            dispose() { if (this.labelEl) this.labelEl.remove(); }
+        }
+
+        function initStudents(count) {
+            students.forEach(s => { scene.remove(s.group); s.dispose(); });
+            students = [];
+            particles.forEach(p => scene.remove(p));
+            particles = [];
+
+            const spacing = 5.0;
+            const totalWidth = (count - 1) * spacing;
+            const startX = -totalWidth / 2;
+
+            let types = [];
+            if (count === 5) {
+                types = [STUDENT_TYPES.LOW, STUDENT_TYPES.LOW]; 
+                for(let k=0; k<3; k++) {
+                    const r = Math.random();
+                    if(r < 0.2) types.push(STUDENT_TYPES.HIGH);
+                    else if(r < 0.6) types.push(STUDENT_TYPES.AVG);
+                    else types.push(STUDENT_TYPES.LOW);
+                }
+                types.sort(() => Math.random() - 0.5);
+            }
+
+            for (let i = 0; i < count; i++) {
+                const typeToUse = (types.length > i) ? types[i] : null;
+                students.push(new Student(i, startX + i * spacing, typeToUse));
+            }
+            updateCamera(count);
+        }
+
+        function updateCamera(count) {
+            const targetY = 9.0; 
+            const isMobile = window.innerWidth < 800;
+            const baseZ = isMobile ? 40 : 28; 
+            const zDist = baseZ + (count * 2.0); 
+
+            gsap.to(camera.position, { x: 0, y: 15, z: zDist, duration: 1.0, onUpdate: () => controls.update() });
+            gsap.to(controls.target, { x: 0, y: targetY, z: 0, duration: 1.0 });
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            updateCamera(students.length);
+        });
+
+        // ==========================================
+        // 粒子系統
+        // ==========================================
+        function spawnParticle(type, student) {
+            const isRejected = Math.random() < student.type.rejectRate;
+            let color = CONFIG.colors.pPlan;
+            let geo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+
+            if (type === 'read') { color = CONFIG.colors.pRead; geo = new THREE.IcosahedronGeometry(0.18, 0); }
+            else if (type === 'fun') { color = CONFIG.colors.pFun; geo = new THREE.DodecahedronGeometry(0.20, 0); }
+            else if (type === 'drill') { color = CONFIG.colors.pDrill; geo = new THREE.TetrahedronGeometry(0.25); }
+
+            if (isRejected) color = CONFIG.colors.pReject;
+
+            const p = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: color, roughness: 0.4 }));
+            const jitter = 0.8;
+            p.position.set(
+                student.xPos + (Math.random()-0.5) * jitter, 
+                student.getRimY() + 8 + Math.random()*3, 
+                (Math.random()-0.5) * jitter
+            );
+            
+            let vx = (Math.random()-0.5)*0.05;
+            let vz = (Math.random()-0.5)*0.05;
+            if (isRejected) vx = (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random()*0.2);
+
+            p.userData = { vel: new THREE.Vector3(vx, -0.25, vz), student: student, state: 'falling', rejected: isRejected };
+            scene.add(p);
+            particles.push(p);
+        }
+
+        function spawnDirectLandedParticle(student) {
+            const rimY = student.getRimY();
+            const fillHeight = student.landedParticles.length * 0.006; 
+            if (fillHeight > rimY) return;
+
+            const colors = [CONFIG.colors.pPlan, CONFIG.colors.pDrill, CONFIG.colors.pFun];
+            const p = new THREE.Mesh(
+                new THREE.BoxGeometry(0.22, 0.22, 0.22),
+                new THREE.MeshStandardMaterial({ color: colors[Math.floor(Math.random() * colors.length)] })
+            );
+            const r = Math.random() * 1.5;
+            const theta = Math.random() * Math.PI * 2;
+            const y = fillHeight + Math.random() * 0.5;
+            p.position.set(student.xPos + r * Math.cos(theta), y, r * Math.sin(theta));
+            p.userData = { student: student, state: 'landed' };
+            scene.add(p);
+            particles.push(p);
+            student.landedParticles.push(p);
+            student.updateLabelText();
+        }
+
+        // ==========================================
+        // UI & 邏輯
+        // ==========================================
+        function setStatus(text, isError=false) {
+            const el = document.getElementById('status-text');
+            el.innerText = text;
+            el.className = isError ? "warning-text" : "";
+            el.style.color = isError ? 'var(--accent-dse)' : 'var(--accent-plan)';
+        }
+
+        function randomizeStudentNeed() {
+            const r = Math.random();
+            const dot = document.getElementById('need-dot');
+            const txt = document.getElementById('need-text');
+            
+            if (r < 0.7) {
+                currentNeed = 'read';
+                txt.innerText = "增加閱讀量";
+                txt.style.color = "var(--accent-read)";
+                dot.style.background = "var(--accent-read)";
+            } else {
+                const others = [
+                    { id: 'fun', label: '設計趣味教學', color: 'var(--accent-fun)' },
+                    { id: 'plan', label: '認真備課', color: 'var(--accent-plan)' },
+                    { id: 'drill', label: '操練與批改', color: 'var(--accent-drill)' }
+                ];
+                const choice = others[Math.floor(Math.random() * others.length)];
+                currentNeed = choice.id;
+                txt.innerText = choice.label;
+                txt.style.color = choice.color;
+                dot.style.background = choice.color;
+            }
+        }
+
+        function checkDSECondition() {
+            if (currentGradeIndex === 5 && TEACHER.currentEnergy <= 0.1) {
+                document.getElementById('btn-dse').style.display = 'block';
+                document.getElementById('btn-recover').disabled = true;
+                document.getElementById('btn-next').disabled = true;
+                document.getElementById('btn-admin').disabled = true;
+            } else {
+                document.getElementById('btn-dse').style.display = 'none';
+            }
+        }
+
+        function updateUI() {
+            // 注意：不要覆蓋編輯中的 input
+            const ageDisplay = document.getElementById('disp-age');
+            if (!ageDisplay.querySelector('input')) {
+                ageDisplay.innerText = TEACHER.age;
+            }
+
+            document.getElementById('disp-energy').innerText = TEACHER.currentEnergy.toFixed(1);
+            document.getElementById('disp-recover').innerText = `${TEACHER.recoveriesLeft}/${CONFIG.maxRecoveries}`;
+            document.getElementById('disp-grade').innerText = GRADES[currentGradeIndex];
+            
+            const adminCost = parseFloat(document.getElementById('rng-admin').value);
+            document.getElementById('val-admin').innerText = adminCost.toFixed(1);
+
+            const hasEnergy = TEACHER.currentEnergy > 0.5;
+            document.getElementById('btn-read').disabled = TEACHER.currentEnergy < 1.0;
+            document.getElementById('btn-fun').disabled = !hasEnergy;
+            document.getElementById('btn-plan').disabled = !hasEnergy;
+            document.getElementById('btn-drill').disabled = !hasEnergy;
+            
+            document.getElementById('btn-admin').disabled = hasDoneAdmin;
+            
+            const isFullEnergy = TEACHER.currentEnergy >= TEACHER.maxEnergy;
+            document.getElementById('btn-recover').disabled = TEACHER.recoveriesLeft <= 0 || isFullEnergy || isDseMode;
+            
+            document.getElementById('btn-next').disabled = isDseMode || !hasDoneAdmin;
+
+            if (!hasDoneAdmin && !isDseMode) {
+                if (document.getElementById('status-text').innerText === "準備教學...") {
+                    document.getElementById('status-text').innerText = "本學年需完成行政工作";
+                }
+            }
+
+            checkDSECondition();
+        }
+
+        function spendEnergy(maxCost) {
+            if (TEACHER.currentEnergy <= 0) return 0;
+            const actual = Math.min(maxCost, TEACHER.currentEnergy);
+            TEACHER.currentEnergy -= actual;
+            if(TEACHER.currentEnergy < 0.05) TEACHER.currentEnergy = 0;
+            updateUI();
+            return actual;
+        }
+
+        // ==========================================
+        // 按鈕邏輯 (含 Bonus 視覺)
+        // ==========================================
+        
+        function getParticleCount(baseCount, actionId) {
+            if (actionId === currentNeed) {
+                const bonus = Math.ceil(baseCount * 0.3); 
+                return { count: baseCount + bonus, isBonus: true };
+            }
+            return { count: baseCount, isBonus: false };
+        }
+
+        function handleAction(actionId, cost, baseParticles, name, growReading = false) {
+            if (spendEnergy(cost) > 0) {
+                const { count, isBonus } = getParticleCount(baseParticles, actionId);
+                let limitReached = false;
+                
+                // 視覺 Bonus 處理
+                if (isBonus) {
+                    const btn = document.getElementById('btn-' + actionId);
+                    const rect = btn.getBoundingClientRect();
+                    let color = '#333';
+                    if (actionId === 'read') color = CONFIG.colors.cssRead;
+                    if (actionId === 'fun') color = CONFIG.colors.cssFun;
+                    if (actionId === 'plan') color = CONFIG.colors.cssPlan;
+                    if (actionId === 'drill') color = CONFIG.colors.cssDrill;
                     
-                    // 獲取按鈕位置用於煙火效果
-                    const btnRect = button.getBoundingClientRect();
-                    const centerX = btnRect.left + btnRect.width / 2;
-                    const centerY = btnRect.top + btnRect.height / 2;
-                    
-                    // 產生煙火效果
-                    for (let i = 0; i < 12; i++) {
-                        setTimeout(() => {
-                            const offsetX = (Math.random() - 0.5) * btnRect.width * 1.2;
-                            const offsetY = (Math.random() - 0.5) * btnRect.height * 1.2;
-                            createSparkle(centerX + offsetX, centerY + offsetY);
-                        }, i * 40);
+                    showFloatingBonus(rect.left + rect.width/2 - 20, rect.top, color);
+                }
+
+                students.forEach(s => {
+                    if (growReading) {
+                        const grew = s.tryGrowReading();
+                        if (!grew) limitReached = true;
                     }
                     
-                    // 按鈕點擊效果
-                    button.classList.add('clicked');
-                    button.disabled = true;
+                    const spawnInterval = growReading ? 30 : 0;
+                    for(let i=0; i < count; i++) {
+                        setTimeout(() => spawnParticle(actionId, s), i * spawnInterval);
+                    }
                     
-                    try {
-                        // 複製文章內容（保留所有空格和換行）
-                        await navigator.clipboard.writeText(articleContent.textContent);
-                        
-                        // 顯示成功訊息
-                        statusMessage.classList.add('show');
-                        
-                        // 按鈕文字變化
-                        button.classList.add('copied');
-                        
-                        // 2.5秒後恢復按鈕
-                        setTimeout(() => {
-                            button.classList.remove('clicked', 'copied');
-                            button.disabled = false;
-                            statusMessage.classList.remove('show');
-                        }, 2500);
-                        
-                    } catch (err) {
-                        console.error('複製失敗:', err);
-                        alert('複製失敗，請手動選取文字並複製');
-                        button.classList.remove('clicked');
-                        button.disabled = false;
+                    if (!growReading && s.readingHeight > 0.5) {
+                        setTimeout(()=>spawnParticle(actionId, s), 300);
                     }
                 });
-            });
+
+                let msg = name;
+                if (isBonus) msg += " (教學相長！)";
+                
+                if (growReading && limitReached) {
+                    setStatus(msg + " 但有學生達資質上限。", true);
+                } else {
+                    setStatus(msg);
+                }
+
+                randomizeStudentNeed();
+            }
+        }
+
+        document.getElementById('btn-read').addEventListener('click', () => {
+            handleAction('read', 1.0, 25, "增加閱讀量：提升維度！", true);
         });
+
+        document.getElementById('btn-fun').addEventListener('click', () => {
+            handleAction('fun', 3.0, 8, "設計趣味教學：氣氛活躍。");
+        });
+
+        document.getElementById('btn-plan').addEventListener('click', () => {
+            handleAction('plan', 3.0, 8, "認真備課：知識傳遞。");
+        });
+
+        document.getElementById('btn-drill').addEventListener('click', () => {
+            handleAction('drill', 3.0, 10, "操練與批改：填塞訓練。");
+        });
+
+        // ==========================================
+        // 行政與系統
+        // ==========================================
+        document.getElementById('btn-admin').addEventListener('click', () => {
+            const cost = parseFloat(document.getElementById('rng-admin').value);
+            
+            if (!hasDoneAdmin) {
+                if (TEACHER.currentEnergy >= cost) {
+                    TEACHER.currentEnergy -= cost;
+                    setStatus("完成行政工作，可進入下學年。");
+                } else {
+                    const overdraft = cost - TEACHER.currentEnergy;
+                    TEACHER.energyDebt += overdraft;
+                    TEACHER.currentEnergy = 0;
+                    setStatus(`勉強應付行政 (透支 ${overdraft.toFixed(1)}，下學年償還)...`, true);
+                }
+                hasDoneAdmin = true;
+                updateUI();
+            }
+        });
+
+        document.getElementById('btn-recover').addEventListener('click', () => {
+            if (TEACHER.recoveriesLeft > 0) {
+                TEACHER.currentEnergy = TEACHER.maxEnergy;
+                TEACHER.recoveriesLeft--;
+                updateUI();
+                setStatus("休息恢復精力。");
+            }
+        });
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (!hasDoneAdmin) {
+                setStatus("必須先完成行政工作！", true);
+                return;
+            }
+            if (currentGradeIndex >= 5) return;
+
+            TEACHER.age++;
+            calcMaxEnergy(); 
+            
+            currentGradeIndex++;
+            TEACHER.recoveriesLeft = CONFIG.maxRecoveries;
+            
+            let debtMsg = "";
+            let netEnergy = TEACHER.maxEnergy;
+            
+            if (TEACHER.energyDebt > 0) {
+                netEnergy -= TEACHER.energyDebt;
+                debtMsg = ` (已扣除透支: ${TEACHER.energyDebt.toFixed(1)})`;
+                TEACHER.energyDebt = 0; 
+                if (netEnergy < 0) netEnergy = 0; 
+            }
+            TEACHER.currentEnergy = netEnergy;
+            
+            hasDoneAdmin = false;
+            randomizeStudentNeed();
+
+            setStatus(`新學年：${GRADES[currentGradeIndex]}，年齡 ${TEACHER.age}，最大心力 ${TEACHER.maxEnergy.toFixed(1)}${debtMsg}`);
+
+            students.forEach(s => {
+                s.growGrade();
+                let change = 0;
+                if (s.type === STUDENT_TYPES.HIGH) change = Math.random() > 0.6 ? Math.floor(Math.random() * 3) + 1 : -1;
+                else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random() * 4 + 2);
+                else change = -Math.floor(Math.random() * 5 + 6);
+
+                if (change < 0) {
+                    for (let i = 0; i < Math.abs(change); i++) {
+                        const p = s.landedParticles.pop();
+                        if(p) { scene.remove(p); particles = particles.filter(x => x !== p); }
+                    }
+                } else {
+                    for (let i = 0; i < change; i++) spawnDirectLandedParticle(s);
+                }
+                s.updateLabelText();
+            });
+            updateUI();
+        });
+
+        function getDSEResult(totalHeight) {
+            const roll = Math.random();
+            if (totalHeight < 1.5) {
+                if (roll < 0.7) return 'LV1';
+                if (roll < 0.95) return 'LV2';
+                return 'LV3';
+            } else if (totalHeight < 3.5) {
+                if (roll < 0.3) return 'LV2';
+                if (roll < 0.7) return 'LV3';
+                if (roll < 0.95) return 'LV4';
+                return 'LV5';
+            } else {
+                if (roll < 0.2) return 'LV4';
+                if (roll < 0.6) return 'LV5';
+                if (roll < 0.9) return 'LV5*';
+                return 'LV5**';
+            }
+        }
+
+        document.getElementById('btn-dse').addEventListener('click', () => {
+            isDseMode = true;
+            let resultHTML = "";
+            let scoreSum = 0;
+            const scoreMap = {'LV1':1, 'LV2':2, 'LV3':3, 'LV4':4, 'LV5':5, 'LV5*':6, 'LV5**':7};
+
+            students.forEach((s, idx) => {
+                const h = s.getTotalHeight();
+                const grade = getDSEResult(h);
+                const score = scoreMap[grade];
+                scoreSum += score;
+                
+                let color = "#333";
+                if(score <= 2) color = "#c0392b";
+                if(score >= 6) color = "#27ae60";
+
+                resultHTML += `<div>學生 ${idx+1} (<span style="color:${s.type.color}">${s.type.name}</span>): <span style="color:${color}; font-weight:bold;">${grade}</span> (維度:${h.toFixed(1)}, 知識:${s.landedParticles.length})</div>`;
+            });
+
+            const avgScore = scoreSum / students.length;
+            let msg = avgScore >= 4 
+                ? "「做得好！這次 DSE 成績十分亮麗，這充分證明了<b>『自主學習』及『課後拔尖補底』策略行之有效</b>！同事們只要緊隨學校的發展方向，定能帶領學生再創高峰！來年我們繼續增加補課！」" 
+                : "「看到這樣的成績，我稍微有點擔心。<b>我的意思不是說同事你沒有盡力</b>，我相信大家都付出了時間。但客觀數據反映出，<b>學生的潛能尚未被完全發揮</b>。來年我們繼續增加補課，以回應學生的學習需要！」";
+
+            document.getElementById('dse-results').innerHTML = resultHTML;
+            document.getElementById('principal-msg').innerHTML = msg;
+            document.getElementById('modal-overlay').style.display = 'flex';
+        });
+
+        document.getElementById('btn-restart').addEventListener('click', () => location.reload());
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            students.forEach(s => {
+                const pos = new THREE.Vector3(s.xPos, s.getRimY() + 1.5, 0);
+                pos.project(camera);
+                const x = (pos.x * .5 + .5) * window.innerWidth;
+                const y = (pos.y * -.5 + .5) * window.innerHeight;
+                s.labelEl.style.left = `${x}px`;
+                s.labelEl.style.top = `${y}px`;
+            });
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                const s = p.userData.student;
+                
+                if (p.userData.state === 'falling') {
+                    p.position.add(p.userData.vel);
+                    p.rotation.x += 0.05; p.rotation.y += 0.05;
+                    p.userData.vel.y -= 0.008;
+
+                    const rimY = s.getRimY();
+                    if (!p.userData.rejected) {
+                        const dx = p.position.x - s.xPos;
+                        const dz = p.position.z;
+                        const dist = Math.sqrt(dx*dx + dz*dz);
+                        
+                        if (p.position.y < rimY + 0.5 && p.position.y > 0) {
+                            if (dist < 1.8) {
+                                const fillLevel = s.landedParticles.length * 0.006;
+                                if (fillLevel < rimY) {
+                                    if (p.position.y <= Math.max(fillLevel, 0.2)) {
+                                        p.position.y = fillLevel + Math.random() * 0.2;
+                                        p.userData.state = 'landed';
+                                        s.landedParticles.push(p);
+                                        s.updateLabelText();
+                                        p.rotation.set(0, Math.random()*Math.PI, 0);
+                                        const r = Math.random() * 1.5;
+                                        const t = Math.random() * Math.PI * 2;
+                                        p.position.x = s.xPos + r * Math.cos(t);
+                                        p.position.z = r * Math.sin(t);
+                                    }
+                                } else {
+                                    p.userData.vel.set((Math.random()-0.5)*0.5, 0.2, (Math.random()-0.5)*0.5);
+                                    p.userData.state = 'spilling';
+                                }
+                            } else if (dist < 2.2) {
+                                p.userData.vel.x = dx * 0.1; 
+                                p.userData.vel.z = dz * 0.1;
+                                p.userData.state = 'spilling';
+                            }
+                        }
+                    }
+                    if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
+                } else if (p.userData.state === 'spilling') {
+                    p.position.add(p.userData.vel);
+                    p.userData.vel.y -= 0.01;
+                    if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
+                }
+            }
+            renderer.render(scene, camera);
+        }
+
+        document.getElementById('sel-student-count').addEventListener('change', (e) => initStudents(parseInt(e.target.value)));
+        document.getElementById('rng-admin').addEventListener('input', updateUI);
+        
+        randomizeStudentNeed(); 
+        document.getElementById('sel-student-count').value = "5";
+        initStudents(5);
+        updateUI();
+        animate();
+
     </script>
 </body>
 </html>
