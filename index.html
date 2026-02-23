@@ -13,13 +13,13 @@
             --text-sub: #9C9893;
             
             /* --- 莫蘭迪色系 (教學行動 & 粒子) --- */
-            --accent-read: #7C9473;  /* 霧灰綠 (閱讀) */
-            --accent-fun: #CF8E8E;   /* 藕粉色 (趣味) */
-            --accent-plan: #7B9ACC;  /* 霧霾藍 (備課) */
-            --accent-drill: #C59458; /* 髒橘色 (操練) */
+            --accent-read: #7C9473;
+            --accent-fun: #CF8E8E;
+            --accent-plan: #7B9ACC;
+            --accent-drill: #C59458;
             
-            --accent-admin: #8D857F; /* 岩灰色 (行政) */
-            --accent-dse: #A65E5E;   /* 磚紅色 (DSE) */
+            --accent-admin: #8D857F;
+            --accent-dse: #A65E5E;
             
             /* --- 學生資質標籤顏色 --- */
             --color-high: #4E6C50;
@@ -72,7 +72,7 @@
             position: absolute;
             top: 0; left: 0; width: 100%;
             height: auto;
-            max-height: 45vh;
+            max-height: 50vh;
             background: var(--panel-bg);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -109,7 +109,6 @@
         .stat-label { font-size: 11px; color: var(--text-sub); margin-bottom: 2px; }
         .stat-value { font-size: 16px; font-weight: bold; color: var(--text-main); height: 24px; display: flex; align-items: center; }
         
-        /* 年齡修訂樣式 */
         .editable {
             cursor: pointer;
             transition: color 0.2s;
@@ -117,7 +116,6 @@
         }
         .editable:hover { border-bottom: 1px dashed var(--text-sub); }
         
-        /* 內嵌輸入框樣式 */
         .inline-input {
             width: 40px;
             font-family: inherit;
@@ -141,7 +139,7 @@
             box-shadow: 0 3px 6px rgba(0,0,0,0.05);
             border: 1px solid rgba(0,0,0,0.05);
             min-width: 90px;
-            position: relative; /* For bonus positioning if needed, though we use absolute body */
+            position: relative;
         }
         button:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 5px 12px rgba(0,0,0,0.1); }
         button:active:not(:disabled) { transform: scale(0.96); }
@@ -151,7 +149,6 @@
         .btn-txt { font-size: 11px; font-weight: bold; }
         .btn-cost { font-size: 10px; opacity: 0.7; margin-top: 2px; }
 
-        /* 使用莫蘭迪色變數 */
         .btn-read { border-bottom: 3px solid var(--accent-read); }
         .btn-fun { border-bottom: 3px solid var(--accent-fun); }
         .btn-plan { border-bottom: 3px solid var(--accent-plan); }
@@ -177,13 +174,16 @@
 
         #status-text {
             font-size: 12px; font-weight: bold; color: var(--accent-plan);
-            margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            margin-top: 8px;
+            white-space: normal; 
+            overflow: visible; 
+            text-overflow: clip;
+            line-height: 1.4;
             max-width: 250px;
         }
         .warning-text { color: var(--accent-dse) !important; animation: shake 0.5s; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
-        /* 學生需求指示器 */
         #need-indicator {
             background: #fff;
             padding: 5px 10px;
@@ -199,7 +199,6 @@
         }
         .need-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
-        /* Bonus 漂浮文字樣式 */
         .floating-bonus {
             position: absolute;
             font-size: 14px;
@@ -237,6 +236,7 @@
                 -webkit-overflow-scrolling: touch;
             }
             button { padding: 8px 6px; min-width: 80px; flex-shrink: 0; }
+            #status-text { max-width: 100%; }
         }
 
         #modal-overlay {
@@ -268,7 +268,6 @@
             <div class="stat-row">
                 <div class="stat-box">
                     <span class="stat-label">年齡</span>
-                    <!-- 移除括號提示，直接點擊數字 -->
                     <span class="stat-value editable" id="disp-age">22</span>
                 </div>
                 <div class="stat-box">
@@ -379,7 +378,6 @@
                 pDrill: parseInt(style.getPropertyValue('--accent-drill').trim().replace('#', '0x')),
                 pReject: 0xAAAAAA,
                 
-                // CSS 字串形式供獎勵提示使用
                 cssRead: style.getPropertyValue('--accent-read').trim(),
                 cssFun: style.getPropertyValue('--accent-fun').trim(),
                 cssPlan: style.getPropertyValue('--accent-plan').trim(),
@@ -398,6 +396,7 @@
         };
 
         let currentNeed = 'read'; 
+        let targetYCamera = 9.0; // 用於固定相機高度
 
         function calcMaxEnergy() {
             let base = 10;
@@ -411,12 +410,9 @@
         }
         calcMaxEnergy();
 
-        // ==========================================
-        // 直接年齡修訂 (Requirement 1)
-        // ==========================================
         const ageEl = document.getElementById('disp-age');
         ageEl.addEventListener('click', function() {
-            if (this.querySelector('input')) return; // 已經在編輯中
+            if (this.querySelector('input')) return; 
 
             const currentVal = this.innerText;
             this.innerHTML = '';
@@ -426,16 +422,15 @@
             input.value = currentVal;
             input.className = 'inline-input';
             
-            // 儲存邏輯
             const save = () => {
                 let val = parseInt(input.value);
                 if (!isNaN(val) && val > 0 && val < 100) {
                     TEACHER.age = val;
                     calcMaxEnergy();
-                    this.innerText = val; // 恢復文字顯示
-                    updateUI(); // 更新相關數值(心力上限)
+                    this.innerText = val; 
+                    updateUI(); 
                 } else {
-                    this.innerText = TEACHER.age; // 恢復原值
+                    this.innerText = TEACHER.age; 
                 }
             };
 
@@ -450,9 +445,6 @@
             input.focus();
         });
 
-        // ==========================================
-        // 獎勵提示 (Requirement 2)
-        // ==========================================
         function showFloatingBonus(x, y, color) {
             const el = document.createElement('div');
             el.className = 'floating-bonus';
@@ -462,7 +454,6 @@
             el.style.top = y + 'px';
             document.body.appendChild(el);
             
-            // 動畫結束後移除
             setTimeout(() => {
                 el.remove();
             }, 1200);
@@ -483,7 +474,7 @@
         let controls; 
 
         // ==========================================
-        // Three.js 場景 (省略部分與前版相同)
+        // Three.js 場景
         // ==========================================
         const scene = new THREE.Scene();
         scene.fog = new THREE.Fog(CONFIG.colors.bg, 20, 90);
@@ -496,13 +487,27 @@
         renderer.shadowMap.enabled = false;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
+        // 修改：啟用平移功能 (Pan) 以便手機操控
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableRotate = false; 
-        controls.enablePan = false;    
-        controls.enableZoom = true;    
+        controls.enableZoom = true;
+        controls.enablePan = true;          // 啟用平移
+        controls.screenSpacePanning = true; // 平移方向平行於畫面（左右上下）
         controls.minDistance = 20;     
         controls.maxDistance = 80;     
         controls.zoomSpeed = 1.0;
+
+        // 設定觸控：單指平移，雙指縮放
+        controls.touches = {
+            ONE: THREE.TOUCH.PAN,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+        // 設定滑鼠：左鍵平移 (電腦版方便測試)
+        controls.mouseButtons = {
+            LEFT: THREE.MOUSE.PAN,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.ROTATE
+        };
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
         scene.add(ambientLight);
@@ -654,13 +659,16 @@
         }
 
         function updateCamera(count) {
-            const targetY = 9.0; 
             const isMobile = window.innerWidth < 800;
+            
+            // 手機版讓相機向上看(位置低一點)，讓學生容器更貼近螢幕下方
+            targetYCamera = isMobile ? 13.0 : 9.0;
             const baseZ = isMobile ? 40 : 28; 
             const zDist = baseZ + (count * 2.0); 
 
+            // 重置 OrbitControls 的 target，確保切換人數時視角居中
+            gsap.to(controls.target, { x: 0, y: targetYCamera, z: 0, duration: 1.0 });
             gsap.to(camera.position, { x: 0, y: 15, z: zDist, duration: 1.0, onUpdate: () => controls.update() });
-            gsap.to(controls.target, { x: 0, y: targetY, z: 0, duration: 1.0 });
         }
 
         window.addEventListener('resize', () => {
@@ -768,7 +776,6 @@
         }
 
         function updateUI() {
-            // 注意：不要覆蓋編輯中的 input
             const ageDisplay = document.getElementById('disp-age');
             if (!ageDisplay.querySelector('input')) {
                 ageDisplay.innerText = TEACHER.age;
@@ -812,13 +819,11 @@
             return actual;
         }
 
-        // ==========================================
-        // 按鈕邏輯 (含 Bonus 視覺)
-        // ==========================================
-        
+        // 修改：降低 Bonus 的比例，避免過度獎勵
         function getParticleCount(baseCount, actionId) {
             if (actionId === currentNeed) {
-                const bonus = Math.ceil(baseCount * 0.3); 
+                // 將 Bonus 比例從 0.3 (30%) 降低到 0.2 (20%)，避免一次爆發太多
+                const bonus = Math.ceil(baseCount * 0.2); 
                 return { count: baseCount + bonus, isBonus: true };
             }
             return { count: baseCount, isBonus: false };
@@ -829,7 +834,6 @@
                 const { count, isBonus } = getParticleCount(baseParticles, actionId);
                 let limitReached = false;
                 
-                // 視覺 Bonus 處理
                 if (isBonus) {
                     const btn = document.getElementById('btn-' + actionId);
                     const rect = btn.getBoundingClientRect();
@@ -872,7 +876,8 @@
         }
 
         document.getElementById('btn-read').addEventListener('click', () => {
-            handleAction('read', 1.0, 25, "增加閱讀量：提升維度！", true);
+            // 修改：將基礎粒子數從 25 降為 14 (其他是8~10，14約多出1/3)
+            handleAction('read', 1.0, 14, "增加閱讀量：提升維度！", true);
         });
 
         document.getElementById('btn-fun').addEventListener('click', () => {
@@ -887,9 +892,6 @@
             handleAction('drill', 3.0, 10, "操練與批改：填塞訓練。");
         });
 
-        // ==========================================
-        // 行政與系統
-        // ==========================================
         document.getElementById('btn-admin').addEventListener('click', () => {
             const cost = parseFloat(document.getElementById('rng-admin').value);
             
@@ -1020,6 +1022,17 @@
             requestAnimationFrame(animate);
             controls.update();
 
+            // 修改：限制平移範圍 (只允許左右平移，且不能移出邊界)
+            if (controls.target) {
+                const boundary = (students.length * 2.5); // 根據學生數量計算邊界
+                // 限制 X 軸範圍
+                if (controls.target.x < -boundary) controls.target.x = -boundary;
+                if (controls.target.x > boundary) controls.target.x = boundary;
+                
+                // 強制鎖定 Y 軸高度 (防止上下拖曳跑版)
+                controls.target.y = targetYCamera;
+            }
+
             students.forEach(s => {
                 const pos = new THREE.Vector3(s.xPos, s.getRimY() + 1.5, 0);
                 pos.project(camera);
@@ -1027,6 +1040,13 @@
                 const y = (pos.y * -.5 + .5) * window.innerHeight;
                 s.labelEl.style.left = `${x}px`;
                 s.labelEl.style.top = `${y}px`;
+                
+                // 處理標籤在畫面外時的顯示 (可選：如果需要標籤淡出)
+                if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) {
+                    s.labelEl.style.opacity = 0;
+                } else {
+                    s.labelEl.style.opacity = 1;
+                }
             });
 
             for (let i = particles.length - 1; i >= 0; i--) {
