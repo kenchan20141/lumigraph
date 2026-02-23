@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>中文教師的一生</title>
+    <title>中文教師的一生：職場生存戰 (數值平衡版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -17,7 +17,7 @@
             --accent-fun: #CF8E8E;
             --accent-plan: #7B9ACC;
             --accent-drill: #C59458;
-            --accent-hea: #95a5a6; /* 躺平顏色 */
+            --accent-hea: #95a5a6; 
             
             --accent-admin: #8D857F;
             --accent-dse: #A65E5E;
@@ -222,15 +222,27 @@
         }
         .need-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
+        /* 浮動文字優化 */
         .floating-bonus {
-            position: absolute; font-size: 14px; font-weight: bold; pointer-events: none; z-index: 100;
-            animation: floatUp 1.2s ease-out forwards; white-space: nowrap;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+            position: absolute; 
+            font-size: 15px; 
+            font-weight: 800; 
+            pointer-events: none; 
+            z-index: 150; /* 確保高於 Modal */
+            animation: floatUp 1.0s ease-out forwards; 
+            white-space: nowrap;
+            /* 增加文字描邊，防止重疊時看不清 */
+            text-shadow: 
+                -1px -1px 0 #fff,  
+                 1px -1px 0 #fff,
+                -1px  1px 0 #fff,
+                 1px  1px 0 #fff;
+            transform-origin: center;
         }
         @keyframes floatUp {
             0% { transform: translateY(0) scale(0.8); opacity: 0; }
-            20% { transform: translateY(-10px) scale(1.1); opacity: 1; }
-            100% { transform: translateY(-40px) scale(1); opacity: 0; }
+            15% { transform: translateY(-15px) scale(1.1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(0.9); opacity: 0; }
         }
 
         /* 手機適配 */
@@ -377,27 +389,27 @@
                 <button id="btn-read" class="btn-read">
                     <span class="btn-icon">📚</span>
                     <span class="btn-txt">增加閱讀量</span>
-                    <span class="btn-cost">-1 E / -2 Hap</span>
+                    <span class="btn-cost">-1 E / -1 Hap</span>
                 </button>
                 <button id="btn-fun" class="btn-fun">
                     <span class="btn-icon">🍬</span>
                     <span class="btn-txt">設計趣味教學</span>
-                    <span class="btn-cost">-3 E / -3 Hap</span>
+                    <span class="btn-cost">-3 E / -2 Hap</span>
                 </button>
                 <button id="btn-plan" class="btn-plan">
                     <span class="btn-icon">📝</span>
                     <span class="btn-txt">認真備課</span>
-                    <span class="btn-cost">-3 E / -3 Hap</span>
+                    <span class="btn-cost">-3 E / -2 Hap</span>
                 </button>
                 <button id="btn-drill" class="btn-drill">
                     <span class="btn-icon">⚔️</span>
                     <span class="btn-txt">試題操練</span>
-                    <span class="btn-cost">-3 E / -4 Hap</span>
+                    <span class="btn-cost">-3 E / -2 Hap</span>
                 </button>
                 <button id="btn-hea" class="btn-hea">
                     <span class="btn-icon">☕</span>
                     <span class="btn-txt">摸魚 (Hea教)</span>
-                    <span class="btn-cost">-0.5 E / +0 Hap</span>
+                    <span class="btn-cost">-0.5 E / +1 Hap</span>
                 </button>
             </div>
         </div>
@@ -452,7 +464,7 @@
                 </div>
                 <div class="summary-row">
                     <span>幸福感變化：</span>
-                    <span class="summary-val" id="sum-happy">+5 (睡眠充足)</span>
+                    <span class="summary-val" id="sum-happy">+5.0 (睡眠充足)</span>
                 </div>
                 <div class="summary-row">
                     <span>課業堆積：</span>
@@ -505,11 +517,12 @@
 
             <div class="ow-section-title">娛樂活動 (消耗 1 心力, +6~8 幸福)</div>
             <div class="ow-btn-grid">
-                <button class="ow-btn" onclick="doEntertainment('dinner')"><span class="ow-icon">🍲</span><span class="ow-label">約朋友吃飯</span></button>
-                <button class="ow-btn" onclick="doEntertainment('movie')"><span class="ow-icon">🎬</span><span class="ow-label">看電影</span></button>
-                <button class="ow-btn" onclick="doEntertainment('shopping')"><span class="ow-icon">🛍️</span><span class="ow-label">逛街</span></button>
-                <button class="ow-btn" onclick="doEntertainment('read')"><span class="ow-icon">📖</span><span class="ow-label">閱讀</span></button>
-                <button class="ow-btn" onclick="doEntertainment('sport')"><span class="ow-icon">🏃</span><span class="ow-label">運動</span></button>
+                <!-- 更新按鈕 ID 並傳遞 -->
+                <button class="ow-btn" id="btn-ent-dinner" onclick="doEntertainment('dinner', 'btn-ent-dinner')"><span class="ow-icon">🍲</span><span class="ow-label">約朋友吃飯</span></button>
+                <button class="ow-btn" id="btn-ent-movie" onclick="doEntertainment('movie', 'btn-ent-movie')"><span class="ow-icon">🎬</span><span class="ow-label">看電影</span></button>
+                <button class="ow-btn" id="btn-ent-shopping" onclick="doEntertainment('shopping', 'btn-ent-shopping')"><span class="ow-icon">🛍️</span><span class="ow-label">逛街</span></button>
+                <button class="ow-btn" id="btn-ent-read" onclick="doEntertainment('read', 'btn-ent-read')"><span class="ow-icon">📖</span><span class="ow-label">閱讀</span></button>
+                <button class="ow-btn" id="btn-ent-sport" onclick="doEntertainment('sport', 'btn-ent-sport')"><span class="ow-icon">🏃</span><span class="ow-label">運動</span></button>
                 <button class="ow-btn" onclick="doEntertainment('sleep_early')"><span class="ow-icon">😴</span><span class="ow-label">直接睡覺</span><br><span style="font-size:9px;color:green;">+5 幸福</span></button>
             </div>
 
@@ -558,7 +571,7 @@
                 pFun: parseInt(style.getPropertyValue('--accent-fun').trim().replace('#', '0x')),
                 pPlan: parseInt(style.getPropertyValue('--accent-plan').trim().replace('#', '0x')),
                 pDrill: parseInt(style.getPropertyValue('--accent-drill').trim().replace('#', '0x')),
-                pHea: parseInt(style.getPropertyValue('--accent-hea').trim().replace('#', '0x')), // 躺平粒子顏色
+                pHea: parseInt(style.getPropertyValue('--accent-hea').trim().replace('#', '0x')), 
                 pReject: 0xAAAAAA,
                 cssRead: style.getPropertyValue('--accent-read').trim(),
                 cssFun: style.getPropertyValue('--accent-fun').trim(),
@@ -574,7 +587,7 @@
             currentEnergy: 10, 
             energyDebt: 0,
             
-            happiness: 60, // 初始降低，增加危機感
+            happiness: 60, 
             maxHappiness: 100,
 
             gradingPile: 0, 
@@ -585,13 +598,12 @@
             hasEntertainedTonight: false,
             bonusEnergyNextDay: 0,
 
-            // 結算數據暫存
             dailyStats: {
                 happyChange: 0,
                 adminCount: 0,
                 entertained: false,
                 workAdded: 0,
-                complaintLoss: 0 // 每日被投訴扣減的幸福度累積
+                complaintLoss: 0 
             }
         };
 
@@ -616,7 +628,7 @@
                 complaint: ["又係做卷？好悶呀...", "這條題目難到癲。", "做完都唔知啱定錯，幾時改？", "我手都寫斷啦。", "可唔可以唔好再操卷？", "又是Past Paper...", "見到題目就想嘔。"],
                 reflection: ["雖然不想做，但為了考試...", "做多條可能加多一分。", "唯有死操爛操。", "希望能熟手點。"]
             },
-            hea: { // 躺平/摸魚對話
+            hea: {
                 positive: ["阿Sir今日心情好似幾輕鬆。", "無功課？正呀！", "自修最好，我可以溫其他科。", "終於有得抖下。"],
                 complaint: ["阿Sir你係咪無備課？", "交學費黎自修？", "學唔到野囉...", "咁樣上堂得唔得架？"],
                 reflection: ["老師可能太攰啦。", "自己溫書算數。", "咁樣過一堂都幾好。", "大家都休息下啦。"]
@@ -671,13 +683,18 @@
             setTimeout(() => el.remove(), 1200);
         }
         
-        // 封裝一個通用回饋函數
-        function showFeedback(btnId, text, color) {
+        // 優化版：加入 Slot 參數 (0, 1, 2) 來錯開位置
+        function showFeedback(btnId, text, color, slot = 0) {
             const btn = document.getElementById(btnId);
-            if(btn) {
-                const rect = btn.getBoundingClientRect();
-                showFloatingBonus(rect.left + rect.width/2 - 20, rect.top, text, color);
-            }
+            if (!btn) return;
+            const rect = btn.getBoundingClientRect();
+            // 計算按鈕中心 X
+            const x = rect.left + rect.width / 2 - 20;
+            // 基礎 Y 是按鈕上方，根據 slot 往上/下偏移
+            const baseY = rect.top - 20;
+            const y = baseY + (slot * 25); 
+
+            showFloatingBonus(x, y, text, color);
         }
 
         // ==========================================
@@ -755,7 +772,7 @@
                 if (!this.type.canGrow || this.getTotalHeight() >= this.type.maxHeight) { this.shake(); return false; }
                 this.readingHeight += 0.4; 
                 this.updateVisuals(); 
-                changeHappiness(0.1); // 學生增長微量增加幸福感 (成就感)
+                changeHappiness(0.1); 
                 return true;
             }
             growGrade() {
@@ -947,18 +964,25 @@
 
         function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
             if (spendEnergy(cost) > 0) {
-                // 扣除幸福度 (教學很累)
+                // 1. 顯示心力消耗 (Slot 0 - 最上)
+                showFeedback('btn-' + actionId, `-${cost} E`, 'var(--accent-night)', 0);
+
+                // 2. 處理幸福度 (Slot 1 - 中間)
                 if (happyCost > 0) {
                     changeHappiness(-happyCost);
-                    showFeedback('btn-' + actionId, `-${happyCost} Hap`, 'var(--accent-dse)');
+                    showFeedback('btn-' + actionId, `-${happyCost} Hap`, 'var(--accent-dse)', 1);
                 } else if (happyCost < 0) {
                      // 負的 cost 代表加分 (躺平)
-                    changeHappiness(Math.abs(happyCost));
+                    const gain = Math.abs(happyCost);
+                    changeHappiness(gain);
+                    showFeedback('btn-' + actionId, `+${gain} Hap`, 'var(--accent-happy)', 1);
                 }
 
                 let { count, isBonus } = (actionId === currentNeed) ? { count: Math.ceil(baseParticles*1.2), isBonus: true } : { count: baseParticles, isBonus: false };
+                
+                // 3. 處理 Bonus 顯示 (Slot 2 - 下方)
                 if (isBonus) {
-                    showFeedback('btn-' + actionId, '+Bonus!', CONFIG.colors.cssHappy);
+                    showFeedback('btn-' + actionId, '+Bonus!', CONFIG.colors.cssHappy, 2);
                 }
                 
                 let limitReached = false;
@@ -991,7 +1015,6 @@
             let isComplaint = false;
 
             if (actionId === 'hea') {
-                // 躺平大多是疑惑或輕鬆，少投訴，少讚賞
                 const r = Math.random();
                 if (r < 0.3) { text = opts.positive[Math.floor(Math.random()*opts.positive.length)]; bubbleClass = "bubble-hea"; }
                 else if (r < 0.6) { text = opts.reflection[Math.floor(Math.random()*opts.reflection.length)]; bubbleClass = "bubble-hea"; }
@@ -1031,21 +1054,22 @@
             }
         }
 
-        // 行動綁定
-        // handleAction(ID, EnergyCost, HappyCost, Particles, Name, GrowReading)
-        document.getElementById('btn-read').addEventListener('click', () => handleAction('read', 1.0, 2, 14, "增加閱讀量：提升維度！", true));
-        document.getElementById('btn-fun').addEventListener('click', () => handleAction('fun', 3.0, 3, 8, "設計趣味教學：氣氛活躍。"));
-        document.getElementById('btn-plan').addEventListener('click', () => handleAction('plan', 3.0, 3, 8, "認真備課：知識傳遞。"));
-        document.getElementById('btn-drill').addEventListener('click', () => handleAction('drill', 3.0, 4, 10, "試題操練：機械式訓練。"));
-        // 躺平：消耗極少體力，不扣心情(反而+0.2微調)，粒子極少(2)
-        document.getElementById('btn-hea').addEventListener('click', () => handleAction('hea', 0.5, -0.2, 2, "摸魚教學：得過且過。", false));
+        // 行動綁定：更新數值 (Reading: -1 Hap, Hea: +1 Hap, Others: -2 Hap)
+        document.getElementById('btn-read').addEventListener('click', () => handleAction('read', 1.0, 1, 14, "增加閱讀量：提升維度！", true));
+        document.getElementById('btn-fun').addEventListener('click', () => handleAction('fun', 3.0, 2, 8, "設計趣味教學：氣氛活躍。"));
+        document.getElementById('btn-plan').addEventListener('click', () => handleAction('plan', 3.0, 2, 8, "認真備課：知識傳遞。"));
+        document.getElementById('btn-drill').addEventListener('click', () => handleAction('drill', 3.0, 2, 10, "試題操練：機械式訓練。"));
+        document.getElementById('btn-hea').addEventListener('click', () => handleAction('hea', 0.5, -1, 2, "摸魚教學：得過且過。", false));
         
         document.getElementById('btn-grade-work').addEventListener('click', () => {
             if (spendEnergy(1.0) > 0) {
                 if (TEACHER.gradingPile > 0) {
                     TEACHER.gradingPile--;
                     changeHappiness(-2); // 批改扣心情
-                    showFeedback('btn-grade-work', '-2 Hap', 'var(--accent-dse)');
+                    
+                    showFeedback('btn-grade-work', '-1 E', 'var(--accent-night)', 0);
+                    showFeedback('btn-grade-work', '-2 Hap', 'var(--accent-dse)', 1);
+                    
                     setStatus("利用空堂時間批改了 1 份課業。");
                 } else {
                     setStatus("暫無課業需要批改。");
@@ -1061,7 +1085,10 @@
                 if (TEACHER.currentEnergy >= cost) {
                     TEACHER.currentEnergy -= cost; 
                     changeHappiness(-10); // 行政極度扣心情
-                    showFeedback('btn-admin', '-10 Hap', 'var(--accent-dse)');
+                    
+                    showFeedback('btn-admin', `-${cost} E`, 'var(--accent-night)', 0);
+                    showFeedback('btn-admin', '-10 Hap', 'var(--accent-dse)', 1);
+
                     TEACHER.dailyStats.adminCount = 1;
                     setStatus("完成行政工作。");
                 } else {
@@ -1165,7 +1192,8 @@
             document.getElementById('btn-do-grade').disabled = papersToGrade === 0;
         }
 
-        function doEntertainment(type) {
+        // 修改函數簽名，接收按鈕ID以顯示浮動文字
+        function doEntertainment(type, btnId) {
             if (type === 'sleep_early') {
                 if (!TEACHER.hasEntertainedTonight) {
                     TEACHER.bonusEnergyNextDay = 2; // 未娛樂直接睡 (體力回多D)
@@ -1186,7 +1214,10 @@
                 // 大幅調低娛樂回血量 (現實是殘酷的)
                 const happyGain = Math.floor(Math.random() * 3) + 6; // 6-8
                 changeHappiness(happyGain); 
-                showFeedback(event.target.id, `+${happyGain} Hap`, CONFIG.colors.cssHappy);
+                
+                // 在這裡加入動態回饋
+                showFeedback(btnId, '-1 E', 'var(--accent-night)', 0);
+                showFeedback(btnId, `+${happyGain} Hap`, CONFIG.colors.cssHappy, 1);
 
                 // 更新結束按鈕文字
                 const endBtn = document.getElementById('btn-end-day');
@@ -1202,7 +1233,7 @@
             TEACHER.bonusEnergyNextDay = amount; // 增加心力
             const happyGain = amount * 8; // 假期回血
             changeHappiness(happyGain);
-            showFeedback('btn-holiday-rest', `+${happyGain} Hap`, CONFIG.colors.cssHappy);
+            showFeedback('btn-holiday-rest', `+${happyGain} Hap`, CONFIG.colors.cssHappy, 1);
             
             // 假期休息後直接過年
             document.getElementById('btn-end-day').click();
@@ -1222,8 +1253,12 @@
                     TEACHER.energyDebt += diff;
                 }
                 TEACHER.gradingPile = Math.max(0, TEACHER.gradingPile - papersToGrade);
-                changeHappiness(-2 * papersToGrade);
-                showFeedback('btn-do-grade', `-${2 * papersToGrade} Hap`, 'var(--accent-dse)');
+                const happyLoss = 2 * papersToGrade;
+                changeHappiness(-happyLoss);
+                
+                showFeedback('btn-do-grade', `-${totalCost} E`, 'var(--accent-night)', 0);
+                showFeedback('btn-do-grade', `-${happyLoss} Hap`, 'var(--accent-dse)', 1);
+
                 updateOffWorkUI();
                 updateUI(); // 同步背景
             }
@@ -1253,7 +1288,8 @@
                 
                 const hChange = TEACHER.dailyStats.happyChange;
                 const hEl = document.getElementById('sum-happy');
-                hEl.innerText = (hChange > 0 ? "+" : "") + hChange;
+                // 日結修正：四捨五入至小數點後一位
+                hEl.innerText = (hChange > 0 ? "+" : "") + hChange.toFixed(1);
                 hEl.className = hChange > 0 ? "summary-val val-pos" : (hChange < 0 ? "summary-val val-neg" : "summary-val val-neu");
                 
                 document.getElementById('sum-pile').innerText = `+${TEACHER.dailyStats.workAdded} 份`;
