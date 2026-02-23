@@ -264,14 +264,76 @@
         .hidden { display: none !important; }
 
         /* 手機適配 */
+        /* 手機適配：垂直排列 + 分隔線 */
         @media (max-width: 800px) {
-            #top-dashboard { padding: 12px; gap: 12px; justify-content: flex-start; flex-direction: row; flex-wrap: wrap; }
-            .dash-section { border-right: none; padding-right: 0; flex: 1 1 auto; margin-bottom: 5px; }
-            .dash-section.action-section { flex: 1 1 100%; order: 3; }
-            .action-section .btn-group { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
-            button { padding: 8px 6px; min-width: 80px; flex-shrink: 0; }
-            #status-text { max-width: 100%; }
-            .speech-bubble { font-size: 11px; padding: 5px 8px; max-width: 110px; min-width: 60px; border-radius: 10px; }
+            #top-dashboard {
+                padding: 15px 20px;
+                /* 核心改動：轉為垂直排列 */
+                flex-direction: column;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                gap: 0; /* 間距改由 margin 控制 */
+                max-height: 60vh; /* 限制高度，內容過多可捲動 */
+            }
+
+            .dash-section {
+                /* 移除桌面版的右側分隔線 */
+                border-right: none;
+                padding-right: 0;
+                
+                /* 新增：底部分隔線 */
+                border-bottom: 1px dashed rgba(0,0,0,0.2);
+                padding-bottom: 15px;
+                margin-bottom: 15px;
+                
+                /* 強制佔滿寬度 */
+                width: 100%;
+                flex: 0 0 auto;
+            }
+
+            /* 移除最後一個區塊的分隔線 */
+            .dash-section:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
+                padding-bottom: 0;
+            }
+
+            /* 按鈕區塊設定 */
+            .dash-section.action-section {
+                flex: 0 0 auto;
+                order: 0; /* 依照 HTML 順序排列，若想把按鈕放最底可設為 10 */
+                width: 100%;
+                overflow: hidden; /* 防止撐開版面 */
+            }
+
+            /* 讓按鈕群組在手機上保持橫向排列並可滑動 */
+            .action-section .btn-group {
+                display: flex;
+                flex-wrap: nowrap !important; /* 強制不換行 */
+                overflow-x: auto; /* 允許左右滑動 */
+                padding-bottom: 8px;
+                -webkit-overflow-scrolling: touch;
+                gap: 8px;
+            }
+
+            /* 手機版按鈕樣式微調 */
+            button {
+                padding: 8px 6px;
+                min-width: 80px;
+                flex-shrink: 0; /* 防止按鈕被壓扁 */
+            }
+
+            #status-text {
+                max-width: 100%;
+            }
+
+            .speech-bubble {
+                font-size: 11px;
+                padding: 5px 8px;
+                max-width: 110px;
+                min-width: 60px;
+                border-radius: 10px;
+            }
         }
 
         /* 模態框 */
@@ -470,7 +532,7 @@
         </div>
 
         <div class="dash-section action-section" style="flex: 2;">
-            <div class="section-title">教學行動</div>
+            <div class="section-title">教學活動</div>
             
             <div id="need-indicator">
                 <span>學生當前需求:</span>
