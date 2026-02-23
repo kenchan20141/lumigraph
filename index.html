@@ -316,6 +316,44 @@
         .val-neg { color: var(--accent-dse); }
         .val-neu { color: #555; }
 
+        /* === 增加閱讀量按鈕 特別強化樣式 === */
+        #btn-read {
+            background-color: #effcf1; /* 淺綠色背景，區別於其他白底按鈕 */
+            border: 2px solid var(--accent-read); /* 四邊都有框線 */
+            border-bottom: 5px solid var(--accent-read); /* 底部特別加厚，增加立體感 */
+            min-width: 105px; /* 稍微寬一點 */
+            transform: scale(1.05); /* 預設比其他按鈕稍大 */
+            z-index: 5; /* 確保浮在最上層 */
+            box-shadow: 0 5px 15px rgba(78, 108, 80, 0.2); /* 綠色光暈陰影 */
+            animation: pulse-green 2s infinite; /* 呼吸燈動畫 */
+            margin-right: 5px; /* 增加一點右側間距 */
+        }
+
+        /* 滑鼠懸停時的效果強化 */
+        #btn-read:hover:not(:disabled) {
+            background-color: #dcedc8;
+            transform: scale(1.08) translateY(-3px); /* 放大並浮起 */
+            box-shadow: 0 8px 20px rgba(78, 108, 80, 0.3);
+        }
+
+        /* 強化按鈕內的文字與圖示 */
+        #btn-read .btn-icon {
+            font-size: 24px; /* 圖示放大 */
+            margin-bottom: 2px;
+        }
+        #btn-read .btn-txt {
+            color: var(--color-high); /* 文字改為深綠色 */
+            font-size: 13px; /* 字體加大 */
+            font-weight: 900; /* 特粗體 */
+        }
+
+        /* 定義綠色呼吸燈動畫 */
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(124, 148, 115, 0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(124, 148, 115, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(124, 148, 115, 0); }
+        }
+
     </style>
 </head>
 <body>
