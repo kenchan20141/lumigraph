@@ -1,10 +1,9 @@
-<!-- START OF FILE text/plain -->
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>中文教師的一生</title>
+    <title>中文老師模擬器</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -58,7 +57,7 @@
         .student-label {
             position: absolute;
             background: rgba(255, 255, 255, 0.95);
-            padding: 4px 8px;
+            padding: 5px 10px;
             border-radius: 12px;
             font-size: 11px;
             font-weight: bold;
@@ -67,7 +66,9 @@
             white-space: nowrap;
             transition: opacity 0.3s;
             border: 1px solid rgba(0,0,0,0.05);
-            opacity: 0.8;
+            opacity: 0.9;
+            text-align: center;
+            line-height: 1.3;
         }
 
         .speech-bubble {
@@ -116,7 +117,8 @@
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             box-shadow: var(--shadow);
             z-index: 20;
-            display: flex; flex-wrap: wrap; justify-content: center;
+            display: none; /* 初始隱藏，選完模式後顯示 */
+            flex-wrap: wrap; justify-content: center;
             padding: 15px 20px; box-sizing: border-box; gap: 20px;
             overflow-y: auto;
             border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -222,21 +224,16 @@
         }
         .need-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
-        /* 浮動文字優化 */
+        /* 浮動文字 */
         .floating-bonus {
             position: absolute; 
             font-size: 15px; 
             font-weight: 800; 
             pointer-events: none; 
-            z-index: 150; /* 確保高於 Modal */
+            z-index: 150; 
             animation: floatUp 1.0s ease-out forwards; 
             white-space: nowrap;
-            /* 增加文字描邊，防止重疊時看不清 */
-            text-shadow: 
-                -1px -1px 0 #fff,  
-                 1px -1px 0 #fff,
-                -1px  1px 0 #fff,
-                 1px  1px 0 #fff;
+            text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
             transform-origin: center;
         }
         @keyframes floatUp {
@@ -244,6 +241,27 @@
             15% { transform: translateY(-15px) scale(1.1); opacity: 1; }
             100% { transform: translateY(-50px) scale(0.9); opacity: 0; }
         }
+
+        /* 模式選擇畫面 */
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(242, 240, 235, 1); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        .mode-btn {
+            background: #fff; border: 2px solid var(--text-main); padding: 20px 40px;
+            margin: 10px; border-radius: 15px; font-size: 18px; font-weight: bold;
+            cursor: pointer; transition: all 0.3s; width: 280px; text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .mode-btn:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .mode-partial { border-color: var(--accent-plan); color: var(--accent-plan); }
+        .mode-full { border-color: var(--accent-dse); color: var(--accent-dse); }
+        .mode-desc { font-size:12px; font-weight:normal; display:block; margin-top:5px; color:#666; }
+
+        /* 隱藏元素 Helper Class */
+        .hidden { display: none !important; }
 
         /* 手機適配 */
         @media (max-width: 800px) {
@@ -272,59 +290,26 @@
             max-height: 90vh; overflow-y: auto;
         }
         
-        #offwork-box {
-            background: #F4F6F7;
-            border-color: var(--accent-night);
-            color: #2C3E50;
-        }
-        .offwork-header {
-            font-size: 24px; font-weight: bold; margin-bottom: 10px; color: var(--accent-night);
-            display: flex; justify-content: center; align-items: center; gap: 10px;
-        }
+        #offwork-box { background: #F4F6F7; border-color: var(--accent-night); color: #2C3E50; }
+        .offwork-header { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: var(--accent-night); display: flex; justify-content: center; align-items: center; gap: 10px; }
         .holiday-header { color: var(--accent-holiday) !important; }
-        
-        .offwork-stats {
-            display: flex; justify-content: space-around; background: #fff;
-            padding: 15px; border-radius: 12px; margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
+        .offwork-stats { display: flex; justify-content: space-around; background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         .ow-stat-val { font-size: 20px; font-weight: bold; }
         .ow-stat-label { font-size: 12px; color: #7f8c8d; }
-
-        .ow-section-title {
-            text-align: left; font-size: 14px; font-weight: bold; margin: 15px 0 8px 0; color: #7f8c8d; border-bottom: 1px solid #ddd; padding-bottom: 5px;
-        }
-
+        .ow-section-title { text-align: left; font-size: 14px; font-weight: bold; margin: 15px 0 8px 0; color: #7f8c8d; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
         .ow-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .ow-btn {
-            background: #fff; padding: 15px 5px; border-radius: 10px; border: 1px solid #ddd;
-            cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center;
-        }
+        .ow-btn { background: #fff; padding: 15px 5px; border-radius: 10px; border: 1px solid #ddd; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; }
         .ow-btn:hover:not(:disabled) { transform: translateY(-3px); border-color: var(--accent-night); }
         .ow-btn:disabled { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
         .ow-icon { font-size: 24px; margin-bottom: 5px; }
         .ow-label { font-size: 12px; font-weight: bold; }
-
-        .homework-panel {
-            background: #fff; padding: 15px; border-radius: 12px;
-            border: 1px solid #ddd; margin-top: 10px;
-        }
+        .homework-panel { background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-top: 10px; }
         .slider-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
         .work-cost-display { font-size: 12px; color: var(--accent-dse); font-weight: bold; margin-top: 5px; }
-
-        .sleep-btn {
-            width: 100%; background: var(--accent-night); color: #fff;
-            padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold;
-            margin-top: 25px; border: none; cursor: pointer;
-        }
+        .sleep-btn { width: 100%; background: var(--accent-night); color: #fff; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 25px; border: none; cursor: pointer; }
         .sleep-btn:hover:not(:disabled) { background: #1a252f; }
         .sleep-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #95a5a6; }
-        
-        .tag-late {
-            background: var(--accent-fun); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: none;
-        }
-
-        /* Summary Box Styles */
+        .tag-late { background: var(--accent-fun); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: none; }
         .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #ddd; }
         .summary-val { font-weight: bold; }
         .val-pos { color: green; }
@@ -334,6 +319,19 @@
     </style>
 </head>
 <body>
+
+    <!-- 模式選擇畫面 (已更新文字) -->
+    <div id="start-screen">
+        <h1 style="margin-bottom: 30px; font-size: 32px; color: var(--text-main);">中文教師的一生</h1>
+        <button class="mode-btn mode-partial" onclick="startGame('partial')">
+            局部體驗<br>
+            <span class="mode-desc">了解閱讀量與教學效益的關係。</span>
+        </button>
+        <button class="mode-btn mode-full" onclick="startGame('full')">
+            全面體驗<br>
+            <span class="mode-desc">讓用家感受到語文老師的辛勞。</span>
+        </button>
+    </div>
 
     <div id="canvas-container"></div>
     <div id="labels-container"></div>
@@ -349,16 +347,22 @@
                 <div class="stat-box">
                     <span class="stat-label">心力</span><span class="stat-value" id="disp-energy" style="color:var(--accent-plan)">10.0</span>
                 </div>
-                <div class="stat-box">
+                <!-- 局部體驗用 -->
+                <div class="stat-box mode-partial-el">
+                    <span class="stat-label">恢復</span><span class="stat-value" id="disp-recover">3/3</span>
+                </div>
+                <!-- 全面體驗用 -->
+                <div class="stat-box mode-full-el">
                     <span class="stat-label">幸福</span><span class="stat-value" id="disp-happy" style="color:var(--accent-happy)">60</span>
                 </div>
                 <div class="stat-box">
                     <span class="stat-label">年級</span><span class="stat-value" id="disp-grade">中一</span>
                 </div>
-                <div class="stat-box">
+                <!-- 全面體驗用 -->
+                <div class="stat-box mode-full-el">
                     <span class="stat-label">進度</span><span class="stat-value" id="disp-days">1/3</span>
                 </div>
-                <div class="stat-box">
+                <div class="stat-box mode-full-el">
                     <span class="stat-label">待批改</span><span class="stat-value" id="disp-workload">0</span>
                 </div>
             </div>
@@ -389,24 +393,25 @@
                 <button id="btn-read" class="btn-read">
                     <span class="btn-icon">📚</span>
                     <span class="btn-txt">增加閱讀量</span>
-                    <span class="btn-cost">-1 E / -1 Hap</span>
+                    <span class="btn-cost" id="cost-read">-1 E</span>
                 </button>
                 <button id="btn-fun" class="btn-fun">
                     <span class="btn-icon">🍬</span>
                     <span class="btn-txt">設計趣味教學</span>
-                    <span class="btn-cost">-3 E / -2 Hap</span>
+                    <span class="btn-cost" id="cost-fun">-3 E</span>
                 </button>
                 <button id="btn-plan" class="btn-plan">
                     <span class="btn-icon">📝</span>
                     <span class="btn-txt">認真備課</span>
-                    <span class="btn-cost">-3 E / -2 Hap</span>
+                    <span class="btn-cost" id="cost-plan">-3 E</span>
                 </button>
                 <button id="btn-drill" class="btn-drill">
                     <span class="btn-icon">⚔️</span>
                     <span class="btn-txt">試題操練</span>
-                    <span class="btn-cost">-3 E / -2 Hap</span>
+                    <span class="btn-cost" id="cost-drill">-3 E</span>
                 </button>
-                <button id="btn-hea" class="btn-hea">
+                <!-- 全面體驗用 -->
+                <button id="btn-hea" class="btn-hea mode-full-el">
                     <span class="btn-icon">☕</span>
                     <span class="btn-txt">摸魚 (Hea教)</span>
                     <span class="btn-cost">-0.5 E / +1 Hap</span>
@@ -425,14 +430,24 @@
                     <span class="btn-icon">📑</span><span class="btn-txt">應付行政</span>
                 </button>
                 
-                <button id="btn-grade-work" class="btn-grade-work">
+                <!-- 局部體驗用 -->
+                <button id="btn-recover" class="btn-system mode-partial-el">
+                    <span class="btn-icon">⚡</span><span class="btn-txt">休息恢復</span>
+                </button>
+                <!-- 全面體驗用 -->
+                <button id="btn-grade-work" class="btn-grade-work mode-full-el">
                     <span class="btn-icon">✍️</span><span class="btn-txt">批改堆積</span>
                     <span class="btn-cost">-1 E / -2 Hap</span>
                 </button>
-
-                <button id="btn-offwork" class="btn-offwork" style="display:none;">
+                <!-- 全面體驗用 -->
+                <button id="btn-offwork" class="btn-offwork mode-full-el" style="display:none;">
                     <span class="btn-icon">🌙</span><span class="btn-txt">打卡下班</span>
                 </button>
+                <!-- 局部體驗用 -->
+                <button id="btn-next-partial" class="btn-system mode-partial-el">
+                    <span class="btn-icon">📅</span><span class="btn-txt">下一學年</span>
+                </button>
+
             </div>
             <button id="btn-dse">🔥 學生應考 DSE 🔥</button>
         </div>
@@ -449,7 +464,7 @@
         </div>
     </div>
 
-    <!-- 結算報告 Modal -->
+    <!-- 結算報告 Modal (全面體驗用) -->
     <div id="summary-overlay">
         <div id="summary-box">
             <h2 style="color:var(--accent-night); border-bottom:2px solid #ddd; padding-bottom:10px;">📅 日結報告</h2>
@@ -479,7 +494,7 @@
         </div>
     </div>
 
-    <!-- 下班模式 Modal -->
+    <!-- 下班模式 Modal (全面體驗用) -->
     <div id="offwork-overlay">
         <div id="offwork-box">
             <div class="offwork-header">
@@ -517,7 +532,6 @@
 
             <div class="ow-section-title">娛樂活動 (消耗 1 心力, +6~8 幸福)</div>
             <div class="ow-btn-grid">
-                <!-- 更新按鈕 ID 並傳遞 -->
                 <button class="ow-btn" id="btn-ent-dinner" onclick="doEntertainment('dinner', 'btn-ent-dinner')"><span class="ow-icon">🍲</span><span class="ow-label">約朋友吃飯</span></button>
                 <button class="ow-btn" id="btn-ent-movie" onclick="doEntertainment('movie', 'btn-ent-movie')"><span class="ow-icon">🎬</span><span class="ow-label">看電影</span></button>
                 <button class="ow-btn" id="btn-ent-shopping" onclick="doEntertainment('shopping', 'btn-ent-shopping')"><span class="ow-icon">🛍️</span><span class="ow-label">逛街</span></button>
@@ -581,23 +595,41 @@
             }
         };
 
+        // 100個隨機香港/中文姓名庫
+         const STUDENT_NAMES = [
+            "陳子軒", "黃嘉欣", "李志豪", "張曉彤", "梁偉文", "林佩珊", "吳俊傑", "劉芷晴", "楊浩然", "鄭樂恆",
+            "謝穎儀", "周家康", "鄧凱琳", "許卓楠", "曾詠詩", "馮思敏", "蔡柏宇", "蘇樂儀", "葉建邦", "羅曉琳",
+            "陳家豪", "黃美玲", "李國榮", "張秀珍", "梁智賢", "林欣怡", "吳偉國", "劉淑儀", "楊嘉豪", "鄭敏姿",
+            "謝子聰", "周樂瑤", "鄧梓恆", "許曉峰", "曾嘉儀", "馮俊緯", "蔡凱文", "蘇婉儀", "葉志榮", "羅秀英",
+            "陳國樑", "黃佩儀", "李嘉輝", "張曉華", "梁偉傑", "林慧珊", "吳子健", "劉樂天", "楊梓晴", "鄭浩宇",
+            "謝穎詩", "周柏賢", "鄧卓瑩", "許凱倫", "曾智勇", "馮希彤", "蔡洛雯", "蘇頌賢", "葉曉晴", "羅宇軒",
+            "陳芷君", "黃浩賢", "李樂文", "張嘉雯", "梁俊宏", "林凱程", "吳穎恩", "劉志恆", "楊秀雯", "鄭國華",
+            "謝佩芝", "周嘉琪", "鄧曉光", "許偉明", "曾慧儀", "馮子朗", "蔡樂兒", "蘇梓軒", "葉浩德", "羅穎琳",
+            "陳柏霖", "黃卓然", "李凱欣", "張智偉", "梁希文", "林洛軒", "吳頌揚", "劉曉文", "楊宇峰", "鄭芷琪",
+            "謝浩文", "周樂欣", "鄧嘉寶", "許俊賢", "曾凱晴", "馮穎珊", "蔡志賢", "蘇秀華", "葉國輝", "羅佩琪"
+        ];
+
+        // 遊戲全局模式
+        let GAME_MODE = 'full'; // 'partial' 或 'full'
+
         const TEACHER = { 
             age: 22, 
             maxEnergy: 10, 
             currentEnergy: 10, 
             energyDebt: 0,
             
+            // 局部模式專用
+            recoveriesLeft: 3,
+
+            // 全面模式專用
             happiness: 60, 
             maxHappiness: 100,
-
             gradingPile: 0, 
             daysInYear: 1, 
-            
             offWorkEnergy: 0,
             isHoliday: false,
             hasEntertainedTonight: false,
             bonusEnergyNextDay: 0,
-
             dailyStats: {
                 happyChange: 0,
                 adminCount: 0,
@@ -650,6 +682,38 @@
 
         const GRADES = ["中一", "中二", "中三", "中四", "中五", "中六"];
 
+        // 模式啟動函數
+        function startGame(mode) {
+            GAME_MODE = mode;
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('top-dashboard').style.display = 'flex';
+            
+            // 根據模式切換 UI 顯示
+            if (mode === 'partial') {
+                // 隱藏全面模式元素
+                document.querySelectorAll('.mode-full-el').forEach(el => el.classList.add('hidden'));
+                // 顯示局部模式元素
+                document.querySelectorAll('.mode-partial-el').forEach(el => el.classList.remove('hidden'));
+                
+                // 修改按鈕成本文字 (移除 Happy 成本)
+                document.getElementById('btn-read').querySelector('.btn-cost').innerText = "-1.0";
+                document.getElementById('btn-fun').querySelector('.btn-cost').innerText = "-3.0";
+                document.getElementById('btn-plan').querySelector('.btn-cost').innerText = "-3.0";
+                document.getElementById('btn-drill').querySelector('.btn-cost').innerText = "-3.0";
+            } else {
+                // 全面模式：隱藏局部模式元素，顯示全面元素
+                document.querySelectorAll('.mode-partial-el').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.mode-full-el').forEach(el => el.classList.remove('hidden'));
+            }
+
+            // 初始化與開始
+            randomizeStudentNeed(); 
+            document.getElementById('sel-student-count').value = "5"; 
+            initStudents(5); 
+            updateUI(); 
+            animate();
+        }
+
         function calcMaxEnergy() {
             let base = 10;
             if (TEACHER.age > 25) { base -= (TEACHER.age - 25) * 0.2; }
@@ -683,17 +747,13 @@
             setTimeout(() => el.remove(), 1200);
         }
         
-        // 優化版：加入 Slot 參數 (0, 1, 2) 來錯開位置
         function showFeedback(btnId, text, color, slot = 0) {
             const btn = document.getElementById(btnId);
             if (!btn) return;
             const rect = btn.getBoundingClientRect();
-            // 計算按鈕中心 X
             const x = rect.left + rect.width / 2 - 20;
-            // 基礎 Y 是按鈕上方，根據 slot 往上/下偏移
             const baseY = rect.top - 20;
             const y = baseY + (slot * 25); 
-
             showFloatingBonus(x, y, text, color);
         }
 
@@ -709,7 +769,16 @@
         document.getElementById('canvas-container').appendChild(renderer.domElement);
         
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableRotate = false; controls.enableZoom = true; controls.enablePan = true;
+        controls.enableRotate = false; // 禁止旋轉
+        controls.enableZoom = true; 
+        controls.enablePan = true;
+        
+        // 重要更新：設定單指觸控為平移 (Pan) 而非旋轉
+        controls.touches = {
+            ONE: THREE.TOUCH.PAN,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+        
         controls.minDistance = 20; controls.maxDistance = 80;
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.9); scene.add(ambientLight);
@@ -721,12 +790,15 @@
         const matGlassRead = new THREE.MeshPhysicalMaterial({ 
             color: CONFIG.colors.glassRead, metalness: 0, roughness: 0.1, 
             transmission: 0.5, transparent: true, opacity: 0.8,
-            side: THREE.DoubleSide // 確保圓柱內外可見
+            side: THREE.DoubleSide 
         });
 
-        class Student {
+      class Student {
             constructor(id, xPos, typeOverride = null) {
                 this.id = id; this.xPos = xPos;
+                
+                this.name = STUDENT_NAMES[Math.floor(Math.random() * STUDENT_NAMES.length)];
+                
                 if (typeOverride) this.type = typeOverride;
                 else {
                     const r = Math.random();
@@ -734,6 +806,12 @@
                     else if (r < 0.7) this.type = STUDENT_TYPES.AVG;
                     else this.type = STUDENT_TYPES.LOW;
                 }
+                
+                // --- 修改開始: 初始化容量上限 ---
+                // 資質駑鈍初始上限 15，最大可升至 25；其他類型則設為極大值(由高度決定物理上限)
+                this.particleCap = (this.type.id === 'low') ? 15 : 999; 
+                // --- 修改結束 ---
+
                 this.baseHeight = 0.8 * this.type.baseScale; this.readingHeight = 0; 
                 this.landedParticles = [];
                 this.bubbleOffsetY = (id % 2 === 0) ? 5.0 : 3.2;
@@ -750,7 +828,7 @@
                 this.glassMaterial = new THREE.MeshPhysicalMaterial({ 
                     color: typeColor, metalness: 0.1, roughness: 0.1, 
                     transmission: 0.6, transparent: true, opacity: 0.9, 
-                    side: THREE.DoubleSide // 確保圓柱內外可見
+                    side: THREE.DoubleSide 
                 });
 
                 this.baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), this.glassMaterial);
@@ -765,25 +843,58 @@
                 ring.rotation.x = Math.PI/2; this.readGroup.add(ring);
                 this.updateVisuals(true);
             }
+            
             getTotalHeight() { return this.baseHeight + this.readingHeight; }
             getRimY() { return this.getTotalHeight(); }
             
             tryGrowReading() {
+                // --- 修改開始: 針對資質駑鈍的特殊增長邏輯 ---
+                if (this.type.id === 'low') {
+                    // 如果未達最大上限 25，則增加容量
+                    if (this.particleCap < 25) {
+                        this.particleCap++; 
+                        // 視覺上也要稍微長高一點點 (0.05)，否則粒子會物理溢出
+                        this.readingHeight += 0.05; 
+                        this.updateVisuals();
+                        if (GAME_MODE === 'full') changeHappiness(0.1);
+                        return true; 
+                    } else {
+                        // 已達絕對極限 25
+                        this.shake();
+                        return false;
+                    }
+                }
+                // --- 修改結束 ---
+
                 if (!this.type.canGrow || this.getTotalHeight() >= this.type.maxHeight) { this.shake(); return false; }
                 this.readingHeight += 0.4; 
                 this.updateVisuals(); 
-                changeHappiness(0.1); 
+                if (GAME_MODE === 'full') changeHappiness(0.1); 
                 return true;
             }
+
             growGrade() {
+                // --- 修改開始: 新學年增加容量邏輯 ---
+                if (this.type.id === 'low') {
+                    // 新學年獎勵：容量 +1 (不超過 25)
+                    if (this.particleCap < 25) {
+                        this.particleCap++;
+                        this.readingHeight += 0.05; // 視覺同步微調
+                    }
+                }
+                // --- 修改結束 ---
+
                 if (this.getTotalHeight() >= this.type.maxHeight) return;
                 const min = this.type.growRate[0], max = this.type.growRate[1];
                 let growth = Math.random() * (max - min) + min;
                 if (this.getTotalHeight() + growth > this.type.maxHeight) growth = this.type.maxHeight - this.getTotalHeight();
                 this.baseHeight += growth; this.updateVisuals();
             }
+
             shake() { gsap.to(this.group.position, { x: this.xPos + 0.1, duration: 0.05, yoyo: true, repeat: 3 }); }
-            updateLabelText() { this.labelEl.innerHTML = `<span style="color:${this.type.color}">${this.type.name}</span>: ${this.landedParticles.length}`; }
+            updateLabelText() { 
+                this.labelEl.innerHTML = `<span style="font-size:12px; color:#333;">${this.name}</span><br><span style="color:${this.type.color}">${this.type.name}</span>: ${this.landedParticles.length}`; 
+            }
             showBubble(text, className, index) {
                 this.bubbleEl.innerText = text; this.bubbleEl.className = 'speech-bubble ' + className;
                 gsap.killTweensOf(this.bubbleEl);
@@ -803,6 +914,7 @@
             }
             dispose() { if (this.labelEl) this.labelEl.remove(); if (this.bubbleEl) this.bubbleEl.remove(); }
         }
+
 
         function initStudents(count) {
             students.forEach(s => { scene.remove(s.group); s.dispose(); });
@@ -836,7 +948,9 @@
 
         // 粒子系統
         function spawnParticle(type, student) {
+            // 決定該粒子是否被排斥 (Absorption Simulation)
             const isRejected = Math.random() < student.type.rejectRate;
+            
             let color = CONFIG.colors.pPlan; let geo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
             if (type === 'read') { color = CONFIG.colors.pRead; geo = new THREE.IcosahedronGeometry(0.18, 0); }
             else if (type === 'fun') { color = CONFIG.colors.pFun; geo = new THREE.DodecahedronGeometry(0.20, 0); }
@@ -846,13 +960,26 @@
             if (isRejected) color = CONFIG.colors.pReject;
             const p = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: color, roughness: 0.4 }));
             p.position.set(student.xPos + (Math.random()-0.5)*0.8, student.getRimY() + 8 + Math.random()*3, (Math.random()-0.5)*0.8);
+            
             let vx = (Math.random()-0.5)*0.05, vz = (Math.random()-0.5)*0.05;
-            if (isRejected) vx = (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random()*0.2);
-            p.userData = { vel: new THREE.Vector3(vx, -0.25, vz), student: student, state: 'falling', rejected: isRejected };
+            
+            // 如果是被排斥的，賦予它被標記的狀態，稍後在碰撞邊緣時會彈開
+            p.userData = { 
+                vel: new THREE.Vector3(vx, -0.25, vz), 
+                student: student, 
+                state: 'falling', 
+                rejected: isRejected 
+            };
             scene.add(p); particles.push(p);
         }
-        function spawnDirectLandedParticle(student) {
+
+       function spawnDirectLandedParticle(student) {
             const rimY = student.getRimY();
+            
+            // --- 修改: 使用 particleCap 變數 ---
+            if (student.type.id === 'low' && student.landedParticles.length >= student.particleCap) return;
+            // --- 修改結束 ---
+
             if (student.landedParticles.length * 0.006 > rimY) return;
             
             const colors = [CONFIG.colors.pPlan, CONFIG.colors.pDrill, CONFIG.colors.pFun];
@@ -864,7 +991,7 @@
         }
 
         // ==========================================
-        // UI & 邏輯 (Hardcore Mode + Happiness)
+        // UI & 邏輯
         // ==========================================
         function setStatus(text, isError=false) {
             const el = document.getElementById('status-text');
@@ -873,6 +1000,8 @@
         }
         
         function changeHappiness(amount) {
+            if (GAME_MODE === 'partial') return; // 局部模式無幸福度
+
             TEACHER.happiness += amount;
             if (TEACHER.happiness > TEACHER.maxHappiness) TEACHER.happiness = TEACHER.maxHappiness;
             
@@ -900,27 +1029,7 @@
             if (!document.getElementById('disp-age').querySelector('input')) document.getElementById('disp-age').innerText = TEACHER.age;
             document.getElementById('disp-energy').innerText = TEACHER.currentEnergy.toFixed(1);
             document.getElementById('disp-grade').innerText = GRADES[currentGradeIndex];
-            document.getElementById('disp-workload').innerText = TEACHER.gradingPile;
-            document.getElementById('disp-days').innerText = `${TEACHER.daysInYear}/3`;
             
-            // 幸福度更新
-            const happyEl = document.getElementById('disp-happy');
-            happyEl.innerText = Math.floor(TEACHER.happiness);
-            happyEl.style.color = TEACHER.happiness < 30 ? 'var(--accent-dse)' : 'var(--accent-happy)';
-
-            // 檢查是否辭職
-            if (TEACHER.happiness <= 0) {
-                showGameOver("你因為壓力過大，心理崩潰而辭職了。");
-                return;
-            }
-            
-            // 下班介面同步
-            const owWorkload = document.getElementById('ow-pending-work');
-            owWorkload.innerText = TEACHER.gradingPile;
-            if (TEACHER.gradingPile > 0) owWorkload.className = "ow-stat-val badge-workload";
-            else owWorkload.className = "ow-stat-val";
-            document.getElementById('ow-happy').innerText = Math.floor(TEACHER.happiness);
-
             const adminCost = parseFloat(document.getElementById('rng-admin').value);
             document.getElementById('val-admin').innerText = adminCost.toFixed(1);
 
@@ -929,27 +1038,55 @@
             document.getElementById('btn-fun').disabled = !hasEnergy;
             document.getElementById('btn-plan').disabled = !hasEnergy;
             document.getElementById('btn-drill').disabled = !hasEnergy;
-            // 摸魚按鈕只要有一點點體力就可以
-            document.getElementById('btn-hea').disabled = TEACHER.currentEnergy < 0.5; 
             
             document.getElementById('btn-admin').disabled = hasDoneAdmin;
-            document.getElementById('btn-grade-work').disabled = (TEACHER.gradingPile <= 0) || !hasEnergy;
-
-            const offWorkBtn = document.getElementById('btn-offwork');
-            if (TEACHER.currentEnergy < 1.0 && !isDseMode) {
-                offWorkBtn.style.display = 'flex';
-                if(currentGradeIndex === 5 && TEACHER.currentEnergy <= 0.1) offWorkBtn.disabled = true;
-                else offWorkBtn.disabled = false;
-            } else {
-                offWorkBtn.style.display = 'none';
-            }
+            document.getElementById('btn-dse').style.display = (currentGradeIndex === 5 && TEACHER.currentEnergy <= 0.1) ? 'block' : 'none';
 
             if (currentGradeIndex === 5 && TEACHER.currentEnergy <= 0.1) {
-                document.getElementById('btn-dse').style.display = 'block';
+                // DSE 模式下鎖定按鈕
                 document.getElementById('btn-admin').disabled = true;
-                document.getElementById('btn-grade-work').disabled = true;
+                if (GAME_MODE === 'full') document.getElementById('btn-grade-work').disabled = true;
+                if (GAME_MODE === 'partial') document.getElementById('btn-recover').disabled = true;
+                if (GAME_MODE === 'partial') document.getElementById('btn-next-partial').disabled = true;
+            }
+
+            if (GAME_MODE === 'partial') {
+                document.getElementById('disp-recover').innerText = `${TEACHER.recoveriesLeft}/3`;
+                document.getElementById('btn-recover').disabled = TEACHER.recoveriesLeft <= 0 || TEACHER.currentEnergy >= TEACHER.maxEnergy || isDseMode;
+                document.getElementById('btn-next-partial').disabled = isDseMode || !hasDoneAdmin;
             } else {
-                document.getElementById('btn-dse').style.display = 'none';
+                // Full Mode UI Updates
+                document.getElementById('disp-workload').innerText = TEACHER.gradingPile;
+                document.getElementById('disp-days').innerText = `${TEACHER.daysInYear}/3`;
+                
+                const happyEl = document.getElementById('disp-happy');
+                happyEl.innerText = Math.floor(TEACHER.happiness);
+                happyEl.style.color = TEACHER.happiness < 30 ? 'var(--accent-dse)' : 'var(--accent-happy)';
+
+                if (TEACHER.happiness <= 0) {
+                    showGameOver("你因為壓力過大，心理崩潰而辭職了。");
+                    return;
+                }
+                
+                // Off-work UI Logic
+                const offWorkBtn = document.getElementById('btn-offwork');
+                if (TEACHER.currentEnergy < 1.0 && !isDseMode) {
+                    offWorkBtn.style.display = 'flex';
+                    if(currentGradeIndex === 5 && TEACHER.currentEnergy <= 0.1) offWorkBtn.disabled = true;
+                    else offWorkBtn.disabled = false;
+                } else {
+                    offWorkBtn.style.display = 'none';
+                }
+
+                document.getElementById('btn-grade-work').disabled = (TEACHER.gradingPile <= 0) || !hasEnergy;
+                document.getElementById('btn-hea').disabled = TEACHER.currentEnergy < 0.5;
+
+                // Off-work modal sync
+                const owWorkload = document.getElementById('ow-pending-work');
+                owWorkload.innerText = TEACHER.gradingPile;
+                if (TEACHER.gradingPile > 0) owWorkload.className = "ow-stat-val badge-workload";
+                else owWorkload.className = "ow-stat-val";
+                document.getElementById('ow-happy').innerText = Math.floor(TEACHER.happiness);
             }
         }
 
@@ -964,23 +1101,23 @@
 
         function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
             if (spendEnergy(cost) > 0) {
-                // 1. 顯示心力消耗 (Slot 0 - 最上)
+                // 1. 顯示心力消耗
                 showFeedback('btn-' + actionId, `-${cost} E`, 'var(--accent-night)', 0);
 
-                // 2. 處理幸福度 (Slot 1 - 中間)
-                if (happyCost > 0) {
-                    changeHappiness(-happyCost);
-                    showFeedback('btn-' + actionId, `-${happyCost} Hap`, 'var(--accent-dse)', 1);
-                } else if (happyCost < 0) {
-                     // 負的 cost 代表加分 (躺平)
-                    const gain = Math.abs(happyCost);
-                    changeHappiness(gain);
-                    showFeedback('btn-' + actionId, `+${gain} Hap`, 'var(--accent-happy)', 1);
+                // 2. 處理幸福度 (僅全面模式)
+                if (GAME_MODE === 'full') {
+                    if (happyCost > 0) {
+                        changeHappiness(-happyCost);
+                        showFeedback('btn-' + actionId, `-${happyCost} Hap`, 'var(--accent-dse)', 1);
+                    } else if (happyCost < 0) {
+                        const gain = Math.abs(happyCost);
+                        changeHappiness(gain);
+                        showFeedback('btn-' + actionId, `+${gain} Hap`, 'var(--accent-happy)', 1);
+                    }
                 }
 
                 let { count, isBonus } = (actionId === currentNeed) ? { count: Math.ceil(baseParticles*1.2), isBonus: true } : { count: baseParticles, isBonus: false };
                 
-                // 3. 處理 Bonus 顯示 (Slot 2 - 下方)
                 if (isBonus) {
                     showFeedback('btn-' + actionId, '+Bonus!', CONFIG.colors.cssHappy, 2);
                 }
@@ -1002,7 +1139,7 @@
                 let msg = name + (isBonus ? " (教學相長！)" : "");
                 if (growReading && limitReached) setStatus(msg + " 但有學生達資質上限。", true); else setStatus(msg);
                 
-                if (actionId !== 'hea') { // 躺平不刷新需求
+                if (actionId !== 'hea') { 
                     randomizeStudentNeed();
                 }
             }
@@ -1042,19 +1179,19 @@
             
             student.showBubble(text, bubbleClass, index);
             
-            // 數值影響
-            if(isPositive) {
-                changeHappiness(1); // 正向 +1
-            } else if (isComplaint) {
-                // 檢查每日投訴扣減上限 (Daily Cap)
-                if (TEACHER.dailyStats.complaintLoss < 15) {
-                    changeHappiness(-2); // 投訴 -2
-                    TEACHER.dailyStats.complaintLoss += 2;
+            if(GAME_MODE === 'full') {
+                if(isPositive) {
+                    changeHappiness(1);
+                } else if (isComplaint) {
+                    if (TEACHER.dailyStats.complaintLoss < 15) {
+                        changeHappiness(-2);
+                        TEACHER.dailyStats.complaintLoss += 2;
+                    }
                 }
             }
         }
 
-        // 行動綁定：更新數值 (Reading: -1 Hap, Hea: +1 Hap, Others: -2 Hap)
+        // 按鈕綁定
         document.getElementById('btn-read').addEventListener('click', () => handleAction('read', 1.0, 1, 14, "增加閱讀量：提升維度！", true));
         document.getElementById('btn-fun').addEventListener('click', () => handleAction('fun', 3.0, 2, 8, "設計趣味教學：氣氛活躍。"));
         document.getElementById('btn-plan').addEventListener('click', () => handleAction('plan', 3.0, 2, 8, "認真備課：知識傳遞。"));
@@ -1065,7 +1202,7 @@
             if (spendEnergy(1.0) > 0) {
                 if (TEACHER.gradingPile > 0) {
                     TEACHER.gradingPile--;
-                    changeHappiness(-2); // 批改扣心情
+                    changeHappiness(-2); 
                     
                     showFeedback('btn-grade-work', '-1 E', 'var(--accent-night)', 0);
                     showFeedback('btn-grade-work', '-2 Hap', 'var(--accent-dse)', 1);
@@ -1079,30 +1216,49 @@
             }
         });
 
+        // 局部體驗：恢復按鈕
+        document.getElementById('btn-recover').addEventListener('click', () => {
+            if (TEACHER.recoveriesLeft > 0) {
+                TEACHER.currentEnergy = TEACHER.maxEnergy;
+                TEACHER.recoveriesLeft--;
+                updateUI();
+                setStatus("休息恢復精力。");
+            }
+        });
+
+        // 局部體驗：下學年按鈕
+        document.getElementById('btn-next-partial').addEventListener('click', () => {
+             if (!hasDoneAdmin) {
+                setStatus("必須先完成行政工作！", true);
+                return;
+            }
+            startNewYear();
+        });
+
         document.getElementById('btn-admin').addEventListener('click', () => {
             const cost = parseFloat(document.getElementById('rng-admin').value);
             if (!hasDoneAdmin) {
                 if (TEACHER.currentEnergy >= cost) {
                     TEACHER.currentEnergy -= cost; 
-                    changeHappiness(-10); // 行政極度扣心情
-                    
+                    if (GAME_MODE === 'full') {
+                        changeHappiness(-10);
+                        showFeedback('btn-admin', '-10 Hap', 'var(--accent-dse)', 1);
+                    }
                     showFeedback('btn-admin', `-${cost} E`, 'var(--accent-night)', 0);
-                    showFeedback('btn-admin', '-10 Hap', 'var(--accent-dse)', 1);
-
                     TEACHER.dailyStats.adminCount = 1;
                     setStatus("完成行政工作。");
                 } else {
                     const overdraft = cost - TEACHER.currentEnergy;
                     TEACHER.energyDebt += overdraft; TEACHER.currentEnergy = 0;
-                    changeHappiness(-15);
-                    setStatus(`勉強應付行政 (透支 ${overdraft.toFixed(1)}，明日償還)...`, true);
+                    if (GAME_MODE === 'full') changeHappiness(-15);
+                    setStatus(`勉強應付行政 (透支 ${overdraft.toFixed(1)}，下學年償還)...`, true);
                 }
                 hasDoneAdmin = true; updateUI();
             }
         });
 
         // ==========================================
-        // 下班 & 假期模式邏輯
+        // 下班 & 假期模式邏輯 (僅全面模式)
         // ==========================================
         document.getElementById('btn-offwork').addEventListener('click', startOffWork);
 
@@ -1110,7 +1266,6 @@
             TEACHER.offWorkEnergy = 1; 
             TEACHER.hasEntertainedTonight = false;
             TEACHER.bonusEnergyNextDay = 0;
-            // 重置結算數據 (但不重置 complaintLoss，那是一整天的累積)
             TEACHER.dailyStats.entertained = false;
             TEACHER.dailyStats.adminCount = hasDoneAdmin ? 1 : 0;
             
@@ -1123,13 +1278,12 @@
             const endBtn = document.getElementById('btn-end-day');
             endBtn.disabled = false;
             endBtn.innerText = "💤 直接睡覺 (明日 +5 幸福)";
-            
             updateOffWorkUI();
         }
 
         function startHoliday() {
             TEACHER.isHoliday = true;
-            TEACHER.offWorkEnergy = 0; // 假期不看剩餘心力，而是增加心力
+            TEACHER.offWorkEnergy = 0; 
             TEACHER.hasEntertainedTonight = false;
             TEACHER.bonusEnergyNextDay = 0;
             
@@ -1143,7 +1297,6 @@
             const endBtn = document.getElementById('btn-end-day');
             endBtn.disabled = false;
             endBtn.innerText = "💤 結束假期 (前往新學年)";
-
             updateOffWorkUI();
         }
 
@@ -1156,18 +1309,14 @@
             slider.value = 0; 
             slider.disabled = TEACHER.gradingPile === 0;
             
-            // 假期滑桿
             if(TEACHER.isHoliday) {
                 const restVal = document.getElementById('rng-holiday-rest').value;
                 document.getElementById('val-holiday-rest').innerText = restVal;
             }
-
             updateGradingPreview();
         }
         
-        // 假期休息滑桿監聽
         document.getElementById('rng-holiday-rest').addEventListener('input', updateOffWorkUI);
-
         document.getElementById('rng-grading').addEventListener('input', updateGradingPreview);
 
         function updateGradingPreview() {
@@ -1192,50 +1341,39 @@
             document.getElementById('btn-do-grade').disabled = papersToGrade === 0;
         }
 
-        // 修改函數簽名，接收按鈕ID以顯示浮動文字
         function doEntertainment(type, btnId) {
             if (type === 'sleep_early') {
                 if (!TEACHER.hasEntertainedTonight) {
-                    TEACHER.bonusEnergyNextDay = 2; // 未娛樂直接睡 (體力回多D)
-                    changeHappiness(5); // 睡覺幸福 (調低)
+                    TEACHER.bonusEnergyNextDay = 2; 
+                    changeHappiness(5); 
                 } else {
-                    TEACHER.bonusEnergyNextDay = 1; // 已娛樂
+                    TEACHER.bonusEnergyNextDay = 1; 
                     changeHappiness(3);
                 }
                 document.getElementById('btn-end-day').click();
                 return;
             }
-
             if (TEACHER.offWorkEnergy >= 1) {
                 TEACHER.offWorkEnergy -= 1;
                 TEACHER.hasEntertainedTonight = true;
                 TEACHER.dailyStats.entertained = true;
-                
-                // 大幅調低娛樂回血量 (現實是殘酷的)
-                const happyGain = Math.floor(Math.random() * 3) + 6; // 6-8
+                const happyGain = Math.floor(Math.random() * 3) + 6; 
                 changeHappiness(happyGain); 
-                
-                // 在這裡加入動態回饋
                 showFeedback(btnId, '-1 E', 'var(--accent-night)', 0);
                 showFeedback(btnId, `+${happyGain} Hap`, CONFIG.colors.cssHappy, 1);
-
-                // 更新結束按鈕文字
                 const endBtn = document.getElementById('btn-end-day');
                 endBtn.innerText = "💤 睡覺 (明日 +1 心力)";
-
                 updateOffWorkUI();
             }
         }
         
         document.getElementById('btn-holiday-rest').addEventListener('click', () => {
             const amount = parseInt(document.getElementById('rng-holiday-rest').value);
-            TEACHER.maxEnergy += amount * 0.5; // 小幅提升上限
-            TEACHER.bonusEnergyNextDay = amount; // 增加心力
-            const happyGain = amount * 8; // 假期回血
+            TEACHER.maxEnergy += amount * 0.5; 
+            TEACHER.bonusEnergyNextDay = amount; 
+            const happyGain = amount * 8; 
             changeHappiness(happyGain);
             showFeedback('btn-holiday-rest', `+${happyGain} Hap`, CONFIG.colors.cssHappy, 1);
-            
-            // 假期休息後直接過年
             document.getElementById('btn-end-day').click();
         });
 
@@ -1255,12 +1393,10 @@
                 TEACHER.gradingPile = Math.max(0, TEACHER.gradingPile - papersToGrade);
                 const happyLoss = 2 * papersToGrade;
                 changeHappiness(-happyLoss);
-                
                 showFeedback('btn-do-grade', `-${totalCost} E`, 'var(--accent-night)', 0);
                 showFeedback('btn-do-grade', `-${happyLoss} Hap`, 'var(--accent-dse)', 1);
-
                 updateOffWorkUI();
-                updateUI(); // 同步背景
+                updateUI(); 
             }
         });
 
@@ -1274,7 +1410,6 @@
         }
         
         function showSummary() {
-            // 計算明日起始心力
             let startEnergy = 0;
             if(!TEACHER.isHoliday) {
                 let base = TEACHER.maxEnergy;
@@ -1285,20 +1420,15 @@
                 
                 document.getElementById('sum-work').innerText = `行政 x${TEACHER.dailyStats.adminCount}, 批改餘 ${TEACHER.gradingPile}`;
                 document.getElementById('sum-fun').innerText = TEACHER.dailyStats.entertained ? "有" : "無";
-                
                 const hChange = TEACHER.dailyStats.happyChange;
                 const hEl = document.getElementById('sum-happy');
-                // 日結修正：四捨五入至小數點後一位
                 hEl.innerText = (hChange > 0 ? "+" : "") + hChange.toFixed(1);
                 hEl.className = hChange > 0 ? "summary-val val-pos" : (hChange < 0 ? "summary-val val-neg" : "summary-val val-neu");
-                
                 document.getElementById('sum-pile').innerText = `+${TEACHER.dailyStats.workAdded} 份`;
                 document.getElementById('sum-energy').innerText = startEnergy.toFixed(1);
-
                 document.getElementById('offwork-overlay').style.display = 'none';
                 document.getElementById('summary-overlay').style.display = 'flex';
             } else {
-                // 假期直接跳過結算顯示，因為操作中已經明確
                 document.getElementById('offwork-overlay').style.display = 'none';
                 performNextDayLogic();
             }
@@ -1310,24 +1440,20 @@
         });
 
         document.getElementById('btn-end-day').addEventListener('click', () => {
-            // 檢查是否學年最後一天且有未改功課
             if (!TEACHER.isHoliday && TEACHER.daysInYear >= 3 && TEACHER.gradingPile > 0) {
                 if (!confirm(`警告！學年即將結束，你還有 ${TEACHER.gradingPile} 份課業未批改。\n如果不現在批改，你將被學校解僱。\n\n確定要睡覺嗎？`)) {
                     return;
                 }
             }
-
-            // 設定睡覺加成 (如果沒有按過娛樂按鈕)
             if (!TEACHER.hasEntertainedTonight && !TEACHER.isHoliday) {
                 TEACHER.bonusEnergyNextDay = 2;
-                changeHappiness(5); // 睡眠 +5
+                changeHappiness(5); 
                 TEACHER.dailyStats.happyChange += 5;
             } else if (TEACHER.hasEntertainedTonight) {
                 TEACHER.bonusEnergyNextDay = 1;
-                changeHappiness(3); // 娛樂後睡眠 +3
+                changeHappiness(3); 
                 TEACHER.dailyStats.happyChange += 3;
             }
-            
             showSummary();
         });
         
@@ -1337,7 +1463,6 @@
                 startNewYear();
             } else {
                 if (TEACHER.daysInYear >= 3) {
-                    // 檢查是否被解僱
                     if (TEACHER.gradingPile > 0) {
                         showGameOver(`本學年結束時，你仍積壓了 ${TEACHER.gradingPile} 份課業未批改。你被解僱了。`);
                         return;
@@ -1351,16 +1476,10 @@
         }
 
         function startNextDay() {
-            // 隨機增加功課 1-3
             const newWork = Math.floor(Math.random() * 3) + 1;
             TEACHER.gradingPile += newWork;
-            
-            // 重置日結數據
             TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: newWork, complaintLoss: 0 };
-            
-            // 每日自然幸福流失
             changeHappiness(-5);
-            
             let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay;
             TEACHER.bonusEnergyNextDay = 0; 
 
@@ -1373,11 +1492,11 @@
                 setStatus(`新的一天：${TEACHER.daysInYear}/3。精力充沛！`);
             }
             TEACHER.currentEnergy = netEnergy;
-            
             hasDoneAdmin = false;
             updateUI();
         }
 
+        // 共用：新學年邏輯
         function startNewYear() {
             if (currentGradeIndex >= 5) return;
             
@@ -1386,18 +1505,32 @@
             currentGradeIndex++;
             TEACHER.daysInYear = 1; 
             
+            // 局部模式重置恢復次數
+            if (GAME_MODE === 'partial') {
+                TEACHER.recoveriesLeft = 3;
+            }
+
             let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
-            TEACHER.currentEnergy = netEnergy;
-            TEACHER.energyDebt = 0;
-            TEACHER.bonusEnergyNextDay = 0;
             
-            // 新學年作業累積
-            TEACHER.gradingPile += 2;
-            TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 };
+            if (GAME_MODE === 'full') {
+                 // 全面模式：累積工作
+                 TEACHER.gradingPile += 2;
+                 TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 };
+            }
+
+            // 扣除債務 (局部模式與全面模式通用)
+            if (TEACHER.energyDebt > 0) {
+                netEnergy -= TEACHER.energyDebt;
+                TEACHER.energyDebt = 0; 
+                if (netEnergy < 0) netEnergy = 0; 
+            }
+
+            TEACHER.currentEnergy = netEnergy;
+            TEACHER.bonusEnergyNextDay = 0;
             
             hasDoneAdmin = false;
             randomizeStudentNeed();
-            setStatus(`新學年：${GRADES[currentGradeIndex]}，假期作業累積 2 份。`);
+            setStatus(`新學年：${GRADES[currentGradeIndex]}。`);
 
             students.forEach(s => {
                 s.growGrade();
@@ -1427,7 +1560,7 @@
                 const h = s.getTotalHeight(), grade = getDSEResult(h), score = scoreMap[grade];
                 scoreSum += score;
                 let color = score <= 2 ? "#c0392b" : (score >= 6 ? "#27ae60" : "#333");
-                resultHTML += `<div>學生 ${idx+1} (<span style="color:${s.type.color}">${s.type.name}</span>): <span style="color:${color}; font-weight:bold;">${grade}</span> (維度:${h.toFixed(1)})</div>`;
+                resultHTML += `<div>${s.name} (<span style="color:${s.type.color}">${s.type.name}</span>): <span style="color:${color}; font-weight:bold;">${grade}</span> (維度:${h.toFixed(1)}, 知識:${s.landedParticles.length})</div>`;
             });
             const avgScore = scoreSum / students.length;
             const msg = avgScore >= 4 
@@ -1457,35 +1590,59 @@
                 const bPos = new THREE.Vector3(s.xPos, s.getRimY() + s.bubbleOffsetY, 0); bPos.project(camera);
                 const bx = (bPos.x * .5 + .5) * window.innerWidth, by = (bPos.y * -.5 + .5) * window.innerHeight;
                 s.bubbleEl.style.left = `${bx}px`; s.bubbleEl.style.top = `${by}px`;
-                if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) { s.labelEl.style.opacity = 0; s.bubbleEl.style.opacity = 0; } else s.labelEl.style.opacity = 1;
+                if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) { s.labelEl.style.opacity = 0; s.bubbleEl.style.opacity = 0; } else s.labelEl.style.opacity = 0.9;
             });
-            for (let i = particles.length - 1; i >= 0; i--) {
+             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i], s = p.userData.student;
                 if (p.userData.state === 'falling') {
                     p.position.add(p.userData.vel); p.rotation.x += 0.05; p.rotation.y += 0.05; p.userData.vel.y -= 0.008;
-                    if (!p.userData.rejected && p.position.y < s.getRimY() + 0.5 && p.position.y > 0) {
+                    
+                    if (p.position.y < s.getRimY() + 0.5 && p.position.y > 0) {
                         const dist = Math.sqrt(Math.pow(p.position.x - s.xPos, 2) + Math.pow(p.position.z, 2));
+                        
                         if (dist < 1.8) {
-                            const fill = s.landedParticles.length * 0.006;
-                            // 嚴格檢查高度，防止無限盛放
-                            if (fill < s.getRimY()) { 
-                                if (p.position.y <= Math.max(fill, 0.2)) {
-                                    p.position.y = fill + Math.random() * 0.2; p.userData.state = 'landed'; s.landedParticles.push(p); s.updateLabelText();
-                                    p.rotation.set(0, Math.random()*Math.PI, 0); const r = Math.random() * 1.5, t = Math.random() * Math.PI * 2;
-                                    p.position.x = s.xPos + r * Math.cos(t); p.position.z = r * Math.sin(t);
-                                    
-                                    // 粒子落地增加幸福感 (微量)
-                                    changeHappiness(0.1); 
-                                }
-                            } else {
-                                // 滿溢
-                                p.userData.vel.x = (p.position.x - s.xPos)*0.1; p.userData.vel.z = p.position.z*0.1; p.userData.state = 'spilling';
+                            if (p.userData.rejected) {
+                                p.userData.vel.x = (p.position.x - s.xPos) * 0.2 + (Math.random()-0.5)*0.1; 
+                                p.userData.vel.z = p.position.z * 0.2 + (Math.random()-0.5)*0.1;
+                                p.userData.vel.y = 0.1; 
+                                p.userData.state = 'spilling';
                             }
-                        } else if (dist < 2.2) { p.userData.vel.x = (p.position.x - s.xPos)*0.1; p.userData.vel.z = p.position.z*0.1; p.userData.state = 'spilling'; }
+                            // --- 修改: 使用 dynamic capacity check ---
+                            else if (s.type.id === 'low' && s.landedParticles.length >= s.particleCap) {
+                                // 超過動態上限 -> 溢出
+                                p.userData.vel.x = (p.position.x - s.xPos) * 0.15;
+                                p.userData.vel.z = p.position.z * 0.15;
+                                p.userData.state = 'spilling';
+                            }
+                            // --- 修改結束 ---
+                            else {
+                                const fill = s.landedParticles.length * 0.006;
+                                if (fill < s.getRimY()) { 
+                                    if (p.position.y <= Math.max(fill, 0.2)) {
+                                        p.position.y = fill + Math.random() * 0.2; p.userData.state = 'landed'; s.landedParticles.push(p); s.updateLabelText();
+                                        p.rotation.set(0, Math.random()*Math.PI, 0); const r = Math.random() * 1.5, t = Math.random() * Math.PI * 2;
+                                        p.position.x = s.xPos + r * Math.cos(t); p.position.z = r * Math.sin(t);
+                                        
+                                        if (GAME_MODE === 'full') changeHappiness(0.1); 
+                                    }
+                                } else {
+                                    // 物理滿溢
+                                    p.userData.vel.x = (p.position.x - s.xPos)*0.1; p.userData.vel.z = p.position.z*0.1; p.userData.state = 'spilling';
+                                }
+                            }
+                        } else if (dist < 2.2) { 
+                            // 碰到邊緣反彈
+                            p.userData.vel.x = (p.position.x - s.xPos)*0.1; p.userData.vel.z = p.position.z*0.1; p.userData.state = 'spilling'; 
+                        }
                     }
                     if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
                 } else if (p.userData.state === 'spilling') {
-                    p.position.add(p.userData.vel); p.userData.vel.y -= 0.01; if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
+                    // 溢出動畫邏輯：模擬重力掉落
+                    p.position.add(p.userData.vel); 
+                    p.userData.vel.y -= 0.02; // 重力加速
+                    p.rotation.x += 0.1; // 滾動效果
+                    
+                    if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
                 }
             }
             renderer.render(scene, camera);
@@ -1494,9 +1651,6 @@
         document.getElementById('sel-student-count').addEventListener('change', (e) => initStudents(parseInt(e.target.value)));
         document.getElementById('rng-admin').addEventListener('input', updateUI);
         
-        randomizeStudentNeed(); document.getElementById('sel-student-count').value = "5"; initStudents(5); updateUI(); animate();
-
     </script>
 </body>
 </html>
-<!-- END OF FILE text/plain -->
