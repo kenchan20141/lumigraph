@@ -21,7 +21,7 @@
             --accent-admin: #8D857F;
             --accent-dse: #A65E5E;
             
-            /* --- 學生資質標籤顏色 --- */
+            /* --- 學生資質標籤顏色 (同時用於玻璃材質) --- */
             --color-high: #4E6C50;
             --color-avg: #667C89;
             --color-low: #A67B5B;
@@ -51,19 +51,70 @@
             pointer-events: none;
             z-index: 10;
         }
+        
         .student-label {
             position: absolute;
             background: rgba(255, 255, 255, 0.95);
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 12px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0,0,0,0.15);
             transform: translate(-50%, -100%);
             white-space: nowrap;
             transition: opacity 0.3s;
             border: 1px solid rgba(0,0,0,0.05);
+            opacity: 0.8; /* 稍微透明一點，讓氣泡更突出 */
         }
+
+        /* --- 對話氣泡樣式 (優化版) --- */
+        .speech-bubble {
+            position: absolute;
+            background: #fff;
+            border: 2px solid var(--text-main);
+            border-radius: 15px;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+            pointer-events: none;
+            z-index: 15;
+            white-space: normal; /* 允許換行 */
+            opacity: 0;
+            transform: translate(-50%, -100%) scale(0.8);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            text-align: center;
+            
+            /* 電腦版寬度 */
+            min-width: 80px;
+            max-width: 160px;
+        }
+        
+        /* 氣泡的小尾巴 */
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            margin-left: -8px;
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: inherit;
+            border-bottom-color: transparent;
+            border-left-color: transparent;
+            border-right-color: transparent;
+        }
+
+        .bubble-high { border-color: var(--color-high); color: var(--color-high); background: #f4fcf4; }
+        .bubble-high::after { border-top-color: var(--color-high); }
+
+        .bubble-complaint { border-color: var(--accent-dse); color: var(--accent-dse); background: #fff5f5; }
+        .bubble-complaint::after { border-top-color: var(--accent-dse); }
+
+        .bubble-reflect { border-color: var(--color-avg); color: var(--text-main); background: #f7f9fa; }
+        .bubble-reflect::after { border-top-color: var(--color-avg); }
+
 
         /* =========================================
            頂部儀表板
@@ -214,6 +265,7 @@
             100% { transform: translateY(-30px) scale(1); opacity: 0; }
         }
 
+        /* --- 手機版特定調整 --- */
         @media (max-width: 800px) {
             #top-dashboard {
                 padding: 12px; gap: 12px; justify-content: flex-start; flex-direction: row; flex-wrap: wrap;
@@ -237,6 +289,15 @@
             }
             button { padding: 8px 6px; min-width: 80px; flex-shrink: 0; }
             #status-text { max-width: 100%; }
+
+            /* 手機上氣泡變小，且最大寬度受限以防重疊 */
+            .speech-bubble {
+                font-size: 11px;
+                padding: 5px 8px;
+                max-width: 110px; 
+                min-width: 60px;
+                border-radius: 10px;
+            }
         }
 
         #modal-overlay {
@@ -370,7 +431,7 @@
         const CONFIG = {
             colors: {
                 bg: 0xF2F0EB,
-                glassInnate: 0x95a5a6, 
+                // glassInnate 移除，改為動態生成
                 glassRead: parseInt(style.getPropertyValue('--accent-read').trim().replace('#', '0x')),
                 pRead: parseInt(style.getPropertyValue('--accent-read').trim().replace('#', '0x')),
                 pFun: parseInt(style.getPropertyValue('--accent-fun').trim().replace('#', '0x')),
@@ -387,6 +448,78 @@
             globalRenderLimit: 12.0 
         };
 
+        const DIALOGUES = {
+            read: {
+                positive: [
+                    "老師推薦呢本書好有深度！", "原來閱讀可以咁有趣！", "我覺得我嘅語文根基紮實咗。", 
+                    "多謝老師，我終於明白作者嘅深意。", "閱讀令我思考更多人生道理。", 
+                    "呢篇文筆好優美，我要學起來。", "可以借多兩本睇嗎？", "DSE 卷一我有信心咗！", 
+                    "腹有詩書氣自華。", "知識就係力量！"
+                ],
+                complaint: [
+                    "好多字呀，睇到眼花...", "阿sir，好悶呀...", "睇呢啲有分加咩？", 
+                    "我睇完前面唔記得後面。", "不如直接比重點我背啦。", "好眼訓...", 
+                    "呢啲書邊個會睇呀？", "又係閱讀報告？", "字海戰術，想死。", "放過我啦..."
+                ],
+                reflection: [
+                    "雖然字多，但原來幾有道理。", "忍耐下睇完佢，可能有用。", "試下靜心睇下...", 
+                    "阿sir話有用，信住先。", "其實篇文都唔係咁差。", "學多隻字都好。", 
+                    "可能我真係要睇多啲書。", "唔明，不過我會試下理解。", "閱讀係基本功吧...", "試下投入個故事度。"
+                ]
+            },
+            fun: {
+                positive: [
+                    "咁樣學中文真係好正！", "印象深刻！", "老師好有創意！", 
+                    "氣氛好好，大家都很投入。", "原來中文堂可以咁好玩！", "寓教於樂，吸收得好快。", 
+                    "下次可唔可以再玩？", "我終於記得呢個修辭手法啦。", "多謝老師準備咁多道具。", "互動教學真係唔同啲。"
+                ],
+                complaint: [
+                    "玩完就算，學唔到嘢。", "好嘈呀，根本專心唔到。", "直接教書啦，搞咁多花臣。", 
+                    "又係玩遊戲？幾時落堂？", "我覺得浪費緊時間。", "咁樣玩DSE會考咩？", 
+                    "好幼稚...", "我只想快啲放學。", "老師你自己開心姐。", "無聊當有趣。"
+                ],
+                reflection: [
+                    "雖然似玩，但都有學到嘢。", "輕鬆下都好嘅。", "都好過死板板坐喺度。", 
+                    "老師都想我地提起興趣。", "試下投入個活動啦。", "其實個設計都有心思。", 
+                    "記性好似真係好咗少少。", "唔好潑冷水啦，玩下囉。", "氣氛幾好吖。", "原來這個字係咁解。"
+                ]
+            },
+            plan: {
+                positive: [
+                    "筆記好詳盡，多謝老師！", "老師解釋得好清晰！", "一理通百理明。", 
+                    "我知道重點喺邊度啦。", "老師備課一定好辛苦。", "架構好清晰，易記好多。", 
+                    "以前唔明，聽完你講就明。", "例子舉得好貼切。", "獲益良多！", "我會返去溫習呢份筆記。"
+                ],
+                complaint: [
+                    "講咁快邊個抄得切呀？", "好長氣呀...", "講完未呀？", 
+                    "其實課本都有啦，照讀？", "聽到我想訓覺。", "太多資料啦，塞唔入腦。", 
+                    "講來講去三幅被。", "悶到抽筋。", "老師你講得好陶醉，但我唔明。", "係咪一定要聽？"
+                ],
+                reflection: [
+                    "雖然悶，但呢啲係乾貨。", "抄低先，考試可能出。", "老師都係想我地明。", 
+                    "專心少少聽應該有用。", "內容係幾充實嘅。", "忍耐多十分鐘...", 
+                    "其實講得幾有條理。", "如果我唔聽，考試就死得。", "雖然想訓，但都要聽。", "備課係幾足嘅。"
+                ]
+            },
+            drill: {
+                positive: [
+                    "熟能生巧！", "多做練習真係有進步。", "我掌握到答題技巧啦！", 
+                    "錯題簿好有用。", "操卷先知自己邊度唔識。", "多謝老師改得咁細心。", 
+                    "我要操多兩份！", "考試技巧level up！", "勤有功！", "終於明白個評分準則。"
+                ],
+                complaint: [
+                    "又係做卷？", "手都斷啦...", "我係抄寫機器咩？", 
+                    "做極都係唔識。", "比個標準答案我背啦。", "好枯燥呀...", 
+                    "放過我對手啦。", "日日操夜日操，煩唔煩？", "其實我做完都唔知錯咩。", "填鴨式教育..."
+                ],
+                reflection: [
+                    "雖然辛苦，但考試真係考呢啲。", "做多兩次應該會熟手。", "唯有死操爛操啦。", 
+                    "捱過佢就得。", "其實做完一份又有啲滿足感。", "練下手速都好。", 
+                    "鬼叫我要考DSE咩。", "操練係必經階段。", "希望考試出返呢題。", "老師改卷都辛苦嘅。"
+                ]
+            }
+        };
+
         const TEACHER = { 
             age: 22, 
             maxEnergy: 10, 
@@ -396,7 +529,7 @@
         };
 
         let currentNeed = 'read'; 
-        let targetYCamera = 9.0; // 用於固定相機高度
+        let targetYCamera = 9.0; 
 
         function calcMaxEnergy() {
             let base = 10;
@@ -487,22 +620,19 @@
         renderer.shadowMap.enabled = false;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        // 修改：啟用平移功能 (Pan) 以便手機操控
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableRotate = false; 
         controls.enableZoom = true;
-        controls.enablePan = true;          // 啟用平移
-        controls.screenSpacePanning = true; // 平移方向平行於畫面（左右上下）
+        controls.enablePan = true;          
+        controls.screenSpacePanning = true; 
         controls.minDistance = 20;     
         controls.maxDistance = 80;     
         controls.zoomSpeed = 1.0;
 
-        // 設定觸控：單指平移，雙指縮放
         controls.touches = {
             ONE: THREE.TOUCH.PAN,
             TWO: THREE.TOUCH.DOLLY_PAN
         };
-        // 設定滑鼠：左鍵平移 (電腦版方便測試)
         controls.mouseButtons = {
             LEFT: THREE.MOUSE.PAN,
             MIDDLE: THREE.MOUSE.DOLLY,
@@ -522,13 +652,6 @@
         plane.rotation.x = -Math.PI / 2;
         plane.position.y = -2; 
         scene.add(plane);
-
-        const matGlassInnate = new THREE.MeshPhysicalMaterial({
-            color: CONFIG.colors.glassInnate,
-            metalness: 0.1, roughness: 0.1,
-            transmission: 0.6, transparent: true, opacity: 0.9,
-            side: THREE.DoubleSide
-        });
 
         const matGlassRead = new THREE.MeshPhysicalMaterial({
             color: CONFIG.colors.glassRead,
@@ -557,19 +680,36 @@
                 this.readingHeight = 0; 
                 this.landedParticles = [];
 
+                // 設定：氣泡垂直錯位偏移量 (避免重疊)
+                // 偶數學生高一點，奇數學生低一點
+                this.bubbleOffsetY = (id % 2 === 0) ? 5.0 : 3.2;
+
                 this.labelEl = document.createElement('div');
                 this.labelEl.className = 'student-label';
                 document.getElementById('labels-container').appendChild(this.labelEl);
                 this.updateLabelText();
 
+                this.bubbleEl = document.createElement('div');
+                this.bubbleEl.className = 'speech-bubble';
+                document.getElementById('labels-container').appendChild(this.bubbleEl);
+
                 this.group = new THREE.Group();
                 this.group.position.set(xPos, 0, 0); 
                 scene.add(this.group);
 
-                this.baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), matGlassInnate);
+                // --- 修改：根據資質設定不同顏色的玻璃材質 ---
+                const typeColor = new THREE.Color(this.type.color);
+                this.glassMaterial = new THREE.MeshPhysicalMaterial({
+                    color: typeColor,
+                    metalness: 0.1, roughness: 0.1,
+                    transmission: 0.6, transparent: true, opacity: 0.9,
+                    side: THREE.DoubleSide
+                });
+
+                this.baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), this.glassMaterial);
                 this.group.add(this.baseMesh);
                 
-                const bottomCap = new THREE.Mesh(new THREE.CircleGeometry(2, 64), matGlassInnate);
+                const bottomCap = new THREE.Mesh(new THREE.CircleGeometry(2, 64), this.glassMaterial);
                 bottomCap.rotation.x = -Math.PI/2;
                 this.group.add(bottomCap);
 
@@ -615,6 +755,38 @@
                 this.labelEl.innerHTML = `<span style="color:${this.type.color}">${this.type.name}</span>: ${this.landedParticles.length}`;
             }
 
+            // 新增：顯示氣泡
+            showBubble(text, className, index) {
+                this.bubbleEl.innerText = text;
+                this.bubbleEl.className = 'speech-bubble ' + className;
+                
+                gsap.killTweensOf(this.bubbleEl);
+                gsap.set(this.bubbleEl, { opacity: 0, scale: 0.8, display: 'block' });
+                
+                // --- 修改：增加隨機延遲，錯開顯示時間 ---
+                const baseDelay = index * 0.15; // 基礎錯位
+                const randomDelay = Math.random() * 0.5; // 隨機成分
+                const totalDelay = baseDelay + randomDelay;
+                
+                gsap.to(this.bubbleEl, { 
+                    opacity: 1, 
+                    scale: 1, 
+                    duration: 0.4, 
+                    delay: totalDelay,
+                    ease: "back.out(1.7)"
+                });
+
+                gsap.to(this.bubbleEl, {
+                    opacity: 0,
+                    scale: 0.8,
+                    duration: 0.3,
+                    delay: 3.5 + totalDelay,
+                    onComplete: () => {
+                        this.bubbleEl.style.display = 'none';
+                    }
+                });
+            }
+
             updateVisuals(instant = false) {
                 const dur = instant ? 0 : 0.8;
                 gsap.to(this.baseMesh.scale, { y: this.baseHeight, duration: dur });
@@ -626,7 +798,10 @@
                 gsap.to(this.readMesh.position, { y: readH / 2, duration: dur });
             }
 
-            dispose() { if (this.labelEl) this.labelEl.remove(); }
+            dispose() { 
+                if (this.labelEl) this.labelEl.remove(); 
+                if (this.bubbleEl) this.bubbleEl.remove();
+            }
         }
 
         function initStudents(count) {
@@ -660,13 +835,10 @@
 
         function updateCamera(count) {
             const isMobile = window.innerWidth < 800;
-            
-            // 手機版讓相機向上看(位置低一點)，讓學生容器更貼近螢幕下方
             targetYCamera = isMobile ? 13.0 : 9.0;
             const baseZ = isMobile ? 40 : 28; 
             const zDist = baseZ + (count * 2.0); 
 
-            // 重置 OrbitControls 的 target，確保切換人數時視角居中
             gsap.to(controls.target, { x: 0, y: targetYCamera, z: 0, duration: 1.0 });
             gsap.to(camera.position, { x: 0, y: 15, z: zDist, duration: 1.0, onUpdate: () => controls.update() });
         }
@@ -819,14 +991,40 @@
             return actual;
         }
 
-        // 修改：降低 Bonus 的比例，避免過度獎勵
         function getParticleCount(baseCount, actionId) {
             if (actionId === currentNeed) {
-                // 將 Bonus 比例從 0.3 (30%) 降低到 0.2 (20%)，避免一次爆發太多
                 const bonus = Math.ceil(baseCount * 0.2); 
                 return { count: baseCount + bonus, isBonus: true };
             }
             return { count: baseCount, isBonus: false };
+        }
+
+        function triggerStudentDialogue(student, actionId, index) {
+            let text = "";
+            let bubbleClass = "";
+            const options = DIALOGUES[actionId];
+            
+            if (student.type === STUDENT_TYPES.HIGH) {
+                const idx = Math.floor(Math.random() * options.positive.length);
+                text = options.positive[idx];
+                bubbleClass = "bubble-high";
+            } else if (student.type === STUDENT_TYPES.LOW) {
+                const idx = Math.floor(Math.random() * options.complaint.length);
+                text = options.complaint[idx];
+                bubbleClass = "bubble-complaint";
+            } else if (student.type === STUDENT_TYPES.AVG) {
+                if (Math.random() < 0.7) {
+                    const idx = Math.floor(Math.random() * options.complaint.length);
+                    text = options.complaint[idx];
+                    bubbleClass = "bubble-complaint";
+                } else {
+                    const idx = Math.floor(Math.random() * options.reflection.length);
+                    text = options.reflection[idx];
+                    bubbleClass = "bubble-reflect";
+                }
+            }
+
+            student.showBubble(text, bubbleClass, index);
         }
 
         function handleAction(actionId, cost, baseParticles, name, growReading = false) {
@@ -846,7 +1044,7 @@
                     showFloatingBonus(rect.left + rect.width/2 - 20, rect.top, color);
                 }
 
-                students.forEach(s => {
+                students.forEach((s, idx) => {
                     if (growReading) {
                         const grew = s.tryGrowReading();
                         if (!grew) limitReached = true;
@@ -860,6 +1058,8 @@
                     if (!growReading && s.readingHeight > 0.5) {
                         setTimeout(()=>spawnParticle(actionId, s), 300);
                     }
+
+                    triggerStudentDialogue(s, actionId, idx);
                 });
 
                 let msg = name;
@@ -876,7 +1076,6 @@
         }
 
         document.getElementById('btn-read').addEventListener('click', () => {
-            // 修改：將基礎粒子數從 25 降為 14 (其他是8~10，14約多出1/3)
             handleAction('read', 1.0, 14, "增加閱讀量：提升維度！", true);
         });
 
@@ -1008,7 +1207,7 @@
 
             const avgScore = scoreSum / students.length;
             let msg = avgScore >= 4 
-                ? "「做得好！這次 DSE 成績十分亮麗，這充分證明了<b>『自主學習』及『課後拔尖補底』策略行之有效</b>！同事們只要緊隨學校的發展方向，定能帶領學生再創高峰！來年我們繼續增加補課！」" 
+                ? "「做得好！這次 DSE 成績十分亮麗，這充分證明了<b>我校策略行之有效</b>！同事們只要緊隨學校的發展方向，定能帶領學生再創高峰！來年我們繼續增加補課！」" 
                 : "「看到這樣的成績，我稍微有點擔心。<b>我的意思不是說同事你沒有盡力</b>，我相信大家都付出了時間。但客觀數據反映出，<b>學生的潛能尚未被完全發揮</b>。來年我們繼續增加補課，以回應學生的學習需要！」";
 
             document.getElementById('dse-results').innerHTML = resultHTML;
@@ -1022,14 +1221,10 @@
             requestAnimationFrame(animate);
             controls.update();
 
-            // 修改：限制平移範圍 (只允許左右平移，且不能移出邊界)
             if (controls.target) {
-                const boundary = (students.length * 2.5); // 根據學生數量計算邊界
-                // 限制 X 軸範圍
+                const boundary = (students.length * 2.5);
                 if (controls.target.x < -boundary) controls.target.x = -boundary;
                 if (controls.target.x > boundary) controls.target.x = boundary;
-                
-                // 強制鎖定 Y 軸高度 (防止上下拖曳跑版)
                 controls.target.y = targetYCamera;
             }
 
@@ -1041,9 +1236,17 @@
                 s.labelEl.style.left = `${x}px`;
                 s.labelEl.style.top = `${y}px`;
                 
-                // 處理標籤在畫面外時的顯示 (可選：如果需要標籤淡出)
+                // 使用 bubbleOffsetY 進行垂直錯位
+                const bubblePos = new THREE.Vector3(s.xPos, s.getRimY() + s.bubbleOffsetY, 0);
+                bubblePos.project(camera);
+                const bx = (bubblePos.x * .5 + .5) * window.innerWidth;
+                const by = (bubblePos.y * -.5 + .5) * window.innerHeight;
+                s.bubbleEl.style.left = `${bx}px`;
+                s.bubbleEl.style.top = `${by}px`;
+                
                 if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) {
                     s.labelEl.style.opacity = 0;
+                    s.bubbleEl.style.opacity = 0;
                 } else {
                     s.labelEl.style.opacity = 1;
                 }
