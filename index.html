@@ -1768,78 +1768,128 @@
 
         document.getElementById('btn-restart').addEventListener('click', () => location.reload());
 
-        function animate() {
-            requestAnimationFrame(animate); controls.update();
+    function animate() {
+            requestAnimationFrame(animate); 
+            controls.update();
+            
+            // 限制視角範圍
             if (controls.target) {
                 const boundary = (students.length * 2.5);
                 if (controls.target.x < -boundary) controls.target.x = -boundary;
                 if (controls.target.x > boundary) controls.target.x = boundary;
             }
+
+            // 更新學生標籤位置 (保持不變)
             students.forEach(s => {
-                const pos = new THREE.Vector3(s.xPos, s.getRimY() + 1.5, 0); pos.project(camera);
-                const x = (pos.x * .5 + .5) * window.innerWidth, y = (pos.y * -.5 + .5) * window.innerHeight;
-                s.labelEl.style.left = `${x}px`; s.labelEl.style.top = `${y}px`;
-                const bPos = new THREE.Vector3(s.xPos, s.getRimY() + s.bubbleOffsetY, 0); bPos.project(camera);
-                const bx = (bPos.x * .5 + .5) * window.innerWidth, by = (bPos.y * -.5 + .5) * window.innerHeight;
-                s.bubbleEl.style.left = `${bx}px`; s.bubbleEl.style.top = `${by}px`;
-                if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) { s.labelEl.style.opacity = 0; s.bubbleEl.style.opacity = 0; } else s.labelEl.style.opacity = 0.9;
+                const pos = new THREE.Vector3(s.xPos, s.getRimY() + 1.5, 0); 
+                pos.project(camera);
+                s.labelEl.style.left = `${(pos.x * .5 + .5) * window.innerWidth}px`; 
+                s.labelEl.style.top = `${(pos.y * -.5 + .5) * window.innerHeight}px`;
+                
+                const bPos = new THREE.Vector3(s.xPos, s.getRimY() + s.bubbleOffsetY, 0); 
+                bPos.project(camera);
+                s.bubbleEl.style.left = `${(bPos.x * .5 + .5) * window.innerWidth}px`; 
+                s.bubbleEl.style.top = `${(bPos.y * -.5 + .5) * window.innerHeight}px`;
+                
+                if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) { 
+                    s.labelEl.style.opacity = 0; s.bubbleEl.style.opacity = 0; 
+                } else { s.labelEl.style.opacity = 0.9; }
             });
-             for (let i = particles.length - 1; i >= 0; i--) {
+
+            // === 差異化物理模擬核心 ===
+            for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i], s = p.userData.student;
+                
                 if (p.userData.state === 'falling') {
-                    p.position.add(p.userData.vel); p.rotation.x += 0.05; p.rotation.y += 0.05; p.userData.vel.y -= 0.008;
+                    p.position.add(p.userData.vel); 
+                    p.rotation.x += 0.05; p.rotation.y += 0.05; 
+                    p.userData.vel.y -= 0.008; // 重力
+
+                    // === [關鍵修改] 根據學生資質，設定不同的「專注引力」 ===
+                    // High: 強力吸入 (0.15) - 知識直達腦袋
+                    // Avg:  普通引導 (0.05)
+                    // Low:  幾乎不引導 (0.01) + 亂流 - 知識左耳入右耳出，很難對準
                     
+                    let attractionForce = 0.05; // 預設 Avg
+                    if (s.type.id === 'high') attractionForce = 0.15;
+                    else if (s.type.id === 'low') attractionForce = 0.005; // 極弱，容易灑出去
+
+                    // 只有「被接受」的知識會受到引力，被排斥的會隨風飄
+                    if (!p.userData.rejected) {
+                        p.position.x += (s.xPos - p.position.x) * attractionForce;
+                        p.position.z += (0 - p.position.z) * attractionForce;
+                    } else {
+                        // 資質差的學生，對於被排斥的知識，會產生「亂流」，讓它飄得更遠
+                        if (s.type.id === 'low') {
+                            p.position.x += (Math.random() - 0.5) * 0.03;
+                            p.position.z += (Math.random() - 0.5) * 0.03;
+                        }
+                    }
+
+                    // 碰撞判定
                     if (p.position.y < s.getRimY() + 0.5 && p.position.y > 0) {
                         const dist = Math.sqrt(Math.pow(p.position.x - s.xPos, 2) + Math.pow(p.position.z, 2));
                         
-                        if (dist < 1.8) {
+                        // 判定範圍
+                        if (dist < 1.95) {
                             if (p.userData.rejected) {
-                                p.userData.vel.x = (p.position.x - s.xPos) * 0.2 + (Math.random()-0.5)*0.1; 
-                                p.userData.vel.z = p.position.z * 0.2 + (Math.random()-0.5)*0.1;
-                                p.userData.vel.y = 0.1; 
+                                // === [關鍵修改] 差異化的排斥力道 ===
+                                let ejectForce = 0.15; // 基礎彈出速度
+                                if (s.type.id === 'high') ejectForce = 0.1; // 高資質：輕輕撥開
+                                if (s.type.id === 'low') ejectForce = 0.35; // 低資質：用力彈飛 (抗拒)
+
+                                p.userData.vel.x = (p.position.x - s.xPos) * ejectForce + (Math.random()-0.5)*0.1; 
+                                p.userData.vel.z = p.position.z * ejectForce + (Math.random()-0.5)*0.1;
+                                p.userData.vel.y = 0.15; // 彈起高度
                                 p.userData.state = 'spilling';
                             }
-                            // --- 修改: 使用 dynamic capacity check ---
+                            // 資質駑鈍容量限制
                             else if (s.type.id === 'low' && s.landedParticles.length >= s.particleCap) {
-                                // 超過動態上限 -> 溢出
-                                p.userData.vel.x = (p.position.x - s.xPos) * 0.15;
-                                p.userData.vel.z = p.position.z * 0.15;
+                                p.userData.vel.x = (p.position.x - s.xPos) * 0.2;
+                                p.userData.vel.z = p.position.z * 0.2;
                                 p.userData.state = 'spilling';
                             }
-                            // --- 修改結束 ---
                             else {
+                                // 成功落入
                                 const fill = s.landedParticles.length * 0.006;
                                 if (fill < s.getRimY()) { 
                                     if (p.position.y <= Math.max(fill, 0.2)) {
-                                        p.position.y = fill + Math.random() * 0.2; p.userData.state = 'landed'; s.landedParticles.push(p); s.updateLabelText();
-                                        p.rotation.set(0, Math.random()*Math.PI, 0); const r = Math.random() * 1.5, t = Math.random() * Math.PI * 2;
-                                        p.position.x = s.xPos + r * Math.cos(t); p.position.z = r * Math.sin(t);
-                                        
+                                        p.position.y = fill + Math.random() * 0.2; 
+                                        p.userData.state = 'landed'; 
+                                        s.landedParticles.push(p); 
+                                        s.updateLabelText();
+                                        p.rotation.set(0, Math.random()*Math.PI, 0); 
+                                        const r = Math.random() * 1.5, t = Math.random() * Math.PI * 2;
+                                        p.position.x = s.xPos + r * Math.cos(t); 
+                                        p.position.z = r * Math.sin(t);
                                         if (GAME_MODE === 'full') changeHappiness(0.1); 
                                     }
                                 } else {
                                     // 物理滿溢
-                                    p.userData.vel.x = (p.position.x - s.xPos)*0.1; p.userData.vel.z = p.position.z*0.1; p.userData.state = 'spilling';
+                                    p.userData.vel.x = (p.position.x - s.xPos)*0.15; 
+                                    p.userData.vel.z = p.position.z*0.15; 
+                                    p.userData.state = 'spilling';
                                 }
                             }
-                        } else if (dist < 2.2) { 
-                            // 碰到邊緣反彈
-                            p.userData.vel.x = (p.position.x - s.xPos)*0.1; p.userData.vel.z = p.position.z*0.1; p.userData.state = 'spilling'; 
+                        } else if (dist < 2.4) { 
+                            // 撞到邊緣 (Rim Bounce)
+                            // Low 學生更容易因為沒對準而撞飛
+                            p.userData.vel.x = (p.position.x - s.xPos)*0.2; 
+                            p.userData.vel.z = p.position.z*0.2; 
+                            p.userData.state = 'spilling'; 
                         }
                     }
                     if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
+                
                 } else if (p.userData.state === 'spilling') {
-                    // 溢出動畫邏輯：模擬重力掉落
                     p.position.add(p.userData.vel); 
-                    p.userData.vel.y -= 0.02; // 重力加速
-                    p.rotation.x += 0.1; // 滾動效果
-                    
+                    p.userData.vel.y -= 0.02; 
+                    p.rotation.x += 0.1; 
                     if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
                 }
             }
             renderer.render(scene, camera);
         }
-
         document.getElementById('sel-student-count').addEventListener('change', (e) => initStudents(parseInt(e.target.value)));
         document.getElementById('rng-admin').addEventListener('input', updateUI);
         
