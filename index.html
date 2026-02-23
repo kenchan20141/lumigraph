@@ -674,10 +674,40 @@
         let isDseMode = false;
         let hasDoneAdmin = false; 
         
-        const STUDENT_TYPES = {
-            HIGH: { id: 'high', name: '天資聰穎', color: style.getPropertyValue('--color-high').trim(), growRate: [0.5, 0.8], baseScale: 2.0, rejectRate: 0.1, canGrow: true, maxHeight: 6.0 },
-            AVG:  { id: 'avg',  name: '資質平庸', color: style.getPropertyValue('--color-avg').trim(), growRate: [0.2, 0.4], baseScale: 1.0, rejectRate: 0.3, canGrow: true, maxHeight: 3.0 },
-            LOW:  { id: 'low',  name: '資質駑鈍', color: style.getPropertyValue('--color-low').trim(), growRate: [0.05, 0.1], baseScale: 0.25, rejectRate: 0.6, canGrow: false, maxHeight: 1.5 }
+      const STUDENT_TYPES = {
+            HIGH: { 
+                id: 'high', 
+                name: '天資聰穎', 
+                color: style.getPropertyValue('--color-high').trim(), 
+                growRate: [0.5, 0.8], // 新學年增長幅度 (高)
+                readGrow: 0.5,        // 閱讀時增加的高度 (快)
+                baseScale: 2.0, 
+                rejectRate: 0.1, 
+                canGrow: true, 
+                maxHeight: 8.0 //稍微調高上限讓差異更明顯
+            },
+            AVG:  { 
+                id: 'avg',  
+                name: '資質平庸', 
+                color: style.getPropertyValue('--color-avg').trim(), 
+                growRate: [0.15, 0.3], // 新學年增長幅度 (調低，變慢)
+                readGrow: 0.2,         // 閱讀時增加的高度 (調低，變慢)
+                baseScale: 1.0, 
+                rejectRate: 0.3, 
+                canGrow: true, 
+                maxHeight: 3.0 
+            },
+            LOW:  { 
+                id: 'low',  
+                name: '資質駑鈍', 
+                color: style.getPropertyValue('--color-low').trim(), 
+                growRate: [0.05, 0.1], 
+                readGrow: 0.05,        // 即使能長也長得很慢
+                baseScale: 0.25, 
+                rejectRate: 0.6, 
+                canGrow: false, 
+                maxHeight: 1.5 
+            }
         };
 
         const GRADES = ["中一", "中二", "中三", "中四", "中五", "中六"];
@@ -847,27 +877,31 @@
             getTotalHeight() { return this.baseHeight + this.readingHeight; }
             getRimY() { return this.getTotalHeight(); }
             
-            tryGrowReading() {
-                // --- 修改開始: 針對資質駑鈍的特殊增長邏輯 ---
+           tryGrowReading() {
+                // --- 針對資質駑鈍的特殊增長邏輯 (保持不變) ---
                 if (this.type.id === 'low') {
-                    // 如果未達最大上限 25，則增加容量
                     if (this.particleCap < 25) {
                         this.particleCap++; 
-                        // 視覺上也要稍微長高一點點 (0.05)，否則粒子會物理溢出
-                        this.readingHeight += 0.05; 
+                        this.readingHeight += this.type.readGrow; // 使用設定檔數值 (0.05)
                         this.updateVisuals();
                         if (GAME_MODE === 'full') changeHappiness(0.1);
                         return true; 
                     } else {
-                        // 已達絕對極限 25
                         this.shake();
                         return false;
                     }
                 }
-                // --- 修改結束 ---
+                
+                // --- 一般及資優學生的邏輯 ---
+                if (!this.type.canGrow || this.getTotalHeight() >= this.type.maxHeight) { 
+                    this.shake(); 
+                    return false; 
+                }
 
-                if (!this.type.canGrow || this.getTotalHeight() >= this.type.maxHeight) { this.shake(); return false; }
-                this.readingHeight += 0.4; 
+                // 修改處：原本是固定 += 0.4，現在根據資質讀取 readGrow 數值
+                // HIGH = 0.5, AVG = 0.2
+                this.readingHeight += this.type.readGrow; 
+                
                 this.updateVisuals(); 
                 if (GAME_MODE === 'full') changeHappiness(0.1); 
                 return true;
