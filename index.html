@@ -427,31 +427,35 @@
                 <span id="need-text" style="color:var(--accent-read);">增加閱讀量</span>
             </div>
 
-            <div class="btn-group">
+           <div class="btn-group">
                 <button id="btn-read" class="btn-read">
                     <span class="btn-icon">📚</span>
                     <span class="btn-txt">增加閱讀量</span>
-                    <span class="btn-cost" id="cost-read">-1 E</span>
+                    <!-- 根據 JS: handleAction('read', 1.0, 1... -> Cost 1 E, 1 Hap -->
+                    <span class="btn-cost" id="cost-read">-1 E / -1 Hap</span>
                 </button>
                 <button id="btn-fun" class="btn-fun">
                     <span class="btn-icon">🍬</span>
-                    <span class="btn-txt">設計趣味教學</span>
-                    <span class="btn-cost" id="cost-fun">-3 E</span>
+                    <span class="btn-txt">趣味教學</span>
+                    <!-- 根據 JS: handleAction('fun', 3.0, 2... -> Cost 3 E, 2 Hap -->
+                    <span class="btn-cost" id="cost-fun">-3 E / -2 Hap</span>
                 </button>
                 <button id="btn-plan" class="btn-plan">
                     <span class="btn-icon">📝</span>
                     <span class="btn-txt">認真備課</span>
-                    <span class="btn-cost" id="cost-plan">-3 E</span>
+                    <!-- 根據 JS: handleAction('plan', 3.0, 2... -> Cost 3 E, 2 Hap -->
+                    <span class="btn-cost" id="cost-plan">-3 E / -2 Hap</span>
                 </button>
                 <button id="btn-drill" class="btn-drill">
                     <span class="btn-icon">⚔️</span>
                     <span class="btn-txt">試題操練</span>
-                    <span class="btn-cost" id="cost-drill">-3 E</span>
+                    <!-- 根據 JS: handleAction('drill', 3.0, 2... -> Cost 3 E, 2 Hap -->
+                    <span class="btn-cost" id="cost-drill">-3 E / -2 Hap</span>
                 </button>
                 <!-- 全面體驗用 -->
                 <button id="btn-hea" class="btn-hea mode-full-el">
                     <span class="btn-icon">☕</span>
-                    <span class="btn-txt">摸魚 (Hea教)</span>
+                    <span class="btn-txt">摸魚 (Hea)</span>
                     <span class="btn-cost">-0.5 E / +1 Hap</span>
                 </button>
             </div>
