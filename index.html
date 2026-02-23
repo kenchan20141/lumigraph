@@ -570,7 +570,7 @@
             <div id="status-text">準備教學...</div>
         </div>
 
-        <div class="dash-section" style="flex:0 0 auto;">
+     <div class="dash-section" style="flex:0 0 auto;">
             <div class="section-title">學生人數</div>
             <select id="sel-student-count" style="padding:6px; border-radius:6px; font-size:13px;">
                 <option value="1">1 人</option>
@@ -578,6 +578,12 @@
                 <option value="3">3 人</option>
                 <option value="4">4 人</option>
                 <option value="5" selected>5 人</option>
+                <!-- 新增選項 -->
+                <option value="6">6 人</option>
+                <option value="7">7 人</option>
+                <option value="8">8 人</option>
+                <option value="9">9 人</option>
+                <option value="10">10 人</option>
             </select>
         </div>
 
@@ -1223,7 +1229,7 @@
             TWO: THREE.TOUCH.DOLLY_PAN
         };
         
-        controls.minDistance = 20; controls.maxDistance = 80;
+        controls.minDistance = 20; controls.maxDistance = 150;
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.9); scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.6); dirLight.position.set(0, 30, 20); scene.add(dirLight);
@@ -1384,7 +1390,11 @@
         function updateCamera(count) {
             const isMobile = window.innerWidth < 800;
             const targetY = isMobile ? 13.0 : 9.0;
-            const zDist = (isMobile ? 40 : 28) + (count * 2.0); 
+            
+            // 修改 Z 軸距離計算公式
+            // 原本是 (count * 2.0)，改為 (count * 5.5) 以確保 10 人時鏡頭拉得夠遠
+            const zDist = (isMobile ? 40 : 28) + (count * 5.5); 
+            
             gsap.to(controls.target, { x: 0, y: targetY, z: 0, duration: 1.0 });
             gsap.to(camera.position, { x: 0, y: 15, z: zDist, duration: 1.0, onUpdate: () => controls.update() });
         }
