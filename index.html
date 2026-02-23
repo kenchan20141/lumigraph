@@ -354,6 +354,57 @@
             100% { box-shadow: 0 0 0 0 rgba(124, 148, 115, 0); }
         }
 
+
+        /* 強制按鈕群組單行排列，不換行 */
+        .action-section .btn-group {
+            display: flex;
+            flex-wrap: nowrap !important; /* 核心：禁止換行 */
+            gap: 5px; /* 縮小間距以確保塞得進去 */
+            width: 100%;
+            overflow-x: auto; /* 手機版如果太窄容許滑動，但桌面版會擠在一起 */
+        }
+
+        /* 讓所有按鈕平均分配空間，或根據內容自動縮放 */
+        .action-section button {
+            flex: 1 1 auto; /* 自動伸縮 */
+            min-width: 0; /* 允許縮小到比內容還小 (防止爆版) */
+            padding: 8px 4px; /* 減少左右內距 */
+            margin: 0;
+            transform: none !important; /* 移除任何放大效果 */
+            height: auto; /* 高度自動 */
+        }
+
+        /* === 增加閱讀量按鈕：顯眼但不放大 === */
+        #btn-read {
+            background-color: #effcf1; /* 淺綠背景 */
+            border: 1px solid var(--accent-read);
+            border-bottom: 3px solid var(--accent-read); /* 底部加厚 */
+            color: var(--color-high); /* 深綠文字 */
+            animation: pulse-green 2s infinite; /* 呼吸燈效果 */
+            z-index: 5;
+            /* 移除 scale 放大，移除 fixed width */
+        }
+        
+        /* 閱讀按鈕的文字顏色特化 */
+        #btn-read .btn-txt {
+            color: #2e5c30; 
+            font-weight: 900;
+        }
+
+        /* 調整說明文字大小，確保兩行資訊能顯示 */
+        .btn-cost {
+            font-size: 9px;
+            white-space: nowrap; /* 禁止文字換行 */
+            margin-top: 3px;
+            display: block; /* 確保獨佔一行 */
+        }
+
+        /* 呼吸燈動畫 (綠色光暈) */
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(124, 148, 115, 0.6); }
+            70% { box-shadow: 0 0 0 6px rgba(124, 148, 115, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(124, 148, 115, 0); }
+        }
     </style>
 </head>
 <body>
