@@ -1155,17 +1155,28 @@
         }
         calcMaxEnergy();
 
-        const ageEl = document.getElementById('disp-age');
+       const ageEl = document.getElementById('disp-age');
         ageEl.addEventListener('click', function() {
             if (this.querySelector('input')) return; 
             const currentVal = this.innerText; this.innerHTML = '';
             const input = document.createElement('input');
-            input.type = 'number'; input.value = currentVal; input.className = 'inline-input';
+            input.type = 'number'; 
+            input.value = currentVal; 
+            input.className = 'inline-input';
+            
             const save = () => {
                 let val = parseInt(input.value);
-                if (!isNaN(val) && val > 0 && val < 100) {
-                    TEACHER.age = val; calcMaxEnergy(); this.innerText = val; updateUI(); 
-                } else { this.innerText = TEACHER.age; }
+                // 修改處：限制最大年齡為 60 歲
+                if (!isNaN(val) && val > 0 && val <= 60) {
+                    TEACHER.age = val; 
+                    calcMaxEnergy(); 
+                    this.innerText = val; 
+                    updateUI(); 
+                } else { 
+                    // 如果輸入超過 60 或不合法，還原為原本數值
+                    this.innerText = TEACHER.age; 
+                    if(val > 60) alert("法定退休年齡為 60 歲，無法設定更高。");
+                }
             };
             input.addEventListener('blur', save);
             input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
@@ -1936,54 +1947,70 @@
             updateUI();
         }
 
-        // 共用：新學年邏輯
-        function startNewYear() {
-            if (currentGradeIndex >= 5) return;
-            
-            TEACHER.age++;
-            calcMaxEnergy(); 
-            currentGradeIndex++;
-            TEACHER.daysInYear = 1; 
-            
-            // 局部模式重置恢復次數
-            if (GAME_MODE === 'partial') {
-                TEACHER.recoveriesLeft = 3;
-            }
+     // 共用：新學年邏輯
+function startNewYear() {
+    // 如果已經在退休狀態或 DSE 結束，防止重複觸發
+    if (document.getElementById('modal-overlay').style.display === 'flex') return;
 
-            let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
-            
-            if (GAME_MODE === 'full') {
-                 // 全面模式：累積工作
-                 TEACHER.gradingPile += 2;
-                 TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 };
-            }
+    TEACHER.age++; // 增加年齡
 
-            // 扣除債務 (局部模式與全面模式通用)
-            if (TEACHER.energyDebt > 0) {
-                netEnergy -= TEACHER.energyDebt;
-                TEACHER.energyDebt = 0; 
-                if (netEnergy < 0) netEnergy = 0; 
-            }
+    // === 修改處開始：檢查是否超過 60 歲 ===
+    if (TEACHER.age > 60) {
+        // 強制更新 UI 顯示 61 歲 (讓玩家知道過了一年)
+        document.getElementById('disp-age').innerText = TEACHER.age;
+        showRetirement();
+        return; // 終止後續的新學年初始化
+    }
+    // === 修改處結束 ===
 
-            TEACHER.currentEnergy = netEnergy;
-            TEACHER.bonusEnergyNextDay = 0;
-            
-            hasDoneAdmin = false;
-            randomizeStudentNeed();
-            setStatus(`新學年：${GRADES[currentGradeIndex]}。`);
+    calcMaxEnergy(); 
+    
+    // 如果年級還沒到中六，則升級；如果已經中六（例如留級模式或無限模式），保持中六
+    if (currentGradeIndex < 5) {
+        currentGradeIndex++;
+    }
+    
+    TEACHER.daysInYear = 1; 
+    
+    // 局部模式重置恢復次數
+    if (GAME_MODE === 'partial') {
+        TEACHER.recoveriesLeft = 3;
+    }
 
-            students.forEach(s => {
-                s.growGrade();
-                let change = 0;
-                if (s.type === STUDENT_TYPES.HIGH) change = Math.random()>0.6 ? Math.floor(Math.random()*3)+1 : -1;
-                else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random()*4+2);
-                else change = -Math.floor(Math.random()*5+6);
-                if (change < 0) { for(let i=0; i<Math.abs(change); i++) { const p = s.landedParticles.pop(); if(p) { scene.remove(p); particles = particles.filter(x=>x!==p); } } }
-                else { for(let i=0; i<change; i++) spawnDirectLandedParticle(s); }
-                s.updateLabelText();
-            });
-            updateUI();
-        }
+    let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
+    
+    if (GAME_MODE === 'full') {
+            // 全面模式：累積工作
+            TEACHER.gradingPile += 2;
+            TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 };
+    }
+
+    // 扣除債務 (局部模式與全面模式通用)
+    if (TEACHER.energyDebt > 0) {
+        netEnergy -= TEACHER.energyDebt;
+        TEACHER.energyDebt = 0; 
+        if (netEnergy < 0) netEnergy = 0; 
+    }
+
+    TEACHER.currentEnergy = netEnergy;
+    TEACHER.bonusEnergyNextDay = 0;
+    
+    hasDoneAdmin = false;
+    randomizeStudentNeed();
+    setStatus(`新學年：${GRADES[currentGradeIndex]}。`);
+
+    students.forEach(s => {
+        s.growGrade();
+        let change = 0;
+        if (s.type === STUDENT_TYPES.HIGH) change = Math.random()>0.6 ? Math.floor(Math.random()*3)+1 : -1;
+        else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random()*4+2);
+        else change = -Math.floor(Math.random()*5+6);
+        if (change < 0) { for(let i=0; i<Math.abs(change); i++) { const p = s.landedParticles.pop(); if(p) { scene.remove(p); particles = particles.filter(x=>x!==p); } } }
+        else { for(let i=0; i<change; i++) spawnDirectLandedParticle(s); }
+        s.updateLabelText();
+    });
+    updateUI();
+}
 
         function getDSEResult(totalHeight) {
             const roll = Math.random();
@@ -2142,5 +2169,52 @@
         document.getElementById('rng-admin').addEventListener('input', updateUI);
         
     </script>
+
+
+<script>
+
+
+// 新增：退休結算畫面 (已移除職級顯示，已移除校長說話)
+function showRetirement() {
+    // 隱藏其他可能開啟的介面
+    document.getElementById('offwork-overlay').style.display = 'none';
+    document.getElementById('summary-overlay').style.display = 'none';
+
+    // 設定模態框內容
+    document.getElementById('modal-icon').innerText = "🍵"; 
+    document.getElementById('modal-title').innerText = "光榮退休";
+    document.getElementById('modal-title').style.color = "var(--color-high)";
+    
+    let endMsg = "";
+    if (TEACHER.happiness > 80) {
+        endMsg = "你帶著滿滿的幸福回憶告別校園，學生們都捨不得你。";
+    } else if (TEACHER.happiness > 40) {
+        endMsg = "雖然教學生涯有苦有樂，但你總算平安著陸，無悔此生。";
+    } else {
+        endMsg = "終於捱到了這一天，你如釋重負，發誓以後不再改文。";
+    }
+
+    // 這裡移除了「最終職級」那一行
+    document.getElementById('dse-results').innerHTML = `
+        <div style="font-size:18px; font-weight:bold; color:#333; margin-bottom:15px;">
+            歲月如梭，你已年滿 60 歲。
+        </div>
+        <div style="text-align:left; font-size:14px; line-height:1.8; color:#555; padding:10px;">
+            <p><strong>退休幸福感：</strong> ${Math.floor(TEACHER.happiness)} / 100</p>
+            <hr style="border:0; border-top:1px dashed #ccc; margin:10px 0;">
+            <p>${endMsg}</p>
+        </div>
+    `;
+    
+    // 清空校長訊息
+    document.getElementById('principal-msg').innerText = "";
+    
+    // 顯示模態框
+    document.getElementById('modal-overlay').style.display = 'flex';
+}
+    
+</script>
+
+    
 </body>
 </html>
