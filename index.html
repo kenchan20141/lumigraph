@@ -263,79 +263,83 @@
         /* 隱藏元素 Helper Class */
         .hidden { display: none !important; }
 
-        /* 手機適配 */
-        /* 手機適配：垂直排列 + 分隔線 */
+      /* 手機適配：垂直排列 + 可滑動儀表板 */
         @media (max-width: 800px) {
             #top-dashboard {
+                /* 核心改動：限制高度為畫面一半，並開啟垂直捲動 */
+                max-height: 50vh;
+                overflow-y: auto; 
+                overflow-x: hidden; /* 防止左右亂動 */
+                
+                /* 排列設定 */
                 padding: 15px 20px;
-                /* 核心改動：轉為垂直排列 */
                 flex-direction: column;
                 flex-wrap: nowrap;
                 justify-content: flex-start;
-                gap: 0; /* 間距改由 margin 控制 */
-                max-height: 60vh; /* 限制高度，內容過多可捲動 */
+                gap: 15px; /* 增加區塊間距 */
+                
+                /* 讓捲動更順暢 (iOS) */
+                -webkit-overflow-scrolling: touch;
+                
+                /* 底部留白，避免滑到底時被手機瀏覽器選單擋住 */
+                padding-bottom: 50px; 
             }
 
             .dash-section {
-                /* 移除桌面版的右側分隔線 */
-                border-right: none;
-                padding-right: 0;
-                
-                /* 新增：底部分隔線 */
-                border-bottom: 1px dashed rgba(0,0,0,0.2);
-                padding-bottom: 15px;
-                margin-bottom: 15px;
-                
-                /* 強制佔滿寬度 */
+                /* 關鍵：禁止區塊被壓縮，讓它們保持應有高度 */
+                flex: 0 0 auto; 
                 width: 100%;
-                flex: 0 0 auto;
+                
+                /* 分隔線樣式 */
+                border-right: none;
+                border-bottom: 1px dashed rgba(0,0,0,0.2);
+                padding-right: 0;
+                padding-bottom: 15px;
+                margin-bottom: 0;
             }
 
-            /* 移除最後一個區塊的分隔線 */
             .dash-section:last-child {
                 border-bottom: none;
-                margin-bottom: 0;
-                padding-bottom: 0;
             }
 
             /* 按鈕區塊設定 */
             .dash-section.action-section {
-                flex: 0 0 auto;
-                order: 0; /* 依照 HTML 順序排列，若想把按鈕放最底可設為 10 */
-                width: 100%;
-                overflow: hidden; /* 防止撐開版面 */
+                overflow: visible; /* 允許內容撐開 */
             }
 
-            /* 讓按鈕群組在手機上保持橫向排列並可滑動 */
+            /* 修改按鈕群組：從「橫向滑動」改為「自動換行」 */
+            /* 這樣按鈕會垂直堆疊，不會被壓扁，反正儀表板可以上下滑 */
             .action-section .btn-group {
                 display: flex;
-                flex-wrap: nowrap !important; /* 強制不換行 */
-                overflow-x: auto; /* 允許左右滑動 */
-                padding-bottom: 8px;
-                -webkit-overflow-scrolling: touch;
+                flex-wrap: wrap !important; /* 允許換行 */
                 gap: 8px;
+                overflow-x: visible;
+                padding-bottom: 0;
             }
 
-            /* 手機版按鈕樣式微調 */
-            button {
-                padding: 8px 6px;
-                min-width: 80px;
-                flex-shrink: 0; /* 防止按鈕被壓扁 */
+            /* 調整按鈕大小，讓它們好按一點 */
+            .action-section button {
+                flex: 1 1 45%; /* 兩個按鈕一行 */
+                min-width: 100px;
+                height: auto; /* 高度自動撐開 */
+                padding: 10px 5px;
+            }
+            
+            /* 特別讓「增加閱讀量」按鈕佔滿整行，因為它最重要 */
+            #btn-read {
+                flex: 1 1 100%;
+                margin-right: 0;
             }
 
             #status-text {
                 max-width: 100%;
             }
-
-            .speech-bubble {
-                font-size: 11px;
-                padding: 5px 8px;
-                max-width: 110px;
-                min-width: 60px;
-                border-radius: 10px;
+            
+            /* 隱藏不必要的裝飾以節省空間 */
+            #need-indicator {
+                margin-bottom: 10px;
             }
         }
-
         /* 模態框 */
         #modal-overlay, #offwork-overlay, #summary-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
