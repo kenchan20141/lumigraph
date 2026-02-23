@@ -265,116 +265,125 @@
 
 /* 手機適配：儀表板直向滾動 + 按鈕區強制左右滑動 */
     @media (max-width: 800px) {
-        /* 1. 整個儀表板：限制高度，內容多時垂直滾動 */
+        /* 1. 整個儀表板：限制高度，垂直滾動 */
         #top-dashboard {
             position: absolute;
             top: 0; left: 0;
             width: 100%;
-            max-height: 50vh; /* 佔畫面一半 */
+            max-height: 50vh; /* 限制高度為畫面一半 */
             
             display: flex;
             flex-direction: column; 
             flex-wrap: nowrap;
             justify-content: flex-start;
             
-            overflow-y: auto;       /* 儀表板上下滑動 */
-            overflow-x: hidden;     /* 禁止儀表板左右晃 */
+            overflow-y: auto;       
+            overflow-x: hidden;     
             
-            padding: 10px 15px 50px 15px;
+            padding: 10px 15px 40px 15px; /* 底部留白避免被手指遮擋 */
             box-sizing: border-box;
             gap: 15px;
             z-index: 20;
             -webkit-overflow-scrolling: touch;
         }
 
-        /* 2. 區塊設定：確保不被壓縮 */
+        /* 2. 區塊設定 */
         .dash-section {
             flex: 0 0 auto; 
             width: 100%;
             border-bottom: 1px dashed #ccc;
             padding-bottom: 15px;
             margin: 0;
+            border-right: none; /* 移除電腦版的右側分隔線 */
         }
         .dash-section:last-child { border-bottom: none; }
 
-        /* 3. 教學活動區：【關鍵】左右滑動容器 */
+        /* 3. 教學活動區：左右滑動容器 */
         .dash-section.action-section {
             width: 100%;
             display: block;
             padding: 0;
-            overflow: hidden; /* 避免外層捲軸干擾 */
         }
 
         .action-section .btn-group {
             display: flex;
-            flex-direction: row;          /* 橫向排列 */
-            flex-wrap: nowrap !important; /* 【絕對禁止換行】 */
-            overflow-x: auto !important;  /* 【強制開啟左右滑動】 */
+            flex-direction: row;          
+            flex-wrap: nowrap !important; /* 禁止換行 */
+            overflow-x: auto !important;  /* 開啟滑動 */
             
             width: 100%;
-            gap: 10px;                    /* 按鈕間距 */
-            padding: 5px 2px 10px 2px;    /* 預留陰影空間 */
+            gap: 8px;                     
+            padding: 5px 2px 10px 2px;    
+            align-items: stretch; /* 強制等高 */
             
-            /* 讓滑動順暢 */
+            /* 隱藏滾動條 */
             -webkit-overflow-scrolling: touch;
-            /* 讓所有按鈕等高 */
-            align-items: stretch; 
+            scrollbar-width: none; 
         }
-
-        /* 隱藏捲軸 */
         .action-section .btn-group::-webkit-scrollbar { display: none; }
 
-        /* 4. 按鈕設定：【關鍵】強制撐開寬度 */
-        .action-section button {
-            /* 【核心設定】 */
-            flex: 0 0 auto !important;   /* 禁止瀏覽器壓縮按鈕！ */
-            width: 30vw;                 /* 每個按鈕強制佔螢幕寬度 30% (大約 1/3) */
-            min-width: 110px;            /* 最小寬度防線 */
+        /* 4. 【關鍵修正】強制所有按鈕（包含 #btn-read）規格統一 */
+        /* 使用 ID 選擇器 #btn-read 確保權重夠高，能覆蓋電腦版設定 */
+        .action-section button, 
+        #btn-read, 
+        #btn-fun, 
+        #btn-plan, 
+        #btn-drill, 
+        #btn-hea {
+            flex: 0 0 28vw !important;   /* 【核心】固定寬度為螢幕的 28% (約1/3) */
+            width: 28vw !important;      /* 強制寬度 */
+            max-width: 120px !important; /* 避免在平板上過大 */
+            min-width: 0 !important;     /* 【重要】移除電腦版的最小寬度限制 */
             
-            margin: 0;
-            padding: 12px 5px;           /* 增加內距讓按鈕更高更舒適 */
+            margin: 0 !important;
+            padding: 10px 2px !important;
+            height: auto !important;
             
-            /* 排版 */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            
-            /* 移除可能導致跑位的變形 */
-            transform: none !important; 
-            height: auto; 
+            transform: none !important;  /* 【重要】移除 #btn-read 的放大效果 */
+            animation: none !important;  /* 移除呼吸燈動畫避免忽大忽小 */
+            box-shadow: none !important; /* 簡化陰影 */
+            border: 1px solid #ccc !important;
+            border-bottom: 3px solid #999 !important; /* 統一底部厚度 */
         }
 
-        /* 5. 確保「增加閱讀量」跟其他人一樣大，一樣能滑動 */
+        /* 5. 特別還原「增加閱讀量」的顏色，但保持形狀一致 */
         #btn-read {
-            margin-right: 0;
-            animation: none; /* 移除呼吸燈縮放，避免寬度跳動 */
-            /* 移除原本特殊的寬度設定，讓它跟上面 button 設定一致 */
+            background-color: #effcf1 !important;
+            border-color: var(--accent-read) !important;
+            color: var(--color-high) !important;
         }
 
-        /* 6. 字體大小優化 */
+        /* 6. 內容微調：確保文字塞得進去 */
         .btn-icon {
-            font-size: 26px; /* 圖示大一點 */
-            margin-bottom: 5px;
+            font-size: 22px !important; 
+            margin-bottom: 4px;
         }
 
         .btn-txt {
-            font-size: 14px;      /* 字體清晰 */
+            font-size: 13px !important;      
             font-weight: bold;
-            white-space: nowrap;  /* 文字不換行 */
+            white-space: nowrap;  /* 不換行 */
+            overflow: hidden;
+            text-overflow: ellipsis; /* 如果真的太長則顯示 ... */
         }
         
         .btn-cost {
-            font-size: 11px;
+            font-size: 10px !important;
+            transform: scale(0.9); /*稍微縮小成本文字*/
             white-space: nowrap;
             opacity: 0.8;
-            margin-top: 3px;
+            margin-top: 2px;
         }
 
-        /* 狀態文字正常換行 */
-        #status-text {
-            white-space: normal;
-            line-height: 1.4;
+        /* 隱藏不必要的元素以節省空間 */
+        #btn-dse {
+            width: 100% !important;
+        }
+        
+        /* 讓下拉選單好按一點 */
+        #sel-student-count {
+            width: 100%;
+            padding: 10px;
         }
     }
         /* 模態框 */
