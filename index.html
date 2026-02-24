@@ -253,36 +253,62 @@
         .hidden { display: none !important; }
 
         /* 手機適配 */
+     /* 手機適配 - 修改後 (儀表板佔 40%) */
         @media (max-width: 800px) {
             #top-dashboard {
-                position: absolute; top: 0; left: 0; width: 100%; max-height: 50vh;
+                position: absolute; top: 0; left: 0; width: 100%;
+                
+                /* 修改：高度限制由 50vh 改為 40vh */
+                max-height: 40vh; 
+                
                 display: flex; flex-direction: column; flex-wrap: nowrap; justify-content: flex-start;
-                overflow-y: auto; overflow-x: hidden; padding: 10px 15px 40px 15px;
-                box-sizing: border-box; gap: 15px; z-index: 20; -webkit-overflow-scrolling: touch;
+                overflow-y: auto; overflow-x: hidden; 
+                
+                /* 修改：減少 padding 與 gap 讓介面更緊湊，適應較小的高度 */
+                padding: 10px 12px 20px 12px; 
+                gap: 10px; 
+                
+                box-sizing: border-box; z-index: 20; -webkit-overflow-scrolling: touch;
             }
-            .dash-section { flex: 0 0 auto; width: 100%; border-bottom: 1px dashed #ccc; padding-bottom: 15px; margin: 0; border-right: none; }
-            .dash-section:last-child { border-bottom: none; }
-            .dash-section.action-section { width: 100%; display: block; padding: 0; }
+
+            .dash-section { 
+                flex: 0 0 auto; width: 100%; 
+                border-bottom: 1px dashed #ccc; 
+                
+                /* 修改：減少區塊間距 */
+                padding-bottom: 10px; 
+                
+                margin: 0; border-right: none; 
+            }
+            
+            .dash-section:last-child { border-bottom: none; padding-bottom: 0; }
+            .dash-section.action-section { width: 100%; display: block; padding: 0; padding-bottom: 10px;}
+            
             .action-section .btn-group {
                 display: flex; flex-direction: row; flex-wrap: nowrap !important; overflow-x: auto !important;
-                width: 100%; gap: 8px; padding: 5px 2px 10px 2px; align-items: stretch;
+                width: 100%; gap: 6px; padding: 2px 2px 5px 2px; align-items: stretch;
                 -webkit-overflow-scrolling: touch; scrollbar-width: none;
             }
             .action-section .btn-group::-webkit-scrollbar { display: none; }
+            
+            /* 按鈕樣式微調 */
             .action-section button, #btn-read, #btn-fun, #btn-plan, #btn-drill, #btn-hea {
                 flex: 0 0 28vw !important; width: 28vw !important; max-width: 120px !important; min-width: 0 !important;
-                margin: 0 !important; padding: 10px 2px !important; height: auto !important;
+                margin: 0 !important; padding: 8px 2px !important; height: auto !important;
                 transform: none !important; animation: none !important; box-shadow: none !important;
                 border: 1px solid #ccc !important; border-bottom: 3px solid #999 !important;
             }
+            
             #btn-read {
                 background-color: #effcf1 !important; border-color: var(--accent-read) !important; color: var(--color-high) !important;
             }
-            .btn-icon { font-size: 22px !important; margin-bottom: 4px; }
-            .btn-txt { font-size: 13px !important; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .btn-cost { font-size: 10px !important; transform: scale(0.9); white-space: nowrap; opacity: 0.8; margin-top: 2px; }
+            
+            .btn-icon { font-size: 20px !important; margin-bottom: 2px; }
+            .btn-txt { font-size: 12px !important; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .btn-cost { font-size: 10px !important; transform: scale(0.9); white-space: nowrap; opacity: 0.8; margin-top: 1px; }
+            
             #btn-dse { width: 100% !important; }
-            #sel-student-count { width: 100%; padding: 10px; }
+            #sel-student-count { width: 100%; padding: 8px; }
         }
 
         /* 模態框與覆蓋層 */
