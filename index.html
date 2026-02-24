@@ -1833,35 +1833,77 @@ function triggerButtonShake(btnId) {
             TEACHER.dailyStats.happyChange += amount;
             updateUI();
         }
-        function spendEnergy(maxCost) {
-            if (TEACHER.currentEnergy <= 0) return 0;
-            const actual = Math.min(maxCost, TEACHER.currentEnergy);
-            TEACHER.currentEnergy -= actual;
-            if(TEACHER.currentEnergy < 0.05) TEACHER.currentEnergy = 0;
+       function spendEnergy(maxCost) {
+            // 如果已經完全沒力 (小於 0.05 視為 0)，則禁止行動，回傳 0 表示失敗
+            if (TEACHER.currentEnergy <= 0.05) return 0;
+
+            let actualCost = maxCost;
+
+            // 判斷是否透支
+            if (TEACHER.currentEnergy < maxCost) {
+                // 計算差額 (透支量)
+                const deficit = maxCost - TEACHER.currentEnergy;
+                
+                // 累積債務
+                TEACHER.energyDebt += deficit;
+                
+                // 心力歸零
+                TEACHER.currentEnergy = 0;
+                
+                // 顯示警告
+                setStatus(`精力透支！新增欠債 ${deficit.toFixed(1)} (總欠: ${TEACHER.energyDebt.toFixed(1)})`, true);
+            } else {
+                // 足夠支付，正常扣除
+                TEACHER.currentEnergy -= maxCost;
+            }
+
+            // 邊界檢查
+            if(TEACHER.currentEnergy < 0) TEACHER.currentEnergy = 0;
+            
             updateUI();
-            return actual;
+            
+            // 回傳原本的消耗量，告訴系統「行動已執行」(即使是透支執行)
+            return actualCost;
         }
      function updateUI() {
-            if (!document.getElementById('disp-age').querySelector('input')) document.getElementById('disp-age').innerText = TEACHER.age;
-            document.getElementById('disp-energy').innerText = TEACHER.currentEnergy.toFixed(1);
+            // 年齡顯示
+            if (!document.getElementById('disp-age').querySelector('input')) {
+                document.getElementById('disp-age').innerText = TEACHER.age;
+            }
+            
+            // === 修改：心力顯示 (包含債務) ===
+            const energyEl = document.getElementById('disp-energy');
+            if (TEACHER.energyDebt > 0) {
+                // 顯示格式： 0.0 (-2.0)
+                energyEl.innerHTML = `0.0 <span style="font-size:11px; color:var(--accent-dse);">(-${TEACHER.energyDebt.toFixed(1)})</span>`;
+                energyEl.style.color = 'var(--accent-dse)'; // 變成紅色警告
+            } else {
+                energyEl.innerText = TEACHER.currentEnergy.toFixed(1);
+                energyEl.style.color = 'var(--accent-plan)'; // 正常藍色
+            }
+            // =============================
+
             document.getElementById('disp-grade').innerText = GRADES[currentGradeIndex];
             const adminCost = parseFloat(document.getElementById('rng-admin').value);
             document.getElementById('val-admin').innerText = adminCost.toFixed(1);
             
-            const hasEnergy = TEACHER.currentEnergy > 0.5;
+            // 只要心力大於 0 (即使不足以支付全額，因為現在允許透支)，按鈕就應該亮起
+            // 但如果已經是 0，就不能再點了
+            const canAct = TEACHER.currentEnergy > 0.05;
             
             // 教學按鈕狀態
-            document.getElementById('btn-read').disabled = TEACHER.currentEnergy < 1.0;
-            document.getElementById('btn-fun').disabled = !hasEnergy;
-            document.getElementById('btn-plan').disabled = !hasEnergy;
-            document.getElementById('btn-drill').disabled = !hasEnergy;
+            // 閱讀消耗較少，我們保留 1.0 的門檻，或者也允許透支 (這裡設定為允許透支)
+            document.getElementById('btn-read').disabled = !canAct; 
+            document.getElementById('btn-fun').disabled = !canAct;
+            document.getElementById('btn-plan').disabled = !canAct;
+            document.getElementById('btn-drill').disabled = !canAct;
             
             // 行政按鈕狀態
             document.getElementById('btn-admin').disabled = hasDoneAdmin;
             
             // DSE 按鈕狀態 (僅中六且心力耗盡時顯示)
             const isS6 = (currentGradeIndex === 5);
-            const isEnergyDepleted = (TEACHER.currentEnergy <= 0.1);
+            const isEnergyDepleted = (TEACHER.currentEnergy <= 0.05);
             
             document.getElementById('btn-dse').style.display = (isS6 && isEnergyDepleted) ? 'block' : 'none';
 
@@ -1879,15 +1921,12 @@ function triggerButtonShake(btnId) {
                 document.getElementById('disp-recover').innerText = `${TEACHER.recoveriesLeft}/3`;
                 
                 // 恢復按鈕：還有次數且心力未滿，且不是DSE時刻
-                document.getElementById('btn-recover').disabled = TEACHER.recoveriesLeft <= 0 || TEACHER.currentEnergy >= TEACHER.maxEnergy || (isS6 && isEnergyDepleted);
+                // 注意：如果有債務，也允許恢復 (因為要還債)
+                const needsRecover = (TEACHER.currentEnergy < TEACHER.maxEnergy) || (TEACHER.energyDebt > 0);
+                document.getElementById('btn-recover').disabled = TEACHER.recoveriesLeft <= 0 || !needsRecover || (isS6 && isEnergyDepleted);
                 
-                // === 【核心修改】 下一學年按鈕邏輯 ===
-                // 1. 必須完成行政 (hasDoneAdmin)
-                // 2. 必須用盡恢復次數 (TEACHER.recoveriesLeft <= 0)
-                // 3. 必須不是中六 (currentGradeIndex < 5) -> 因為中六這按鈕應該隱藏或失效，等待DSE
-                // 4. 不能在 DSE 模式
+                // 下一學年按鈕邏輯
                 const canNextYear = hasDoneAdmin && (TEACHER.recoveriesLeft <= 0) && (currentGradeIndex < 5) && !isDseMode;
-                
                 document.getElementById('btn-next-partial').disabled = !canNextYear;
 
             } else {
@@ -1907,8 +1946,8 @@ function triggerButtonShake(btnId) {
                     else offWorkBtn.disabled = false;
                 } else { offWorkBtn.style.display = 'none'; }
                 
-                document.getElementById('btn-grade-work').disabled = (TEACHER.gradingPile <= 0) || !hasEnergy;
-                document.getElementById('btn-hea').disabled = TEACHER.currentEnergy < 0.5;
+                document.getElementById('btn-grade-work').disabled = (TEACHER.gradingPile <= 0) || !canAct;
+                document.getElementById('btn-hea').disabled = !canAct;
                 
                 const owWorkload = document.getElementById('ow-pending-work');
                 owWorkload.innerText = TEACHER.gradingPile;
@@ -1917,7 +1956,6 @@ function triggerButtonShake(btnId) {
                 document.getElementById('ow-happy').innerText = Math.floor(TEACHER.happiness);
             }
         }
-
         // 對話系統
         const DIALOGUES = {
             read: { positive: ["老師推薦呢本書好有深度！", "原來閱讀可以咁有趣！", "我覺得我嘅語文根基紮實咗。"], complaint: ["好多字呀，睇到眼花...", "阿sir，好悶呀...", "睇呢啲有分加咩？"], reflection: ["雖然字多，但原來幾有道理。", "忍耐下睇完佢，可能有用。", "試下靜心睇下..."] },
@@ -1977,16 +2015,37 @@ function triggerButtonShake(btnId) {
             }
         });
 
-       document.getElementById('btn-recover').addEventListener('click', () => {
-            // === 新增：按鈕震動 ===
+      document.getElementById('btn-recover').addEventListener('click', () => {
+            // 觸發按鈕震動
             triggerButtonShake('btn-recover');
-            // ====================
 
             if (TEACHER.recoveriesLeft > 0) { 
-                TEACHER.currentEnergy = TEACHER.maxEnergy; 
+                let recoverAmount = TEACHER.maxEnergy; // 原本應恢復的量
+                let msg = "";
+
+                // 檢查是否有透支
+                if (TEACHER.energyDebt > 0) {
+                    if (recoverAmount >= TEACHER.energyDebt) {
+                        // 恢復量足夠還債
+                        recoverAmount -= TEACHER.energyDebt;
+                        msg = `休息恢復精力，並償還了 ${TEACHER.energyDebt.toFixed(1)} 透支。`;
+                        TEACHER.energyDebt = 0; // 債務歸零
+                    } else {
+                        // 恢復量不足以還債
+                        TEACHER.energyDebt -= recoverAmount;
+                        recoverAmount = 0; // 心力依然是 0
+                        msg = `休息僅夠償還部分透支，仍欠 ${TEACHER.energyDebt.toFixed(1)} 心力...`;
+                    }
+                } else {
+                    msg = "休息恢復精力。";
+                }
+
+                // 套用數值
+                TEACHER.currentEnergy = recoverAmount; 
                 TEACHER.recoveriesLeft--; 
+                
                 updateUI(); 
-                setStatus("休息恢復精力。"); 
+                setStatus(msg, TEACHER.currentEnergy === 0); // 如果還是 0，顯示警告色
             }
         });
         document.getElementById('btn-next-partial').addEventListener('click', () => { if (!hasDoneAdmin) { setStatus("必須先完成行政工作！", true); return; } startNewYear(); });
@@ -2162,80 +2221,87 @@ function triggerButtonShake(btnId) {
             // hasDoneAdmin = false; // 應該刪除這裡，只保留在 updateUI(); 
             updateUI();
         }
-       function startNewYear() {
-    if (document.getElementById('modal-overlay').style.display === 'flex') return;
-    
-    TEACHER.age++; 
-    if (TEACHER.age > 60) { 
-        document.getElementById('disp-age').innerText = TEACHER.age; 
-        showRetirement(); 
-        return; 
-    }
-    
-    calcMaxEnergy(); 
-    if (currentGradeIndex < 5) currentGradeIndex++;
-    TEACHER.daysInYear = 1; 
-    
-    if (GAME_MODE === 'partial') TEACHER.recoveriesLeft = 3;
-    
-    let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
-    if (GAME_MODE === 'full') { 
-        TEACHER.gradingPile += 2; 
-        TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 }; 
-    }
-    
-    if (TEACHER.energyDebt > 0) { 
-        netEnergy -= TEACHER.energyDebt; 
-        TEACHER.energyDebt = 0; 
-        if (netEnergy < 0) netEnergy = 0; 
-    }
-    
-    TEACHER.currentEnergy = netEnergy; 
-    TEACHER.bonusEnergyNextDay = 0; 
-    hasDoneAdmin = false; 
-    randomizeStudentNeed();
-    
-    // === 新增：全屏幕學年通知邏輯 ===
-    const gradeText = GRADES[currentGradeIndex];
-    const notifEl = document.getElementById('year-notification');
-    const titleEl = document.getElementById('notif-title');
-    const descEl = document.getElementById('notif-desc');
-    
-    // 設定文字
-    titleEl.innerText = gradeText;
-    descEl.innerText = "新學年開始・教學加油";
-    
-    // 顯示通知
-    notifEl.classList.add('active');
-    
-    // 3秒後自動消失
-    setTimeout(() => {
-        notifEl.classList.remove('active');
-    }, 3000);
-    // ============================
-    
-    setStatus(`新學年：${gradeText}。`);
-    
-    students.forEach(s => {
-        s.growGrade();
-        let change = 0;
-        if (s.type === STUDENT_TYPES.HIGH) change = Math.random()>0.6 ? Math.floor(Math.random()*3)+1 : -1;
-        else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random()*4+2);
-        else change = -Math.floor(Math.random()*5+6);
-        
-        if (change < 0) { 
-            for(let i=0; i<Math.abs(change); i++) { 
-                const p = s.landedParticles.pop(); 
-                if(p) { scene.remove(p); particles = particles.filter(x=>x!==p); } 
-            } 
-        } else { 
-            for(let i=0; i<change; i++) spawnDirectLandedParticle(s); 
+     function startNewYear() {
+            if (document.getElementById('modal-overlay').style.display === 'flex') return;
+            
+            TEACHER.age++; 
+            if (TEACHER.age > 60) { 
+                document.getElementById('disp-age').innerText = TEACHER.age; 
+                showRetirement(); 
+                return; 
+            }
+            
+            calcMaxEnergy(); 
+            if (currentGradeIndex < 5) currentGradeIndex++;
+            TEACHER.daysInYear = 1; 
+            
+            if (GAME_MODE === 'partial') TEACHER.recoveriesLeft = 3;
+            
+            // 計算新學年初始心力
+            let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
+            
+            if (GAME_MODE === 'full') { 
+                TEACHER.gradingPile += 2; 
+                TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 }; 
+            }
+            
+            // === 修正：嚴格執行債務扣除 ===
+            let statusMsg = `新學年：${GRADES[currentGradeIndex]}。`;
+            
+            if (TEACHER.energyDebt > 0) { 
+                if (netEnergy >= TEACHER.energyDebt) {
+                    // 足夠還債
+                    netEnergy -= TEACHER.energyDebt; 
+                    statusMsg += ` (已從初始心力扣除 ${TEACHER.energyDebt.toFixed(1)} 透支)`;
+                    TEACHER.energyDebt = 0; 
+                } else {
+                    // 不足還債
+                    TEACHER.energyDebt -= netEnergy;
+                    netEnergy = 0;
+                    statusMsg += ` (心力全數抵債，仍欠 ${TEACHER.energyDebt.toFixed(1)}...)`;
+                }
+            }
+            // ==========================
+            
+            TEACHER.currentEnergy = netEnergy; 
+            TEACHER.bonusEnergyNextDay = 0; 
+            hasDoneAdmin = false; 
+            randomizeStudentNeed();
+            
+            // 全屏幕學年通知
+            const gradeText = GRADES[currentGradeIndex];
+            const notifEl = document.getElementById('year-notification');
+            if (notifEl) {
+                const titleEl = document.getElementById('notif-title');
+                const descEl = document.getElementById('notif-desc');
+                titleEl.innerText = gradeText;
+                descEl.innerText = "新學年開始・加油教學";
+                notifEl.classList.add('active');
+                setTimeout(() => { notifEl.classList.remove('active'); }, 3000);
+            }
+            
+            setStatus(statusMsg, TEACHER.currentEnergy === 0);
+            
+            students.forEach(s => {
+                s.growGrade();
+                let change = 0;
+                if (s.type === STUDENT_TYPES.HIGH) change = Math.random()>0.6 ? Math.floor(Math.random()*3)+1 : -1;
+                else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random()*4+2);
+                else change = -Math.floor(Math.random()*5+6);
+                
+                if (change < 0) { 
+                    for(let i=0; i<Math.abs(change); i++) { 
+                        const p = s.landedParticles.pop(); 
+                        if(p) { scene.remove(p); particles = particles.filter(x=>x!==p); } 
+                    } 
+                } else { 
+                    for(let i=0; i<change; i++) spawnDirectLandedParticle(s); 
+                }
+                s.updateLabelText();
+            });
+            
+            updateUI();
         }
-        s.updateLabelText();
-    });
-    
-    updateUI();
-}
       function showRetirement() {
     document.getElementById('offwork-overlay').style.display = 'none'; 
     document.getElementById('summary-overlay').style.display = 'none';
