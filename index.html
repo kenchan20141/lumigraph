@@ -2805,34 +2805,36 @@ function startNextBatch() {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-window.addEventListener('click', (event) => {
-    // 防止點擊 UI 時觸發
+// === 修改後：選擇受眾邏輯 (相容手機與電腦) ===
+window.addEventListener('pointerup', (event) => {
+    // 1. 排除點擊 UI 的情況
     const target = event.target;
-    if (target.closest('#top-dashboard') || 
-        target.closest('#start-screen') || 
-        target.closest('#modal-overlay') || 
-        target.closest('#summary-overlay') || 
-        target.closest('#offwork-overlay') || 
-        target.closest('#report-overlay') || 
+    if (target.closest('#top-dashboard') ||
+        target.closest('#start-screen') ||
+        target.closest('#modal-overlay') ||
+        target.closest('#summary-overlay') ||
+        target.closest('#offwork-overlay') ||
+        target.closest('#report-overlay') ||
         target.closest('#sentiment-overlay') ||
         target.closest('.copyright-footer') ||
-        target.tagName.toLowerCase() === 'button' ||
-        target.tagName.toLowerCase() === 'input' ||
-        target.tagName.toLowerCase() === 'select') {
+        ['button', 'input', 'select'].includes(target.tagName.toLowerCase())) {
         return;
     }
-
+ 
+    // 2. 計算座標 (PointerEvent 直接支援 clientX/Y)
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
+ 
     raycaster.setFromCamera(mouse, camera);
-
+ 
+    // 3. 射線檢測
     const groups = students.map(s => s.group);
     const intersects = raycaster.intersectObjects(groups, true);
-
+ 
     if (intersects.length > 0) {
-        const clickedObject = intersects[0].object;
+        let clickedObject = intersects[0].object;
         
+        // 尋找對應的學生實例
         const student = students.find(s => {
             let found = false;
             s.group.traverse(child => {
@@ -2840,11 +2842,12 @@ window.addEventListener('click', (event) => {
             });
             return found;
         });
-
+ 
         if (student) {
-            if (student.isSelected === undefined) student.isSelected = true;
+            // 切換選擇狀態
             student.isSelected = !student.isSelected;
             
+            // 更新視覺效果
             student.group.traverse(child => {
                 if (child.isMesh && child.material) {
                     if (!child.userData.hasClonedMaterial) {
@@ -2856,6 +2859,7 @@ window.addEventListener('click', (event) => {
                     if (student.isSelected) {
                         child.material.color.setHex(child.userData.origColor);
                     } else {
+                        // 沒選中時變暗
                         const c = new THREE.Color(child.userData.origColor);
                         c.multiplyScalar(0.3);
                         child.material.color.setHex(c.getHex());
@@ -2863,10 +2867,11 @@ window.addEventListener('click', (event) => {
                 }
             });
             
+            // 更新標籤透明度
             student.labelEl.style.opacity = student.isSelected ? "0.9" : "0.3";
         }
     }
-});
+}, false);
 // ============================
     </script>
 
