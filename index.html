@@ -1151,7 +1151,15 @@ function playLandSound() {
                 }
                 
                 // 物理容量設定
-                this.particleCap = (this.type.id === 'low') ? 15 : 999; 
+               // 修改後：
+if (this.type.id === 'low') {
+    this.particleCap = 15; // 初始容量保持 15
+    // 設定隨機上限：25 至 35 之間 (包含 25 和 35)
+    this.maxCapLimit = Math.floor(Math.random() * 11) + 25; 
+} else {
+    this.particleCap = 999;
+    this.maxCapLimit = 999;
+}
                 this.baseHeight = 0.8 * this.type.baseScale; 
                 this.readingHeight = 0; 
                 this.landedParticles = [];
@@ -1252,14 +1260,20 @@ function playLandSound() {
                 return Math.floor(this.getContainerHeight() / 0.006);
             }
             
-            tryGrowReading() {
-                if (this.type.id === 'low') {
-                    if (this.particleCap < 25) {
-                        this.particleCap++; this.readingHeight += this.type.readGrow; 
-                        this.updateVisuals(); if (GAME_MODE === 'full') changeHappiness(0.1);
-                        return true; 
-                    } else { this.shake(); return false; }
-                }
+          tryGrowReading() {
+    if (this.type.id === 'low') {
+        // 修改這裡：將 < 25 改為 < this.maxCapLimit
+        if (this.particleCap < this.maxCapLimit) {
+            this.particleCap++; 
+            this.readingHeight += this.type.readGrow; 
+            this.updateVisuals(); 
+            if (GAME_MODE === 'full') changeHappiness(0.1);
+            return true; 
+        } else { 
+            this.shake(); 
+            return false; 
+        }
+    }
                 if (!this.type.canGrow || this.getContainerHeight() >= this.type.maxHeight) { this.shake(); return false; }
                 this.readingHeight += this.type.readGrow; 
                 this.updateVisuals(); 
