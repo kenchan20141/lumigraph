@@ -676,6 +676,85 @@
     }
 }
 
+        /* 倍率提醒標籤 */
+#multiplier-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: 10px;
+    background: #f0f0f0;
+    color: #999;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid #ddd;
+    vertical-align: middle;
+}
+ 
+/* 啟動倍率時的金色特效 */
+#multiplier-badge.multiplier-active {
+    background: #FFD700; /* 金色 */
+    color: #5C4033;
+    border-color: #DAA520;
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+    transform: scale(1.1);
+    animation: pulse-gold 1.5s infinite alternate;
+}
+ 
+@keyframes pulse-gold {
+    from { box-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
+    to { box-shadow: 0 0 18px rgba(255, 215, 0, 0.9); }
+}
+ 
+/* 學生標籤上的 x2 提示文字 */
+.x2-indicator {
+    color: #e67e22;
+    font-size: 13px;
+    font-weight: 900;
+    margin-left: 4px;
+    text-shadow: 1px 1px 0px #fff;
+    animation: bounce 0.5s infinite alternate;
+    display: inline-block;
+}
+ 
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-2px); }
+}
+
+
+        /* 結算報告中的倍率勳章 */
+#rpt-multiplier-tag {
+    display: none; /* 預設隱藏 */
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #5C4033;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 900;
+    margin-bottom: 10px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    border: 2px solid #fff;
+    animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+ 
+@keyframes pop-in {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+ 
+/* 報告表格內的 x2 字樣 */
+.rpt-x2 {
+    background: #e67e22;
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
 
     </style>
 </head>
@@ -752,15 +831,13 @@
        <div class="dash-section action-section" style="flex: 2;">
     <div class="section-title">教學活動</div>
     
-    <div id="need-indicator">
-        <span>學生當前需求:</span>
+ <div id="need-indicator">
+        <span>學生需求:</span>
         <span id="need-dot" class="need-dot" style="background:var(--accent-read);"></span>
-        <!-- 圖示與文字容器 -->
-        <span id="need-text" style="color:var(--accent-read); display:flex; align-items:center;">
-             <!-- JS 會自動填入 SVG -->
-        </span>
+        <span id="need-text" style="color:var(--accent-read); display:flex; align-items:center;"></span>
+        <!-- 移除了原本在此的 multiplier-badge -->
     </div>
-
+           
    <div class="btn-group">
         <button id="btn-read" class="btn-read">
             <span class="btn-icon"></span>
@@ -821,13 +898,17 @@
     </div>
 
     <!-- 詳細結算報告 (Action Report Overlay) -->
-    <div id="report-overlay" onclick="this.style.display='none'">
-        <div id="report-box" onclick="event.stopPropagation()">
-            <div class="report-header">📋 本次行動結算</div>
-            <div class="report-row">
-                <span>心力消耗</span>
-                <span id="rpt-energy" class="val-neg">-3.0</span>
-            </div>
+   <div id="report-overlay" onclick="this.style.display='none'">
+    <div id="report-box" onclick="event.stopPropagation()">
+        <div class="report-header">📋 本次行動結算</div>
+        
+        <!-- 新增：倍率勳章容器 -->
+        <div id="rpt-multiplier-tag">照顧學習差差異：效果加倍！</div>
+ 
+        <div class="report-row">
+            <span>心力消耗</span>
+            <span id="rpt-energy" class="val-neg">-3.0</span>
+        </div>
             <div class="report-row mode-full-el">
                 <span>幸福度變化</span>
                 <span id="rpt-happy" class="val-neu">0</span>
@@ -1393,9 +1474,24 @@ if (this.type.id === 'low') {
 
             shake() { gsap.to(this.group.position, { x: this.xPos + 0.1, duration: 0.05, yoyo: true, repeat: 3 }); }
             
-            updateLabelText() { 
-                this.labelEl.innerHTML = `<span style="font-size:12px; color:#333;">${this.name}</span><br><span style="color:${this.type.color}">${this.type.name}</span>: ${this.landedParticles.length}`; 
-            }
+           // 在 Student 類別定義中找到並替換此函數
+updateLabelText() {
+    // 計算當前受眾人數
+    const selectedCount = students.filter(st => st.isSelected !== false).length;
+    // 判定是否符合小班加成條件 (受眾人數 <= 總人數的一半)
+    const isSmallClass = (selectedCount > 0 && selectedCount <= students.length / 2);
+    // 該學生是否為受眾
+    const isTarget = (this.isSelected !== false);
+    
+    // 如果是受眾且觸發小班加成，顯示 x2
+    const bonusHtml = (isSmallClass && isTarget) ? '<span class="x2-indicator">x2</span>' : '';
+ 
+    this.labelEl.innerHTML = `
+        <span style="font-size:12px; color:#333;">${this.name}</span>${bonusHtml}
+        <br>
+        <span style="color:${this.type.color}">${this.type.name}</span>: ${this.landedParticles.length}
+    `;
+}
             
             showBubble(text, className, index) {
                 this.bubbleEl.innerText = text; this.bubbleEl.className = 'speech-bubble ' + className;
@@ -1625,47 +1721,56 @@ initIcons();
         }
 
         // 修改：新增 currentEnergy 和 currentHappy 參數
-        function createActionReport(energyCost, happyCost, studentChanges, currentEnergy, currentHappy) {
-            // 心力顯示： 剩餘 (本次消耗)
-            const rptEnergy = document.getElementById('rpt-energy');
-            // 顯示格式： 剩餘 7.0 (-3.0)
-            rptEnergy.innerHTML = `${currentEnergy.toFixed(1)} <span class="rpt-total val-neg">(-${energyCost.toFixed(1)})</span>`;
-            
-            const rptHappy = document.getElementById('rpt-happy');
-            if (GAME_MODE === 'full') {
-                let changeHtml = '';
-                if (happyCost > 0) changeHtml = `<span class="rpt-total val-neg">(-${happyCost})</span>`;
-                else if (happyCost < 0) changeHtml = `<span class="rpt-total val-pos">(+${Math.abs(happyCost)})</span>`;
-                else changeHtml = `<span class="rpt-total val-neu">(0)</span>`;
-                
-                // 顯示格式： 剩餘 60 (+5)
-                rptHappy.innerHTML = `${Math.floor(currentHappy)} ${changeHtml}`;
-                rptHappy.className = 'val-neu'; // 基礎顏色，變化顏色在 span 裡
-            } else {
-                rptHappy.innerText = "-";
-            }
-
-            const tbody = document.getElementById('rpt-tbody');
-            tbody.innerHTML = '';
-            
-            studentChanges.forEach(sc => {
-                const tr = document.createElement('tr');
-                const capacity = sc.student.getCurrentCapacity();
-                const current = sc.student.landedParticles.length;
-                let changeText = sc.added > 0 ? `+${sc.added}` : (sc.added < 0 ? `${sc.added}` : '0');
-                
-                if (sc.boredomLimit) changeText += " (厭倦)";
-                if (sc.capLimit) changeText = "0 (已滿70%)";
-
-                tr.innerHTML = `
-                    <td style="color:${sc.student.type.color}; font-weight:bold;">${sc.student.name}</td>
-                    <td>${current} / ${capacity}</td>
-                    <td style="${sc.added > 0 ? 'color:green' : (sc.added<0 ? 'color:red':'color:#999')}">${changeText}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            document.getElementById('report-overlay').style.display = 'flex';
+     function createActionReport(energyCost, happyCost, studentChanges, currentEnergy, currentHappy, multiplier) {
+    // 1. 更新消耗數據
+    const rptEnergy = document.getElementById('rpt-energy');
+    rptEnergy.innerHTML = `${currentEnergy.toFixed(1)} <span class="rpt-total val-neg">(-${energyCost.toFixed(1)})</span>`;
+    
+    const rptHappy = document.getElementById('rpt-happy');
+    if (GAME_MODE === 'full') {
+        let changeHtml = happyCost > 0 ? `<span class="rpt-total val-neg">(-${happyCost})</span>` :
+                        (happyCost < 0 ? `<span class="rpt-total val-pos">(+${Math.abs(happyCost)})</span>` : `<span class="rpt-total val-neu">(0)</span>`);
+        rptHappy.innerHTML = `${Math.floor(currentHappy)} ${changeHtml}`;
+    } else {
+        rptHappy.innerText = "-";
+    }
+ 
+    // 2. 核心視覺：顯示/隱藏倍率勳章
+    const tag = document.getElementById('rpt-multiplier-tag');
+    if (multiplier > 1) {
+        tag.style.display = 'block';
+    } else {
+        tag.style.display = 'none';
+    }
+ 
+    // 3. 更新學生成績列表
+    const tbody = document.getElementById('rpt-tbody');
+    tbody.innerHTML = '';
+    
+    studentChanges.forEach(sc => {
+        const tr = document.createElement('tr');
+        const capacity = sc.student.getCurrentCapacity();
+        const current = sc.student.landedParticles.length;
+        
+        // 如果有倍率且數值增加，顯示 x2 標籤
+        let changeText = sc.added > 0 ? `+${sc.added}` : (sc.added < 0 ? `${sc.added}` : '0');
+        if (multiplier > 1 && sc.added > 0) {
+            changeText += `<i class="rpt-x2">x2</i>`;
         }
+        
+        if (sc.boredomLimit) changeText += " (厭倦)";
+        if (sc.capLimit) changeText = "0 (已滿)";
+ 
+        tr.innerHTML = `
+            <td style="color:${sc.student.type.color}; font-weight:bold;">${sc.student.name}</td>
+            <td>${current} / ${capacity}</td>
+            <td style="${sc.added > 0 ? 'color:green' : (sc.added<0 ? 'color:red':'color:#999')}">${changeText}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    document.getElementById('report-overlay').style.display = 'flex';
+}
 
         // ==========================================
 // 按鈕震動輔助函數
@@ -1698,174 +1803,88 @@ function triggerButtonShake(btnId) {
     );
 }
 
-    function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
-    // === 新增：觸發按鈕震動 ===
-    // 透過 actionId 組合成按鈕 ID (例如 'read' -> 'btn-read')
+function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
     triggerButtonShake('btn-' + actionId);
-    // ========================
-
-    // 1. 處理厭倦規則 (每次點擊都會增加計數，模擬快速連擊導致學生厭倦)
-    let isBored = false;
-    if (actionId === lastActionType) {
-        consecutiveActionCount++;
-    } else {
-        lastActionType = actionId;
-        consecutiveActionCount = 1;
-    }
-
-    // 判斷是否為「當前需求」
+ 
+    // 厭倦系統邏輯
+    if (actionId === lastActionType) { consecutiveActionCount++; }
+    else { lastActionType = actionId; consecutiveActionCount = 1; }
+ 
     const isNeed = (actionId === currentNeed);
-    
-    // 規則：連續第4次且不是需求 -> 強制為1 (厭倦)
-    if (consecutiveActionCount >= 4 && !isNeed) {
-        isBored = true;
-    }
-
-    // 規則：若是需求，基礎產量提升至 14，再乘獎勵
-    let effectiveBase = baseParticles;
-    if (isNeed) {
-        effectiveBase = 14; 
-    }
-
-    // 檢查是否有足夠心力
+    let isBored = (consecutiveActionCount >= 4 && !isNeed);
+    let effectiveBase = isNeed ? 14 : baseParticles;
+ 
+    // --- 計算倍率：受眾人數 <= 學生總數一半時加倍 ---
+    const selectedCount = students.filter(st => st.isSelected !== false).length;
+    const currentMultiplier = (selectedCount > 0 && selectedCount <= students.length / 2) ? 2 : 1;
+ 
     if (spendEnergy(cost) > 0) {
-        
-        // === 【連擊邏輯 A】 初始化或延續批次 ===
-        // 如果這是連擊的第一下 (snapshot 為空)，記錄初始狀態
+        // 連擊初始化
         if (batchSnapshot === null) {
             batchSnapshot = students.map(s => s.landedParticles.length);
-            batchTotalCost = 0;
-            batchTotalHappy = 0;
+            batchTotalCost = 0; batchTotalHappy = 0;
         }
-
-        // 如果已經有計時器在跑 (代表還在連擊中)，先取消它，稍後再設一個新的
-        if (batchTimer) {
-            clearTimeout(batchTimer);
-            batchTimer = null;
-        }
-
-        // === 2. 執行立即效果 (心力與幸福度) ===
-        // 累積心力消耗
+        if (batchTimer) { clearTimeout(batchTimer); batchTimer = null; }
+ 
         batchTotalCost += cost;
-
-        // 處理幸福度並累積
         if (GAME_MODE === 'full') {
-            if (happyCost > 0) { 
-                changeHappiness(-happyCost); 
-                batchTotalHappy += happyCost; // 記錄消耗量 (正數代表扣除)
-            } else if (happyCost < 0) { 
-                changeHappiness(Math.abs(happyCost)); 
-                batchTotalHappy += happyCost; // 記錄獲得量 (負數代表增加)
-            }
+            if (happyCost > 0) { changeHappiness(-happyCost); batchTotalHappy += happyCost; }
+            else if (happyCost < 0) { changeHappiness(Math.abs(happyCost)); batchTotalHappy += happyCost; }
         }
-
-        let msg = name;
-        if (isBored) msg += " (學生感到厭倦...)";
-        if (isNeed) msg += " (回應需求！)";
-        // 提示連擊狀態
-        if (consecutiveActionCount > 1) msg += ` x${consecutiveActionCount}`;
-        setStatus(msg);
-
-        // === 3. 生成物理粒子 (每一下點擊都必須生成，保持視覺爽快感) ===
+ 
+        setStatus(name + (isNeed ? " (回應需求！)" : ""));
+ 
         let currentClickMaxDelay = 0;
-        const physicsFallTime = 2500; // 物理掉落緩衝時間
-
-        // --- 新增：計算受眾與倍率邏輯 ---
-        const selectedCount = students.filter(st => st.isSelected !== false).length;
-        const multiplier = (selectedCount > 0 && selectedCount < students.length / 2) ? 2 : 1;
-        // -----------------------------
-
+        const physicsFallTime = 2500;
+ 
         students.forEach((s, idx) => {
-            // --- 新增：跳過非受眾 ---
-            if (s.isSelected === false) return;
-            // ----------------------
-
-            let particlesToSpawn = 0;
-            
-            if (isBored) {
-                particlesToSpawn = 1; 
-            } else {
-                particlesToSpawn = isNeed ? Math.ceil(effectiveBase * 1.2) : effectiveBase;
-            }
-
-            // --- 新增：套用倍率 ---
-            particlesToSpawn *= multiplier;
-            // --------------------
-
-            // 閱讀量 70% 上限檢查
+            if (s.isSelected === false) return; // 非受眾跳過
+ 
+            let particlesToSpawn = isBored ? 1 : (isNeed ? Math.ceil(effectiveBase * 1.2) : effectiveBase);
+            particlesToSpawn *= currentMultiplier; // 套用倍率
+ 
+            // 閱讀量特殊邏輯
             if (actionId === 'read') {
-                // --- 修改：根據倍率多次執行 ---
-                let grew = false;
-                for(let m=0; m<multiplier; m++) {
-                    if (s.tryGrowReading()) {
-                        grew = true;
-                        spawnDirectLandedParticle(s); 
-                    }
+                for(let m=0; m < currentMultiplier; m++) {
+                    if (s.tryGrowReading()) spawnDirectLandedParticle(s);
                 }
-                if (!grew) {
-                    const currentCap = s.getCurrentCapacity();
-                    if (s.landedParticles.length >= currentCap * 0.7) {
-                        particlesToSpawn = 0; 
-                    }
-                }
-                // ---------------------------
             }
-
-            // 生成粒子
+ 
             if (particlesToSpawn > 0) {
                 const interval = growReading ? 30 : 0;
                 const spawnDuration = (particlesToSpawn - 1) * interval;
                 if (spawnDuration + physicsFallTime > currentClickMaxDelay) {
                     currentClickMaxDelay = spawnDuration + physicsFallTime;
                 }
-
                 for(let i=0; i < particlesToSpawn; i++) {
                     setTimeout(() => spawnParticle(actionId, s), i * interval);
                 }
             }
-
             triggerStudentDialogue(s, actionId, idx);
         });
-
-        if (actionId !== 'hea') { randomizeStudentNeed(); }
-
-        // === 【連擊邏輯 B】 設定延遲結算 ===
-        // 設置新的計時器，時間 = 當次動畫時間。
-        // 如果玩家在時間內再次點擊，這個計時器會被上面的 clearTimeout 清除，從而實現延遲報告。
+ 
+        if (actionId !== 'hea') randomizeStudentNeed();
+ 
+        // 設定延遲結算，傳入計算好的倍率
         batchTimer = setTimeout(() => {
-            
-            const studentChanges = students.map((s, index) => {
-                const finalCount = s.landedParticles.length;
-                const initialCount = batchSnapshot[index];
-                const actualAdded = finalCount - initialCount;
-                
-                return {
-                    student: s,
-                    added: actualAdded, 
-                    boredomLimit: false, 
-                    capLimit: false
-                };
-            });
-
-            // 修改：傳入當前的心力與幸福度總量
+            const studentChanges = students.map((s, index) => ({
+                student: s,
+                added: s.landedParticles.length - batchSnapshot[index]
+            }));
+ 
             createActionReport(
-                batchTotalCost, 
-                batchTotalHappy, 
-                studentChanges, 
-                TEACHER.currentEnergy, // 傳入當前剩餘心力
-                TEACHER.happiness      // 傳入當前剩餘幸福度
+                batchTotalCost,
+                batchTotalHappy,
+                studentChanges,
+                TEACHER.currentEnergy,
+                TEACHER.happiness,
+                currentMultiplier // 這裡傳遞倍率給報告
             );
-
-            // 重置連擊狀態
-            batchSnapshot = null;
-            batchTimer = null;
-            batchTotalCost = 0;
-            batchTotalHappy = 0;
-
+ 
+            batchSnapshot = null; batchTimer = null; batchTotalCost = 0; batchTotalHappy = 0;
         }, currentClickMaxDelay);
     }
 }
-
 
         
      function randomizeStudentNeed() {
@@ -2143,97 +2162,62 @@ function triggerButtonShake(btnId) {
             // 回傳原本的消耗量，告訴系統「行動已執行」(即使是透支執行)
             return actualCost;
         }
-     function updateUI() {
-            // 年齡顯示
-            if (!document.getElementById('disp-age').querySelector('input')) {
-                document.getElementById('disp-age').innerText = TEACHER.age;
-            }
-            
-            // === 修改：心力顯示 (包含債務) ===
-            const energyEl = document.getElementById('disp-energy');
-            if (TEACHER.energyDebt > 0) {
-                // 顯示格式： 0.0 (-2.0)
-                energyEl.innerHTML = `0.0 <span style="font-size:11px; color:var(--accent-dse);">(-${TEACHER.energyDebt.toFixed(1)})</span>`;
-                energyEl.style.color = 'var(--accent-dse)'; // 變成紅色警告
-            } else {
-                energyEl.innerText = TEACHER.currentEnergy.toFixed(1);
-                energyEl.style.color = 'var(--accent-plan)'; // 正常藍色
-            }
-            // =============================
-
-            document.getElementById('disp-grade').innerText = GRADES[currentGradeIndex];
-            const adminCost = parseFloat(document.getElementById('rng-admin').value);
-            document.getElementById('val-admin').innerText = adminCost.toFixed(1);
-            
-            // 只要心力大於 0 (即使不足以支付全額，因為現在允許透支)，按鈕就應該亮起
-            // 但如果已經是 0，就不能再點了
-            const canAct = TEACHER.currentEnergy > 0.05;
-            
-            // 教學按鈕狀態
-            // 閱讀消耗較少，我們保留 1.0 的門檻，或者也允許透支 (這裡設定為允許透支)
-            document.getElementById('btn-read').disabled = !canAct; 
-            document.getElementById('btn-fun').disabled = !canAct;
-            document.getElementById('btn-plan').disabled = !canAct;
-            document.getElementById('btn-drill').disabled = !canAct;
-            
-            // 行政按鈕狀態
-            document.getElementById('btn-admin').disabled = hasDoneAdmin;
-            
-            // DSE 按鈕狀態 (僅中六且心力耗盡時顯示)
-            const isS6 = (currentGradeIndex === 5);
-            const isEnergyDepleted = (TEACHER.currentEnergy <= 0.05);
-            
-            document.getElementById('btn-dse').style.display = (isS6 && isEnergyDepleted) ? 'block' : 'none';
-
-            // DSE 模式下鎖定大部分按鈕
-            if (isS6 && isEnergyDepleted) {
-                document.getElementById('btn-admin').disabled = true;
-                if (GAME_MODE === 'full') document.getElementById('btn-grade-work').disabled = true;
-                if (GAME_MODE === 'partial') { 
-                    document.getElementById('btn-recover').disabled = true; 
-                    document.getElementById('btn-next-partial').disabled = true; 
-                }
-            }
-
-            if (GAME_MODE === 'partial') {
-                document.getElementById('disp-recover').innerText = `${TEACHER.recoveriesLeft}/3`;
-                
-                // 恢復按鈕：還有次數且心力未滿，且不是DSE時刻
-                // 注意：如果有債務，也允許恢復 (因為要還債)
-                const needsRecover = (TEACHER.currentEnergy < TEACHER.maxEnergy) || (TEACHER.energyDebt > 0);
-                document.getElementById('btn-recover').disabled = TEACHER.recoveriesLeft <= 0 || !needsRecover || (isS6 && isEnergyDepleted);
-                
-                // 下一學年按鈕邏輯
-                const canNextYear = hasDoneAdmin && (TEACHER.recoveriesLeft <= 0) && (currentGradeIndex < 5) && !isDseMode;
-                document.getElementById('btn-next-partial').disabled = !canNextYear;
-
-            } else {
-                // 全面體驗模式 UI
-                document.getElementById('disp-workload').innerText = TEACHER.gradingPile;
-                document.getElementById('disp-days').innerText = `${TEACHER.daysInYear}/3`;
-                const happyEl = document.getElementById('disp-happy');
-                happyEl.innerText = Math.floor(TEACHER.happiness);
-                happyEl.style.color = TEACHER.happiness < 30 ? 'var(--accent-dse)' : 'var(--accent-happy)';
-                
-                if (TEACHER.happiness <= 0) { showGameOver("你因為壓力過大，心理崩潰而辭職了。"); return; }
-                
-                const offWorkBtn = document.getElementById('btn-offwork');
-                if (TEACHER.currentEnergy < 1.0 && !isDseMode) {
-                    offWorkBtn.style.display = 'flex';
-                    if(isS6 && isEnergyDepleted) offWorkBtn.disabled = true;
-                    else offWorkBtn.disabled = false;
-                } else { offWorkBtn.style.display = 'none'; }
-                
-                document.getElementById('btn-grade-work').disabled = (TEACHER.gradingPile <= 0) || !canAct;
-                document.getElementById('btn-hea').disabled = !canAct;
-                
-                const owWorkload = document.getElementById('ow-pending-work');
-                owWorkload.innerText = TEACHER.gradingPile;
-                if (TEACHER.gradingPile > 0) owWorkload.className = "ow-stat-val badge-workload";
-                else owWorkload.className = "ow-stat-val";
-                document.getElementById('ow-happy').innerText = Math.floor(TEACHER.happiness);
-            }
-        }
+   function updateUI() {
+    // 1. 顯示年齡
+    if (!document.getElementById('disp-age').querySelector('input')) {
+        document.getElementById('disp-age').innerText = TEACHER.age;
+    }
+    
+    // 2. 顯示心力與債務
+    const energyEl = document.getElementById('disp-energy');
+    if (TEACHER.energyDebt > 0) {
+        energyEl.innerHTML = `0.0 <span style="font-size:11px; color:var(--accent-dse);">(-${TEACHER.energyDebt.toFixed(1)})</span>`;
+        energyEl.style.color = 'var(--accent-dse)';
+    } else {
+        energyEl.innerText = TEACHER.currentEnergy.toFixed(1);
+        energyEl.style.color = 'var(--accent-plan)';
+    }
+ 
+    // 3. 顯示年級與行政成本
+    document.getElementById('disp-grade').innerText = GRADES[currentGradeIndex];
+    const adminCost = parseFloat(document.getElementById('rng-admin').value);
+    document.getElementById('val-admin').innerText = adminCost.toFixed(1);
+    
+    // 4. 更新每位學生的標籤 (例如透明度或內容)
+    students.forEach(s => s.updateLabelText());
+ 
+    // 5. 按鈕狀態控制
+    const canAct = TEACHER.currentEnergy > 0.05;
+    document.getElementById('btn-read').disabled = !canAct;
+    document.getElementById('btn-fun').disabled = !canAct;
+    document.getElementById('btn-plan').disabled = !canAct;
+    document.getElementById('btn-drill').disabled = !canAct;
+    document.getElementById('btn-admin').disabled = hasDoneAdmin;
+    
+    const isS6 = (currentGradeIndex === 5);
+    const isEnergyDepleted = (TEACHER.currentEnergy <= 0.05);
+    document.getElementById('btn-dse').style.display = (isS6 && isEnergyDepleted) ? 'block' : 'none';
+ 
+    if (GAME_MODE === 'partial') {
+        document.getElementById('disp-recover').innerText = `${TEACHER.recoveriesLeft}/3`;
+        const needsRecover = (TEACHER.currentEnergy < TEACHER.maxEnergy) || (TEACHER.energyDebt > 0);
+        document.getElementById('btn-recover').disabled = TEACHER.recoveriesLeft <= 0 || !needsRecover || (isS6 && isEnergyDepleted);
+        const canNextYear = hasDoneAdmin && (TEACHER.recoveriesLeft <= 0) && (currentGradeIndex < 5) && !isDseMode;
+        document.getElementById('btn-next-partial').disabled = !canNextYear;
+    } else {
+        document.getElementById('disp-workload').innerText = TEACHER.gradingPile;
+        document.getElementById('disp-days').innerText = `${TEACHER.daysInYear}/3`;
+        const happyEl = document.getElementById('disp-happy');
+        happyEl.innerText = Math.floor(TEACHER.happiness);
+        happyEl.style.color = TEACHER.happiness < 30 ? 'var(--accent-dse)' : 'var(--accent-happy)';
+        
+        if (TEACHER.happiness <= 0) { showGameOver("你因為壓力過大，心理崩潰而辭職了。"); return; }
+        
+        document.getElementById('btn-offwork').style.display = (TEACHER.currentEnergy < 1.0 && !isDseMode) ? 'flex' : 'none';
+        document.getElementById('btn-grade-work').disabled = (TEACHER.gradingPile <= 0) || !canAct;
+        document.getElementById('btn-hea').disabled = !canAct;
+    }
+}
         // 對話系統
         const DIALOGUES = {
             read: { positive: ["老師推薦呢本書好有深度！", "原來閱讀可以咁有趣！", "我覺得我嘅語文根基紮實咗。"], complaint: ["好多字呀，睇到眼花...", "阿sir，好悶呀...", "睇呢啲有分加咩？"], reflection: ["雖然字多，但原來幾有道理。", "忍耐下睇完佢，可能有用。", "試下靜心睇下..."] },
@@ -2807,47 +2791,32 @@ const mouse = new THREE.Vector2();
 
 // === 修改後：選擇受眾邏輯 (相容手機與電腦) ===
 window.addEventListener('pointerup', (event) => {
-    // 1. 排除點擊 UI 的情況
     const target = event.target;
-    if (target.closest('#top-dashboard') ||
-        target.closest('#start-screen') ||
-        target.closest('#modal-overlay') ||
-        target.closest('#summary-overlay') ||
-        target.closest('#offwork-overlay') ||
-        target.closest('#report-overlay') ||
-        target.closest('#sentiment-overlay') ||
-        target.closest('.copyright-footer') ||
+    if (target.closest('#top-dashboard') || target.closest('#start-screen') ||
+        target.closest('#modal-overlay') || target.closest('#summary-overlay') ||
+        target.closest('#offwork-overlay') || target.closest('#report-overlay') ||
+        target.closest('#sentiment-overlay') || target.closest('.copyright-footer') ||
         ['button', 'input', 'select'].includes(target.tagName.toLowerCase())) {
         return;
     }
  
-    // 2. 計算座標 (PointerEvent 直接支援 clientX/Y)
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
- 
     raycaster.setFromCamera(mouse, camera);
  
-    // 3. 射線檢測
     const groups = students.map(s => s.group);
     const intersects = raycaster.intersectObjects(groups, true);
  
     if (intersects.length > 0) {
-        let clickedObject = intersects[0].object;
-        
-        // 尋找對應的學生實例
+        const clickedObject = intersects[0].object;
         const student = students.find(s => {
             let found = false;
-            s.group.traverse(child => {
-                if (child === clickedObject) found = true;
-            });
+            s.group.traverse(child => { if (child === clickedObject) found = true; });
             return found;
         });
  
         if (student) {
-            // 切換選擇狀態
             student.isSelected = !student.isSelected;
-            
-            // 更新視覺效果
             student.group.traverse(child => {
                 if (child.isMesh && child.material) {
                     if (!child.userData.hasClonedMaterial) {
@@ -2855,20 +2824,17 @@ window.addEventListener('pointerup', (event) => {
                         child.userData.hasClonedMaterial = true;
                         child.userData.origColor = child.material.color.getHex();
                     }
-                    
                     if (student.isSelected) {
                         child.material.color.setHex(child.userData.origColor);
                     } else {
-                        // 沒選中時變暗
                         const c = new THREE.Color(child.userData.origColor);
                         c.multiplyScalar(0.3);
                         child.material.color.setHex(c.getHex());
                     }
                 }
             });
-            
-            // 更新標籤透明度
-            student.labelEl.style.opacity = student.isSelected ? "0.9" : "0.3";
+            // 點擊後立即更新 UI，觸發倍率視覺效果
+            updateUI();
         }
     }
 }, false);
