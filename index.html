@@ -485,6 +485,52 @@
 }
 
 
+/* 新增：學年全屏通知 */
+#year-notification {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    z-index: 200; /* 最高層級 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none; /* 預設不擋滑鼠，顯示時開啟 */
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.year-title {
+    font-size: 80px;
+    font-weight: 900;
+    color: var(--accent-plan);
+    margin-bottom: 20px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.5s ease-out;
+}
+
+.year-sub {
+    font-size: 24px;
+    color: var(--text-sub);
+    letter-spacing: 5px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.5s ease-out 0.2s; /* 延遲出現 */
+}
+
+/* 用於顯示時的 class */
+#year-notification.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+#year-notification.active .year-title,
+#year-notification.active .year-sub {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+
     </style>
 </head>
 <body>
@@ -650,6 +696,13 @@
         </div>
     </div>
 
+
+<!-- 學年切換全屏通知 -->
+<div id="year-notification">
+    <div class="year-title" id="notif-title">中一</div>
+    <div class="year-sub" id="notif-desc">新學年開始</div>
+</div>
+
     <!-- 模態框 (共用：DSE成績 / Game Over) -->
     <div id="modal-overlay">
         <div id="modal-box">
@@ -807,6 +860,33 @@ const SVGS = {
     grad: `<svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>`
 };
 
+
+
+
+// ==========================================
+// 音效系統 (MP3 版本)
+// ==========================================
+
+// 1. 預先建立基礎音效物件
+// 請確保 '掉落.mp3' 檔案位於與 HTML 相同的資料夾中
+const dropSoundBase = new Audio('掉落.mp3');
+
+// 2. 設定基礎音量 (0.0 到 1.0，建議不要設太高以免多重播放時爆音)
+dropSoundBase.volume = 0.3; 
+
+function playLandSound() {
+    // 為了讓多個粒子同時落地時聲音可以重疊 (而不是切斷上一個聲音)，
+    // 我們每次播放時都複製一個新的音效節點 (cloneNode)
+    const sound = dropSoundBase.cloneNode();
+    sound.volume = 0.3; // 確保複製出來的也有音量設定
+    
+    // 播放音效
+    // 注意：瀏覽器政策規定，必須要在使用者與頁面互動(點擊)後才能播放聲音
+    sound.play().catch(e => {
+        // 忽略自動播放限制的錯誤 (通常發生在剛載入未點擊時)
+        // console.log("等待使用者互動以播放音效..."); 
+    });
+}
 
         // ==========================================
         // 1. 設定與常量
@@ -1172,9 +1252,28 @@ const SVGS = {
                 gsap.to(this.readMesh.scale, { y: readH, duration: dur });
                 gsap.to(this.readMesh.position, { y: readH / 2, duration: dur });
             }
-            
-            dispose() { if (this.labelEl) this.labelEl.remove(); if (this.bubbleEl) this.bubbleEl.remove(); }
-        }
+
+            // ============================================
+            // ★ 請將 bump() 貼在這裡 (updateVisuals 之後)
+            // ============================================
+            bump() {
+                // 使用 GSAP 讓容器 (this.group) 在 Y 軸上輕微下沉後彈回
+                // 為了避免動畫衝突，我們先殺掉正在進行的 Y 軸動畫
+                gsap.killTweensOf(this.group.position, "y");
+                
+                // 初始位置是 0，下沉至 -0.15 然後彈回
+                gsap.fromTo(this.group.position, 
+                    { y: 0 },
+                    { y: -0.15, duration: 0.05, yoyo: true, repeat: 1, ease: "power1.out" }
+                );
+            }
+            // ============================================
+
+            dispose() { 
+                if (this.labelEl) this.labelEl.remove(); 
+                if (this.bubbleEl) this.bubbleEl.remove(); 
+            }
+        } // <--- 這是 class Student 的結束括號
 
 
 
@@ -1473,7 +1572,7 @@ initIcons();
     } else {
         const choices = [
             { id: 'fun', label: '設計趣味教學', color: 'var(--accent-fun)', svg: SVGS.fun_alt },
-            { id: 'plan', label: '認真備課', color: 'var(--accent-plan)', svg: SVGS.plan },
+            { id: 'plan', label: '認真授課', color: 'var(--accent-plan)', svg: SVGS.plan },
             { id: 'drill', label: '試題操練', color: 'var(--accent-drill)', svg: SVGS.drill }
         ];
         const choice = choices[Math.floor(Math.random() * choices.length)];
@@ -2019,31 +2118,80 @@ initIcons();
             // hasDoneAdmin = false; // 應該刪除這裡，只保留在 updateUI(); 
             updateUI();
         }
-        function startNewYear() {
-            if (document.getElementById('modal-overlay').style.display === 'flex') return;
-            TEACHER.age++; 
-            if (TEACHER.age > 60) { document.getElementById('disp-age').innerText = TEACHER.age; showRetirement(); return; }
-            calcMaxEnergy(); 
-            if (currentGradeIndex < 5) currentGradeIndex++;
-            TEACHER.daysInYear = 1; 
-            if (GAME_MODE === 'partial') TEACHER.recoveriesLeft = 3;
-            let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
-            if (GAME_MODE === 'full') { TEACHER.gradingPile += 2; TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 }; }
-            if (TEACHER.energyDebt > 0) { netEnergy -= TEACHER.energyDebt; TEACHER.energyDebt = 0; if (netEnergy < 0) netEnergy = 0; }
-            TEACHER.currentEnergy = netEnergy; TEACHER.bonusEnergyNextDay = 0; hasDoneAdmin = false; randomizeStudentNeed();
-            setStatus(`新學年：${GRADES[currentGradeIndex]}。`);
-            students.forEach(s => {
-                s.growGrade();
-                let change = 0;
-                if (s.type === STUDENT_TYPES.HIGH) change = Math.random()>0.6 ? Math.floor(Math.random()*3)+1 : -1;
-                else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random()*4+2);
-                else change = -Math.floor(Math.random()*5+6);
-                if (change < 0) { for(let i=0; i<Math.abs(change); i++) { const p = s.landedParticles.pop(); if(p) { scene.remove(p); particles = particles.filter(x=>x!==p); } } }
-                else { for(let i=0; i<change; i++) spawnDirectLandedParticle(s); }
-                s.updateLabelText();
-            });
-            updateUI();
+       function startNewYear() {
+    if (document.getElementById('modal-overlay').style.display === 'flex') return;
+    
+    TEACHER.age++; 
+    if (TEACHER.age > 60) { 
+        document.getElementById('disp-age').innerText = TEACHER.age; 
+        showRetirement(); 
+        return; 
+    }
+    
+    calcMaxEnergy(); 
+    if (currentGradeIndex < 5) currentGradeIndex++;
+    TEACHER.daysInYear = 1; 
+    
+    if (GAME_MODE === 'partial') TEACHER.recoveriesLeft = 3;
+    
+    let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
+    if (GAME_MODE === 'full') { 
+        TEACHER.gradingPile += 2; 
+        TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 }; 
+    }
+    
+    if (TEACHER.energyDebt > 0) { 
+        netEnergy -= TEACHER.energyDebt; 
+        TEACHER.energyDebt = 0; 
+        if (netEnergy < 0) netEnergy = 0; 
+    }
+    
+    TEACHER.currentEnergy = netEnergy; 
+    TEACHER.bonusEnergyNextDay = 0; 
+    hasDoneAdmin = false; 
+    randomizeStudentNeed();
+    
+    // === 新增：全屏幕學年通知邏輯 ===
+    const gradeText = GRADES[currentGradeIndex];
+    const notifEl = document.getElementById('year-notification');
+    const titleEl = document.getElementById('notif-title');
+    const descEl = document.getElementById('notif-desc');
+    
+    // 設定文字
+    titleEl.innerText = gradeText;
+    descEl.innerText = "新學年開始・加油教學";
+    
+    // 顯示通知
+    notifEl.classList.add('active');
+    
+    // 3秒後自動消失
+    setTimeout(() => {
+        notifEl.classList.remove('active');
+    }, 3000);
+    // ============================
+    
+    setStatus(`新學年：${gradeText}。`);
+    
+    students.forEach(s => {
+        s.growGrade();
+        let change = 0;
+        if (s.type === STUDENT_TYPES.HIGH) change = Math.random()>0.6 ? Math.floor(Math.random()*3)+1 : -1;
+        else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random()*4+2);
+        else change = -Math.floor(Math.random()*5+6);
+        
+        if (change < 0) { 
+            for(let i=0; i<Math.abs(change); i++) { 
+                const p = s.landedParticles.pop(); 
+                if(p) { scene.remove(p); particles = particles.filter(x=>x!==p); } 
+            } 
+        } else { 
+            for(let i=0; i<change; i++) spawnDirectLandedParticle(s); 
         }
+        s.updateLabelText();
+    });
+    
+    updateUI();
+}
       function showRetirement() {
     document.getElementById('offwork-overlay').style.display = 'none'; 
     document.getElementById('summary-overlay').style.display = 'none';
@@ -2137,128 +2285,133 @@ function startNextBatch() {
 
 
       function animate() {
-            requestAnimationFrame(animate); 
-            controls.update();
+    requestAnimationFrame(animate); 
+    controls.update();
+    
+    if (controls.target) { 
+        const boundary = (students.length * 2.5); 
+        if (controls.target.x < -boundary) controls.target.x = -boundary; 
+        if (controls.target.x > boundary) controls.target.x = boundary; 
+    }
+    
+    // 學生 Avatar 動畫
+    const time = Date.now() * 0.002;
+    students.forEach((s, idx) => {
+        if (s.avatar) {
+            s.avatar.position.y = -2.5 + Math.sin(time + idx) * 0.03; 
+            s.avatar.rotation.z = Math.sin(time * 0.5 + idx) * 0.02; 
+        }
+
+        // 標籤跟隨
+        const pos = new THREE.Vector3(s.xPos, s.getRimY() + 2.0, 0); 
+        pos.project(camera);
+        s.labelEl.style.left = `${(pos.x * .5 + .5) * window.innerWidth}px`; 
+        s.labelEl.style.top = `${(pos.y * -.5 + .5) * window.innerHeight}px`;
+        
+        const bPos = new THREE.Vector3(s.xPos, s.getRimY() + s.bubbleOffsetY, 0); 
+        bPos.project(camera);
+        s.bubbleEl.style.left = `${(bPos.x * .5 + .5) * window.innerWidth}px`; 
+        s.bubbleEl.style.top = `${(bPos.y * -.5 + .5) * window.innerHeight}px`;
+        
+        if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) { 
+            s.labelEl.style.opacity = 0; s.bubbleEl.style.opacity = 0; 
+        } else { s.labelEl.style.opacity = 0.9; }
+    });
+
+    // 粒子物理與碰撞邏輯
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i], s = p.userData.student;
+        
+        if (p.userData.state === 'falling') {
+            p.position.add(p.userData.vel); 
+            p.rotation.x += 0.05; p.rotation.y += 0.05; 
+            p.userData.vel.y -= 0.008; 
             
-            if (controls.target) { 
-                const boundary = (students.length * 2.5); 
-                if (controls.target.x < -boundary) controls.target.x = -boundary; 
-                if (controls.target.x > boundary) controls.target.x = boundary; 
+            let attractionForce = 0.05; 
+            if (s.type.id === 'high') attractionForce = 0.15; 
+            else if (s.type.id === 'low') attractionForce = 0.005; 
+            
+            if (!p.userData.rejected) { 
+                p.position.x += (s.xPos - p.position.x) * attractionForce; 
+                p.position.z += (0 - p.position.z) * attractionForce; 
+            } else { 
+                if (s.type.id === 'low') { 
+                    p.position.x += (Math.random() - 0.5) * 0.03; 
+                    p.position.z += (Math.random() - 0.5) * 0.03; 
+                } 
             }
             
-            // 學生 Avatar 動畫
-            const time = Date.now() * 0.002;
-            students.forEach((s, idx) => {
-                if (s.avatar) {
-                    s.avatar.position.y = -2.5 + Math.sin(time + idx) * 0.03; // 呼吸浮動
-                    s.avatar.rotation.z = Math.sin(time * 0.5 + idx) * 0.02; // 輕微搖擺
-                }
-
-                // 標籤跟隨容器頂部
-                const pos = new THREE.Vector3(s.xPos, s.getRimY() + 2.0, 0); 
-                pos.project(camera);
-                s.labelEl.style.left = `${(pos.x * .5 + .5) * window.innerWidth}px`; 
-                s.labelEl.style.top = `${(pos.y * -.5 + .5) * window.innerHeight}px`;
+            // 碰撞檢測：頂部入口
+            if (p.position.y < s.getRimY() + 0.5 && p.position.y > s.containerBottom) {
+                const dist = Math.sqrt(Math.pow(p.position.x - s.xPos, 2) + Math.pow(p.position.z, 2));
                 
-                const bPos = new THREE.Vector3(s.xPos, s.getRimY() + s.bubbleOffsetY, 0); 
-                bPos.project(camera);
-                s.bubbleEl.style.left = `${(bPos.x * .5 + .5) * window.innerWidth}px`; 
-                s.bubbleEl.style.top = `${(bPos.y * -.5 + .5) * window.innerHeight}px`;
-                
-                if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) { 
-                    s.labelEl.style.opacity = 0; s.bubbleEl.style.opacity = 0; 
-                } else { s.labelEl.style.opacity = 0.9; }
-            });
-
-            // 粒子物理
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i], s = p.userData.student;
-                
-                if (p.userData.state === 'falling') {
-                    p.position.add(p.userData.vel); 
-                    p.rotation.x += 0.05; p.rotation.y += 0.05; 
-                    p.userData.vel.y -= 0.008; 
-                    
-                    let attractionForce = 0.05; 
-                    if (s.type.id === 'high') attractionForce = 0.15; 
-                    else if (s.type.id === 'low') attractionForce = 0.005; 
-                    
-                    if (!p.userData.rejected) { 
-                        p.position.x += (s.xPos - p.position.x) * attractionForce; 
-                        p.position.z += (0 - p.position.z) * attractionForce; 
-                    } else { 
-                        if (s.type.id === 'low') { 
-                            p.position.x += (Math.random() - 0.5) * 0.03; 
-                            p.position.z += (Math.random() - 0.5) * 0.03; 
-                        } 
-                    }
-                    
-                    // 碰撞檢測：頂部入口
-                    if (p.position.y < s.getRimY() + 0.5 && p.position.y > s.containerBottom) {
-                        const dist = Math.sqrt(Math.pow(p.position.x - s.xPos, 2) + Math.pow(p.position.z, 2));
+                // 進入容器範圍
+                if (dist < 1.95) {
+                    if (p.userData.rejected) {
+                        // 排斥彈出
+                        let ejectForce = 0.15; 
+                        if (s.type.id === 'high') ejectForce = 0.1; 
+                        if (s.type.id === 'low') ejectForce = 0.35; 
+                        p.userData.vel.x = (p.position.x - s.xPos) * ejectForce + (Math.random()-0.5)*0.1; 
+                        p.userData.vel.z = p.position.z * ejectForce + (Math.random()-0.5)*0.1; 
+                        p.userData.vel.y = 0.15; 
+                        p.userData.state = 'spilling';
+                    } else if (s.type.id === 'low' && s.landedParticles.length >= s.particleCap) {
+                        // 容量已滿彈出
+                        p.userData.vel.x = (p.position.x - s.xPos) * 0.2; 
+                        p.userData.vel.z = p.position.z * 0.2; 
+                        p.userData.state = 'spilling';
+                    } else {
+                        // 嘗試著陸
+                        // 計算目前的堆疊高度
+                        const currentFillY = s.containerBottom + (s.landedParticles.length * 0.006);
                         
-                        // 進入容器範圍
-                        if (dist < 1.95) {
-                            if (p.userData.rejected) {
-                                // 排斥彈出
-                                let ejectForce = 0.15; 
-                                if (s.type.id === 'high') ejectForce = 0.1; 
-                                if (s.type.id === 'low') ejectForce = 0.35; 
-                                p.userData.vel.x = (p.position.x - s.xPos) * ejectForce + (Math.random()-0.5)*0.1; 
-                                p.userData.vel.z = p.position.z * ejectForce + (Math.random()-0.5)*0.1; 
-                                p.userData.vel.y = 0.15; 
-                                p.userData.state = 'spilling';
-                            } else if (s.type.id === 'low' && s.landedParticles.length >= s.particleCap) {
-                                // 容量已滿彈出
-                                p.userData.vel.x = (p.position.x - s.xPos) * 0.2; 
-                                p.userData.vel.z = p.position.z * 0.2; 
-                                p.userData.state = 'spilling';
-                            } else {
-                                // 嘗試著陸
-                                // 計算目前的堆疊高度 (相對於世界座標)
-                                const currentFillY = s.containerBottom + (s.landedParticles.length * 0.006);
+                        if (currentFillY < s.getRimY()) { 
+                            // 著陸成功判定
+                            if (p.position.y <= Math.max(currentFillY + 0.2, s.containerBottom + 0.2)) {
+                                p.position.y = currentFillY + Math.random() * 0.2; 
+                                p.userData.state = 'landed'; 
+                                s.landedParticles.push(p); 
+                                s.updateLabelText(); 
                                 
-                                // 確保不超過容器頂部
-                                if (currentFillY < s.getRimY()) { 
-                                    // 著陸判斷：粒子高度 <= (堆疊高度 + 緩衝) 且 粒子高度 >= 容器底部
-                                    if (p.position.y <= Math.max(currentFillY + 0.2, s.containerBottom + 0.2)) {
-                                        p.position.y = currentFillY + Math.random() * 0.2; 
-                                        p.userData.state = 'landed'; 
-                                        s.landedParticles.push(p); 
-                                        s.updateLabelText(); 
-                                        p.rotation.set(0, Math.random()*Math.PI, 0); 
-                                        const r = Math.random() * 1.5, t = Math.random() * Math.PI * 2; 
-                                        p.position.x = s.xPos + r * Math.cos(t); 
-                                        p.position.z = r * Math.sin(t);
-                                        if (GAME_MODE === 'full') changeHappiness(0.1); 
-                                    }
-                                } else { 
-                                    // 物理溢出 (太滿)
-                                    p.userData.vel.x = (p.position.x - s.xPos)*0.15; 
-                                    p.userData.vel.z = p.position.z*0.15; 
-                                    p.userData.state = 'spilling'; 
-                                }
+                                // === 修改處：觸發震動與音效 ===
+                                s.bump();       // 觸發容器震動
+                                playLandSound(); // 播放音效
+                                // ==========================
+
+                                p.rotation.set(0, Math.random()*Math.PI, 0); 
+                                const r = Math.random() * 1.5, t = Math.random() * Math.PI * 2; 
+                                p.position.x = s.xPos + r * Math.cos(t); 
+                                p.position.z = r * Math.sin(t);
+                                if (GAME_MODE === 'full') changeHappiness(0.1); 
                             }
-                        } else if (dist < 2.4) { 
-                            // 撞到邊緣
-                            p.userData.vel.x = (p.position.x - s.xPos)*0.2; 
-                            p.userData.vel.z = p.position.z*0.2; 
+                        } else { 
+                            // 物理溢出
+                            p.userData.vel.x = (p.position.x - s.xPos)*0.15; 
+                            p.userData.vel.z = p.position.z*0.15; 
                             p.userData.state = 'spilling'; 
                         }
                     }
-                    
-                    // 掉出畫面
-                    if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
-
-                } else if (p.userData.state === 'spilling') {
-                    p.position.add(p.userData.vel); 
-                    p.userData.vel.y -= 0.02; 
-                    p.rotation.x += 0.1; 
-                    if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
+                } else if (dist < 2.4) { 
+                    // 撞到邊緣
+                    p.userData.vel.x = (p.position.x - s.xPos)*0.2; 
+                    p.userData.vel.z = p.position.z*0.2; 
+                    p.userData.state = 'spilling'; 
                 }
             }
-            renderer.render(scene, camera);
+            
+            // 掉出畫面
+            if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
+
+        } else if (p.userData.state === 'spilling') {
+            p.position.add(p.userData.vel); 
+            p.userData.vel.y -= 0.02; 
+            p.rotation.x += 0.1; 
+            if (p.position.y < -5) { scene.remove(p); particles.splice(i, 1); }
         }
+    }
+    renderer.render(scene, camera);
+}
     </script>
 
 <!-- 學生感言專用視窗 -->
