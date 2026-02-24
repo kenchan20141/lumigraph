@@ -530,6 +530,32 @@
     opacity: 1;
 }
 
+/* =========================================
+   頁尾版權宣告 (Footer)
+   ========================================= */
+.copyright-footer {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    padding: 5px 10px;
+    background-color: #f1f1f1;
+    z-index: 15; /* 確保顯示在 Canvas(1) 與 Labels(10) 之上，但在 Dashboard(20) 之下 */
+    border-top-left-radius: 8px; /* 稍微導圓角比較好看 (可選) */
+    opacity: 0.8; /* 稍微透明，減少對遊戲畫面的干擾 (可選) */
+}
+
+.copyright-footer p {
+    margin: 0;
+    font-size: 14px;
+    color: #555; /* 配合現有色調 */
+}
+
+@media (max-width: 600px) {
+    .copyright-footer p {
+        font-size: 12px;
+    }
+}
+
 
     </style>
 </head>
@@ -2524,6 +2550,10 @@ function startNextBatch() {
 }
     </script>
 
+        <footer class="copyright-footer">
+<p>Copyright © 2025 陳冠健. All rights reserved.</p>
+</footer>
+
 <!-- 學生感言專用視窗 -->
     <div id="sentiment-overlay" onclick="document.getElementById('sentiment-overlay').style.display='none'">
         <div id="sentiment-box" onclick="event.stopPropagation()">
@@ -2541,6 +2571,7 @@ function startNextBatch() {
             </div>
         </div>
     </div>
+
 
 
 </body>
