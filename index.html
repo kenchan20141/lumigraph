@@ -233,24 +233,117 @@
             100% { transform: translateY(-50px) scale(0.9); opacity: 0; }
         }
 
-        /* 模式選擇畫面 */
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(242, 240, 235, 1); z-index: 100;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            backdrop-filter: blur(10px);
-        }
-        .mode-btn {
-            background: #fff; border: 2px solid var(--text-main); padding: 20px 40px;
-            margin: 10px; border-radius: 15px; font-size: 18px; font-weight: bold;
-            cursor: pointer; transition: all 0.3s; width: 280px; text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .mode-btn:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
-        .mode-partial { border-color: var(--accent-plan); color: var(--accent-plan); }
-        .mode-full { border-color: var(--accent-dse); color: var(--accent-dse); }
-        .mode-desc { font-size:12px; font-weight:normal; display:block; margin-top:5px; color:#666; }
-        .hidden { display: none !important; }
+       /* === 封面設計優化 (Start Screen Polish) === */
+#start-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    /* 使用微漸變增加質感 */
+    background: radial-gradient(circle at center, #F9F8F6 0%, #F2F0EB 100%);
+    z-index: 100;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    overflow: hidden; /* 防止背景文字溢出 */
+}
+
+/* 標題樣式：增加襯線感與間距 */
+#start-screen h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: #3e3a36; /* 深灰褐色 */
+    margin-bottom: 20px; /* 增加一點下方留白 */
+    letter-spacing: 5px;
+    z-index: 10;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    position: relative;
+    text-align: center;
+}
+
+/* 原本是英文，現在改成一條極簡的裝飾短線 */
+#start-screen h1::after {
+    content: '';
+    display: block;
+    width: 60px;          /* 短線條長度 */
+    height: 3px;          /* 線條厚度 */
+    background: #D7D5D0;  /* 低調的淺灰色 */
+    margin: 20px auto 0;  /* 置中並與標題保持距離 */
+    border-radius: 2px;   /* 圓角 */
+}
+
+#floating-chars-container {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; /* 關鍵：讓滑鼠穿透文字層，點擊下方的按鈕 */
+    z-index: 1;
+    overflow: hidden;
+}
+
+.float-char {
+    position: absolute;
+    font-family: 'Noto Serif TC', serif;
+    /* 這裡不需要再設 color/opacity，因為 JS 會覆蓋，但保留 font-family 很重要 */
+    transition: transform 0.1s ease-out; /* 讓跟隨稍微平滑一點 */
+    pointer-events: none;
+}
+
+/* 按鈕容器 */
+.menu-btn-group {
+    display: flex;
+    gap: 20px;
+    z-index: 10;
+    margin-top: 40px;
+}
+
+/* 優化後的按鈕 */
+.mode-btn {
+    position: relative;
+    background: #fff;
+    border: none;
+    padding: 25px 30px;
+    border-radius: 4px; /* 改為稍微銳利的圓角，像紙張 */
+    width: 240px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 10px 20px rgba(0,0,0,0.02);
+    text-align: center;
+    overflow: hidden;
+}
+
+/* 按鈕裝飾線條 (像試卷邊框) */
+.mode-btn::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    transition: all 0.3s;
+}
+.mode-partial::before { background: var(--accent-plan); }
+.mode-full::before { background: var(--accent-dse); }
+
+.mode-btn:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+}
+
+.btn-title {
+    display: block;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #5E5A54;
+}
+
+.mode-desc {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.5;
+    display: block;
+}
+
+/* 隱藏原生樣式 */
+.hidden { display: none !important; }
+
+/* 手機版調整 */
+@media (max-width: 600px) {
+    .menu-btn-group { flex-direction: column; gap: 15px; }
+    #start-screen h1 { font-size: 32px; }
+    .mode-btn { width: 80vw; padding: 20px; }
+}
 
         /* 手機適配 */
      /* 手機適配 - 修改後 (儀表板佔 40%) */
@@ -587,18 +680,24 @@
 </head>
 <body>
 
-    <!-- 模式選擇畫面 -->
-    <div id="start-screen">
-        <h1 style="margin-bottom: 30px; font-size: 32px; color: var(--text-main);">中文老師的一生</h1>
+   <!-- 模式選擇畫面 -->
+<div id="start-screen">
+    <!-- 背景特效層 -->
+    <div id="floating-chars-container"></div>
+
+    <h1>中文老師的一生</h1>
+    
+    <div class="menu-btn-group">
         <button class="mode-btn mode-partial" onclick="startGame('partial')">
-            局部體驗<br>
-            <span class="mode-desc">了解課外閱讀與學習效益的關係。</span>
+            <span class="btn-title">教學篇——傳道</span>
+            <span class="mode-desc">聚焦教學策略<br>探索閱讀與學習效益的關係</span>
         </button>
         <button class="mode-btn mode-full" onclick="startGame('full')">
-            全面體驗<br>
-            <span class="mode-desc">設身處地感受語文老師的辛勞。</span>
+            <span class="btn-title">生存篇——浮沉</span>
+            <span class="mode-desc">管理身心狀態<br>設身處理感受老師的辛勞</span>
         </button>
     </div>
+</div>
 
     <div id="canvas-container"></div>
     <div id="labels-container"></div>
@@ -1399,6 +1498,98 @@ function initIcons() {
 initIcons();
 
 
+// ==========================================
+// 封面互動特效 (Floating Characters) - 增量版
+// ==========================================
+(function initCoverEffect() {
+    const container = document.getElementById('floating-chars-container');
+    if (!container) return;
+
+    // 擴充字庫，加入更多與教學現場相關的單字 (苦、累、改、背...)
+    const chars = [
+        "之", "乎", "者", "也", "閱", "讀", "寫", "作", 
+        "聽", "說", "卷", "改", "累", "忙", "勤", "學",
+        "師", "道", "文", "言", "詩", "詞", "歌", "賦",
+        "教", "育", "心", "力", "分", "數", "評", "核",
+        "苦", "辣", "酸", "甜", "備", "課", "默", "書",
+        "哉", "練", "補", "習", "試", "考", "熬", "夜"
+    ];
+
+    const elements = [];
+    
+    // 大幅增加數量：電腦版 120 個，手機版 50 個
+    const count = window.innerWidth < 600 ? 50 : 120;
+
+    for (let i = 0; i < count; i++) {
+        const span = document.createElement('span');
+        span.classList.add('float-char');
+        span.innerText = chars[Math.floor(Math.random() * chars.length)];
+        
+        // --- 隨機參數設定 ---
+        
+        // 大小：範圍拉大 (10px - 60px)，製造遠近感
+        const size = Math.random() * 50 + 10; 
+        
+        // 位置：散佈在整個畫面
+        const x = Math.random() * 100;
+        const y = Math.random() * 100;
+        
+        // 透明度：與大小掛鉤，越大的字通常越淡 (背景感)，越小的字稍微清楚一點
+        // 範圍控制在 0.03 (極淡) 到 0.15 (微淡) 之間，保持低調
+        let opacity = Math.random() * 0.12 + 0.03;
+        if (size > 40) opacity = 0.04; // 大字強制更淡
+
+        // 深度：用於視差滾動 (0.1 - 1.0)
+        const depth = Math.random() * 0.9 + 0.1;
+
+        // 應用樣式
+        span.style.fontSize = `${size}px`;
+        span.style.left = `${x}%`;
+        span.style.top = `${y}%`;
+        span.style.opacity = opacity;
+        span.style.position = 'absolute';
+        span.style.userSelect = 'none';
+        span.style.color = '#3e3a36';
+        
+        // 隨機旋轉 (-30度 到 30度)
+        span.style.transform = `rotate(${Math.random() * 60 - 30}deg)`;
+
+        // 存儲資料供滑鼠互動使用
+        span.dataset.depth = depth;
+        span.dataset.baseX = x;
+        span.dataset.baseY = y;
+
+        container.appendChild(span);
+        elements.push(span);
+    }
+
+    // 滑鼠互動：視差效果
+    document.addEventListener('mousemove', (e) => {
+        // 優化效能：如果封面隱藏了就不計算
+        if (document.getElementById('start-screen').style.display === 'none') return;
+
+        const mouseX = e.clientX / window.innerWidth;
+        const mouseY = e.clientY / window.innerHeight;
+
+        elements.forEach(el => {
+            const depth = parseFloat(el.dataset.depth);
+            
+            // 計算位移：深度越深 (靠近1) 移動越少，深度越淺移動越多 (錯覺)
+            // 係數設為 40，讓移動感明顯一點但不過份
+            const moveX = (mouseX - 0.5) * (40 * depth);
+            const moveY = (mouseY - 0.5) * (40 * depth);
+
+            // 保持原本的隨機旋轉
+            const currentRotation = el.style.transform.match(/rotate\(([^)]+)\)/);
+            const rotation = currentRotation ? currentRotation[0] : 'rotate(0deg)';
+
+            el.style.transform = `translate(${moveX}px, ${moveY}px) ${rotation}`;
+        });
+    });
+})();
+
+
+        
         // ==========================================
         // 3. 遊戲邏輯與交互
         // ==========================================
