@@ -1408,150 +1408,185 @@ initIcons();
             document.getElementById('report-overlay').style.display = 'flex';
         }
 
-      function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
-            // 1. 處理厭倦規則 (每次點擊都會增加計數，模擬快速連擊導致學生厭倦)
-            let isBored = false;
-            if (actionId === lastActionType) {
-                consecutiveActionCount++;
-            } else {
-                lastActionType = actionId;
-                consecutiveActionCount = 1;
-            }
+        // ==========================================
+// 按鈕震動輔助函數
+// ==========================================
+function triggerButtonShake(btnId) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
 
-            // 判斷是否為「當前需求」
-            const isNeed = (actionId === currentNeed);
-            
-            // 規則：連續第4次且不是需求 -> 強制為1 (厭倦)
-            if (consecutiveActionCount >= 4 && !isNeed) {
-                isBored = true;
-            }
+    // 1. 手機觸覺震動 (Haptic Feedback)
+    // 只有支援的裝置 (Android 手機等) 會觸發，iPhone 需視乎瀏覽器支援度
+    if (navigator.vibrate) {
+        navigator.vibrate(15); // 震動 15 毫秒
+    }
 
-            // 規則：若是需求，基礎產量提升至 14，再乘獎勵
-            let effectiveBase = baseParticles;
-            if (isNeed) {
-                effectiveBase = 14; 
-            }
+    // 2. 視覺震動 (Visual Shake)
+    // 殺掉舊動畫避免衝突
+    gsap.killTweensOf(btn);
+    
+    // 快速左右震動 (X軸位移)
+    gsap.fromTo(btn, 
+        { x: 0 }, 
+        { 
+            x: 4, // 向右移 4px
+            duration: 0.05, 
+            repeat: 3, // 重複 3 次
+            yoyo: true, // 往返
+            clearProps: "x", // 動畫結束後清除樣式，避免位置跑掉
+            ease: "power1.inOut"
+        }
+    );
+}
 
-            // 檢查是否有足夠心力
-            if (spendEnergy(cost) > 0) {
-                
-                // === 【連擊邏輯 A】 初始化或延續批次 ===
-                // 如果這是連擊的第一下 (snapshot 為空)，記錄初始狀態
-                if (batchSnapshot === null) {
-                    batchSnapshot = students.map(s => s.landedParticles.length);
-                    batchTotalCost = 0;
-                    batchTotalHappy = 0;
-                }
+    function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
+    // === 新增：觸發按鈕震動 ===
+    // 透過 actionId 組合成按鈕 ID (例如 'read' -> 'btn-read')
+    triggerButtonShake('btn-' + actionId);
+    // ========================
 
-                // 如果已經有計時器在跑 (代表還在連擊中)，先取消它，稍後再設一個新的
-                if (batchTimer) {
-                    clearTimeout(batchTimer);
-                    batchTimer = null;
-                }
+    // 1. 處理厭倦規則 (每次點擊都會增加計數，模擬快速連擊導致學生厭倦)
+    let isBored = false;
+    if (actionId === lastActionType) {
+        consecutiveActionCount++;
+    } else {
+        lastActionType = actionId;
+        consecutiveActionCount = 1;
+    }
 
-                // === 2. 執行立即效果 (心力與幸福度) ===
-                // 累積心力消耗
-                batchTotalCost += cost;
+    // 判斷是否為「當前需求」
+    const isNeed = (actionId === currentNeed);
+    
+    // 規則：連續第4次且不是需求 -> 強制為1 (厭倦)
+    if (consecutiveActionCount >= 4 && !isNeed) {
+        isBored = true;
+    }
 
-                // 處理幸福度並累積
-                if (GAME_MODE === 'full') {
-                    if (happyCost > 0) { 
-                        changeHappiness(-happyCost); 
-                        batchTotalHappy += happyCost; // 記錄消耗量 (正數代表扣除)
-                    } else if (happyCost < 0) { 
-                        changeHappiness(Math.abs(happyCost)); 
-                        batchTotalHappy += happyCost; // 記錄獲得量 (負數代表增加)
-                    }
-                }
+    // 規則：若是需求，基礎產量提升至 14，再乘獎勵
+    let effectiveBase = baseParticles;
+    if (isNeed) {
+        effectiveBase = 14; 
+    }
 
-                let msg = name;
-                if (isBored) msg += " (學生感到厭倦...)";
-                if (isNeed) msg += " (回應需求！)";
-                // 提示連擊狀態
-                if (consecutiveActionCount > 1) msg += ` x${consecutiveActionCount}`;
-                setStatus(msg);
+    // 檢查是否有足夠心力
+    if (spendEnergy(cost) > 0) {
+        
+        // === 【連擊邏輯 A】 初始化或延續批次 ===
+        // 如果這是連擊的第一下 (snapshot 為空)，記錄初始狀態
+        if (batchSnapshot === null) {
+            batchSnapshot = students.map(s => s.landedParticles.length);
+            batchTotalCost = 0;
+            batchTotalHappy = 0;
+        }
 
-                // === 3. 生成物理粒子 (每一下點擊都必須生成，保持視覺爽快感) ===
-                let currentClickMaxDelay = 0;
-                const physicsFallTime = 2500; // 物理掉落緩衝時間
+        // 如果已經有計時器在跑 (代表還在連擊中)，先取消它，稍後再設一個新的
+        if (batchTimer) {
+            clearTimeout(batchTimer);
+            batchTimer = null;
+        }
 
-                students.forEach((s, idx) => {
-                    let particlesToSpawn = 0;
-                    
-                    if (isBored) {
-                        particlesToSpawn = 1; 
-                    } else {
-                        particlesToSpawn = isNeed ? Math.ceil(effectiveBase * 1.2) : effectiveBase;
-                    }
+        // === 2. 執行立即效果 (心力與幸福度) ===
+        // 累積心力消耗
+        batchTotalCost += cost;
 
-                    // 閱讀量 70% 上限檢查
-                    if (actionId === 'read') {
-                        const grew = s.tryGrowReading();
-                        if (grew) {
-                            spawnDirectLandedParticle(s); 
-                        } else {
-                            const currentCap = s.getCurrentCapacity();
-                            if (s.landedParticles.length >= currentCap * 0.7) {
-                                particlesToSpawn = 0; 
-                            }
-                        }
-                    }
-
-                    // 生成粒子
-                    if (particlesToSpawn > 0) {
-                        const interval = growReading ? 30 : 0;
-                        const spawnDuration = (particlesToSpawn - 1) * interval;
-                        if (spawnDuration + physicsFallTime > currentClickMaxDelay) {
-                            currentClickMaxDelay = spawnDuration + physicsFallTime;
-                        }
-
-                        for(let i=0; i < particlesToSpawn; i++) {
-                            setTimeout(() => spawnParticle(actionId, s), i * interval);
-                        }
-                    }
-
-                    triggerStudentDialogue(s, actionId, idx);
-                });
-
-                if (actionId !== 'hea') { randomizeStudentNeed(); }
-
-                // === 【連擊邏輯 B】 設定延遲結算 ===
-                // 設置新的計時器，時間 = 當次動畫時間。
-                // 如果玩家在時間內再次點擊，這個計時器會被上面的 clearTimeout 清除，從而實現延遲報告。
-                batchTimer = setTimeout(() => {
-                    
-                    const studentChanges = students.map((s, index) => {
-                        const finalCount = s.landedParticles.length;
-                        const initialCount = batchSnapshot[index];
-                        const actualAdded = finalCount - initialCount;
-                        
-                        return {
-                            student: s,
-                            added: actualAdded, 
-                            boredomLimit: false, 
-                            capLimit: false
-                        };
-                    });
-
-                    // 修改：傳入當前的心力與幸福度總量
-                    createActionReport(
-                        batchTotalCost, 
-                        batchTotalHappy, 
-                        studentChanges, 
-                        TEACHER.currentEnergy, // 傳入當前剩餘心力
-                        TEACHER.happiness      // 傳入當前剩餘幸福度
-                    );
-
-                    // 重置連擊狀態
-                    batchSnapshot = null;
-                    batchTimer = null;
-                    batchTotalCost = 0;
-                    batchTotalHappy = 0;
-
-                }, currentClickMaxDelay);
+        // 處理幸福度並累積
+        if (GAME_MODE === 'full') {
+            if (happyCost > 0) { 
+                changeHappiness(-happyCost); 
+                batchTotalHappy += happyCost; // 記錄消耗量 (正數代表扣除)
+            } else if (happyCost < 0) { 
+                changeHappiness(Math.abs(happyCost)); 
+                batchTotalHappy += happyCost; // 記錄獲得量 (負數代表增加)
             }
         }
 
+        let msg = name;
+        if (isBored) msg += " (學生感到厭倦...)";
+        if (isNeed) msg += " (回應需求！)";
+        // 提示連擊狀態
+        if (consecutiveActionCount > 1) msg += ` x${consecutiveActionCount}`;
+        setStatus(msg);
+
+        // === 3. 生成物理粒子 (每一下點擊都必須生成，保持視覺爽快感) ===
+        let currentClickMaxDelay = 0;
+        const physicsFallTime = 2500; // 物理掉落緩衝時間
+
+        students.forEach((s, idx) => {
+            let particlesToSpawn = 0;
+            
+            if (isBored) {
+                particlesToSpawn = 1; 
+            } else {
+                particlesToSpawn = isNeed ? Math.ceil(effectiveBase * 1.2) : effectiveBase;
+            }
+
+            // 閱讀量 70% 上限檢查
+            if (actionId === 'read') {
+                const grew = s.tryGrowReading();
+                if (grew) {
+                    spawnDirectLandedParticle(s); 
+                } else {
+                    const currentCap = s.getCurrentCapacity();
+                    if (s.landedParticles.length >= currentCap * 0.7) {
+                        particlesToSpawn = 0; 
+                    }
+                }
+            }
+
+            // 生成粒子
+            if (particlesToSpawn > 0) {
+                const interval = growReading ? 30 : 0;
+                const spawnDuration = (particlesToSpawn - 1) * interval;
+                if (spawnDuration + physicsFallTime > currentClickMaxDelay) {
+                    currentClickMaxDelay = spawnDuration + physicsFallTime;
+                }
+
+                for(let i=0; i < particlesToSpawn; i++) {
+                    setTimeout(() => spawnParticle(actionId, s), i * interval);
+                }
+            }
+
+            triggerStudentDialogue(s, actionId, idx);
+        });
+
+        if (actionId !== 'hea') { randomizeStudentNeed(); }
+
+        // === 【連擊邏輯 B】 設定延遲結算 ===
+        // 設置新的計時器，時間 = 當次動畫時間。
+        // 如果玩家在時間內再次點擊，這個計時器會被上面的 clearTimeout 清除，從而實現延遲報告。
+        batchTimer = setTimeout(() => {
+            
+            const studentChanges = students.map((s, index) => {
+                const finalCount = s.landedParticles.length;
+                const initialCount = batchSnapshot[index];
+                const actualAdded = finalCount - initialCount;
+                
+                return {
+                    student: s,
+                    added: actualAdded, 
+                    boredomLimit: false, 
+                    capLimit: false
+                };
+            });
+
+            // 修改：傳入當前的心力與幸福度總量
+            createActionReport(
+                batchTotalCost, 
+                batchTotalHappy, 
+                studentChanges, 
+                TEACHER.currentEnergy, // 傳入當前剩餘心力
+                TEACHER.happiness      // 傳入當前剩餘幸福度
+            );
+
+            // 重置連擊狀態
+            batchSnapshot = null;
+            batchTimer = null;
+            batchTotalCost = 0;
+            batchTotalHappy = 0;
+
+        }, currentClickMaxDelay);
+    }
+}
 
 
         
@@ -1942,20 +1977,31 @@ initIcons();
             }
         });
 
-        document.getElementById('btn-recover').addEventListener('click', () => {
-            if (TEACHER.recoveriesLeft > 0) { TEACHER.currentEnergy = TEACHER.maxEnergy; TEACHER.recoveriesLeft--; updateUI(); setStatus("休息恢復精力。"); }
+       document.getElementById('btn-recover').addEventListener('click', () => {
+            // === 新增：按鈕震動 ===
+            triggerButtonShake('btn-recover');
+            // ====================
+
+            if (TEACHER.recoveriesLeft > 0) { 
+                TEACHER.currentEnergy = TEACHER.maxEnergy; 
+                TEACHER.recoveriesLeft--; 
+                updateUI(); 
+                setStatus("休息恢復精力。"); 
+            }
         });
         document.getElementById('btn-next-partial').addEventListener('click', () => { if (!hasDoneAdmin) { setStatus("必須先完成行政工作！", true); return; } startNewYear(); });
-       document.getElementById('btn-admin').addEventListener('click', () => {
+      document.getElementById('btn-admin').addEventListener('click', () => {
+            // === 新增：按鈕震動 ===
+            triggerButtonShake('btn-admin');
+            // ====================
+
             const cost = parseFloat(document.getElementById('rng-admin').value);
             if (!hasDoneAdmin) {
                 if (TEACHER.currentEnergy >= cost) {
                     TEACHER.currentEnergy -= cost; if (GAME_MODE === 'full') changeHappiness(-10);
                     TEACHER.dailyStats.adminCount = 1; setStatus("完成行政工作，毫無收穫。");
                     
-                    // ▼▼▼ 修改第一處：補上 TEACHER.currentEnergy 和 TEACHER.happiness ▼▼▼
                     createActionReport(cost, 10, [], TEACHER.currentEnergy, TEACHER.happiness);
-                    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
                 } else {
                     const overdraft = cost - TEACHER.currentEnergy;
@@ -1963,9 +2009,7 @@ initIcons();
                     if (GAME_MODE === 'full') changeHappiness(-15);
                     setStatus(`勉強應付行政 (透支 ${overdraft.toFixed(1)})...`, true);
                     
-                    // ▼▼▼ 修改第二處：補上 TEACHER.currentEnergy (此時為0) 和 TEACHER.happiness ▼▼▼
                     createActionReport(TEACHER.currentEnergy, 15, [], TEACHER.currentEnergy, TEACHER.happiness);
-                    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
                 }
                 hasDoneAdmin = true; updateUI();
             }
