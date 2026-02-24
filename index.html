@@ -421,6 +421,70 @@
         .rpt-total { font-size: 11px; color: #777; margin-left: 5px; font-weight: normal; }
 
 
+/* =========================================
+   SVG 圖示專用樣式 (請加入到 CSS 最後面)
+   ========================================= */
+.btn-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 28px;
+    width: 100%;
+    margin-bottom: 2px;
+}
+
+.btn-icon svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor; /* 讓圖示顏色跟隨文字或設定 */
+    transition: all 0.2s;
+}
+
+/* 針對特定按鈕微調 SVG 顏色 */
+.btn-read .btn-icon svg { fill: var(--color-high); }
+.btn-fun .btn-icon svg { fill: var(--accent-fun); }
+.btn-plan .btn-icon svg { fill: var(--accent-plan); }
+.btn-drill .btn-icon svg { fill: var(--accent-drill); }
+.btn-hea .btn-icon svg { fill: var(--accent-hea); }
+.btn-admin .btn-icon svg { fill: var(--accent-admin); }
+
+/* DSE 火焰特效 */
+.dse-fire svg {
+    fill: #fff;
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 0 4px rgba(255, 200, 0, 0.8));
+    animation: flicker 0.1s infinite alternate;
+}
+@keyframes flicker { from { opacity: 0.8; } to { opacity: 1; } }
+
+/* 下班介面圖示 */
+.ow-icon svg {
+    width: 32px;
+    height: 32px;
+    fill: #555;
+}
+.ow-btn:hover .ow-icon svg {
+    fill: var(--accent-night);
+    transform: scale(1.1);
+}
+
+/* Modal 標題大圖示 */
+#modal-icon svg, #ow-icon svg {
+    width: 50px;
+    height: 50px;
+}
+#modal-icon svg { margin-bottom: 10px; }
+
+/* 需求指示器小圖示 */
+#need-indicator svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+
     </style>
 </head>
 <body>
@@ -487,70 +551,75 @@
             </select>
         </div>
 
-        <div class="dash-section action-section" style="flex: 2;">
-            <div class="section-title">教學活動</div>
-            
-            <div id="need-indicator">
-                <span>學生當前需求:</span>
-                <span id="need-dot" class="need-dot" style="background:var(--accent-read);"></span>
-                <span id="need-text" style="color:var(--accent-read);">增加閱讀量</span>
-            </div>
+       <div class="dash-section action-section" style="flex: 2;">
+    <div class="section-title">教學活動</div>
+    
+    <div id="need-indicator">
+        <span>學生當前需求:</span>
+        <span id="need-dot" class="need-dot" style="background:var(--accent-read);"></span>
+        <!-- 圖示與文字容器 -->
+        <span id="need-text" style="color:var(--accent-read); display:flex; align-items:center;">
+             <!-- JS 會自動填入 SVG -->
+        </span>
+    </div>
 
-           <div class="btn-group">
-                <button id="btn-read" class="btn-read">
-                    <span class="btn-icon">📚</span>
-                    <span class="btn-txt">增加閱讀量</span>
-                    <span class="btn-cost" id="cost-read">-1 E / -1 Hap</span>
-                </button>
-                <button id="btn-fun" class="btn-fun">
-                    <span class="btn-icon">🍬</span>
-                    <span class="btn-txt">趣味教學</span>
-                    <span class="btn-cost" id="cost-fun">-3 E / -2 Hap</span>
-                </button>
-                <button id="btn-plan" class="btn-plan">
-                    <span class="btn-icon">📝</span>
-                    <span class="btn-txt">認真授課</span>
-                    <span class="btn-cost" id="cost-plan">-3 E / -2 Hap</span>
-                </button>
-                <button id="btn-drill" class="btn-drill">
-                    <span class="btn-icon">⚔️</span>
-                    <span class="btn-txt">試題操練</span>
-                    <span class="btn-cost" id="cost-drill">-3 E / -2 Hap</span>
-                </button>
-                <button id="btn-hea" class="btn-hea mode-full-el">
-                    <span class="btn-icon">☕</span>
-                    <span class="btn-txt">蛇王 (Hea)</span>
-                    <span class="btn-cost">-0.5 E / +1 Hap</span>
-                </button>
-            </div>
-        </div>
+   <div class="btn-group">
+        <button id="btn-read" class="btn-read">
+            <span class="btn-icon"></span>
+            <span class="btn-txt">增加閱讀量</span>
+            <span class="btn-cost" id="cost-read">-1 E / -1 Hap</span>
+        </button>
+        <button id="btn-fun" class="btn-fun">
+            <span class="btn-icon"></span>
+            <span class="btn-txt">趣味教學</span>
+            <span class="btn-cost" id="cost-fun">-3 E / -2 Hap</span>
+        </button>
+        <button id="btn-plan" class="btn-plan">
+            <span class="btn-icon"></span>
+            <span class="btn-txt">認真授課</span>
+            <span class="btn-cost" id="cost-plan">-3 E / -2 Hap</span>
+        </button>
+        <button id="btn-drill" class="btn-drill">
+            <span class="btn-icon"></span>
+            <span class="btn-txt">試題操練</span>
+            <span class="btn-cost" id="cost-drill">-3 E / -2 Hap</span>
+        </button>
+        <button id="btn-hea" class="btn-hea mode-full-el">
+            <span class="btn-icon"></span>
+            <span class="btn-txt">蛇王 (Hea)</span>
+            <span class="btn-cost">-0.5 E / +1 Hap</span>
+        </button>
+    </div>
+</div>
 
-        <div class="dash-section">
-            <div class="section-title">行政/系統</div>
-            <div class="admin-box">
-                <span>行政消耗: <span id="val-admin">3.0</span></span>
-                <input type="range" id="rng-admin" min="0.1" max="10" step="0.1" value="3.0">
-            </div>
-            <div class="btn-group">
-                <button id="btn-admin" class="btn-admin">
-                    <span class="btn-icon">📑</span><span class="btn-txt">應付行政</span>
-                </button>
-                <button id="btn-recover" class="btn-system mode-partial-el">
-                    <span class="btn-icon">⚡</span><span class="btn-txt">休息恢復</span>
-                </button>
-                <button id="btn-grade-work" class="btn-grade-work mode-full-el">
-                    <span class="btn-icon">✍️</span><span class="btn-txt">批改堆積</span>
-                    <span class="btn-cost">-1 E / -2 Hap</span>
-                </button>
-                <button id="btn-offwork" class="btn-offwork mode-full-el" style="display:none;">
-                    <span class="btn-icon">🌙</span><span class="btn-txt">打卡下班</span>
-                </button>
-                <button id="btn-next-partial" class="btn-system mode-partial-el">
-                    <span class="btn-icon">📅</span><span class="btn-txt">下一學年</span>
-                </button>
-            </div>
-            <button id="btn-dse">🔥 學生應考 DSE 🔥</button>
-        </div>
+<div class="dash-section">
+    <div class="section-title">行政/系統</div>
+    <div class="admin-box">
+        <span>行政消耗: <span id="val-admin">3.0</span></span>
+        <input type="range" id="rng-admin" min="0.1" max="10" step="0.1" value="3.0">
+    </div>
+    <div class="btn-group">
+        <button id="btn-admin" class="btn-admin">
+            <span class="btn-icon"></span><span class="btn-txt">應付行政</span>
+        </button>
+        <button id="btn-recover" class="btn-system mode-partial-el">
+            <span class="btn-icon"></span><span class="btn-txt">休息恢復</span>
+        </button>
+        <button id="btn-grade-work" class="btn-grade-work mode-full-el">
+            <span class="btn-icon"></span><span class="btn-txt">批改堆積</span>
+            <span class="btn-cost">-1 E / -2 Hap</span>
+        </button>
+        <button id="btn-offwork" class="btn-offwork mode-full-el" style="display:none;">
+            <span class="btn-icon"></span><span class="btn-txt">打卡下班</span>
+        </button>
+        <button id="btn-next-partial" class="btn-system mode-partial-el">
+            <span class="btn-icon"></span><span class="btn-txt">下一學年</span>
+        </button>
+    </div>
+    <button id="btn-dse">
+        <span class="dse-fire"></span> 學生應考 DSE <span class="dse-fire"></span>
+    </button>
+</div>
     </div>
 
     <!-- 詳細結算報告 (Action Report Overlay) -->
@@ -628,8 +697,8 @@
     <div id="offwork-overlay">
         <div id="offwork-box">
             <div class="offwork-header">
-                <span id="ow-icon">🌙</span> <span id="ow-title">下班時間</span>
-            </div>
+    <span id="ow-icon"></span> <span id="ow-title">下班時間</span>
+</div>
             <div class="offwork-stats">
                 <div class="stat-box">
                     <span class="ow-stat-val" id="ow-energy">1</span><span class="ow-stat-label">下班心力</span>
@@ -652,15 +721,29 @@
                     <span class="ow-icon">🛌</span><span class="ow-label">好好休息 (回復心力)</span>
                 </button>
             </div>
-            <div class="ow-section-title">娛樂活動 (消耗 1 心力, +6~8 幸福)</div>
-            <div class="ow-btn-grid">
-                <button class="ow-btn" id="btn-ent-dinner" onclick="doEntertainment('dinner', 'btn-ent-dinner')"><span class="ow-icon">🍲</span><span class="ow-label">約朋友吃飯</span></button>
-                <button class="ow-btn" id="btn-ent-movie" onclick="doEntertainment('movie', 'btn-ent-movie')"><span class="ow-icon">🎬</span><span class="ow-label">看電影</span></button>
-                <button class="ow-btn" id="btn-ent-shopping" onclick="doEntertainment('shopping', 'btn-ent-shopping')"><span class="ow-icon">🛍️</span><span class="ow-label">逛街</span></button>
-                <button class="ow-btn" id="btn-ent-read" onclick="doEntertainment('read', 'btn-ent-read')"><span class="ow-icon">📖</span><span class="ow-label">閱讀</span></button>
-                <button class="ow-btn" id="btn-ent-sport" onclick="doEntertainment('sport', 'btn-ent-sport')"><span class="ow-icon">🏃</span><span class="ow-label">運動</span></button>
-                <button class="ow-btn" onclick="doEntertainment('sleep_early')"><span class="ow-icon">😴</span><span class="ow-label">直接睡覺</span><br><span style="font-size:9px;color:green;">+5 幸福</span></button>
-            </div>
+           <!-- 娛樂按鈕區 -->
+<div class="ow-btn-grid">
+    <button class="ow-btn" id="btn-ent-dinner" onclick="doEntertainment('dinner', 'btn-ent-dinner')">
+        <span class="ow-icon"></span><span class="ow-label">約朋友吃飯</span>
+    </button>
+    <button class="ow-btn" id="btn-ent-movie" onclick="doEntertainment('movie', 'btn-ent-movie')">
+        <span class="ow-icon"></span><span class="ow-label">看電影</span>
+    </button>
+    <button class="ow-btn" id="btn-ent-shopping" onclick="doEntertainment('shopping', 'btn-ent-shopping')">
+        <span class="ow-icon"></span><span class="ow-label">逛街</span>
+    </button>
+    <button class="ow-btn" id="btn-ent-read" onclick="doEntertainment('read', 'btn-ent-read')">
+        <span class="ow-icon"></span><span class="ow-label">閱讀</span>
+    </button>
+    <button class="ow-btn" id="btn-ent-sport" onclick="doEntertainment('sport', 'btn-ent-sport')">
+        <span class="ow-icon"></span><span class="ow-label">運動</span>
+    </button>
+    <!-- 注意這裡加了 id="btn-ent-sleep" -->
+    <button class="ow-btn" id="btn-ent-sleep" onclick="doEntertainment('sleep_early')">
+        <span class="ow-icon"></span><span class="ow-label">直接睡覺</span><br>
+        <span style="font-size:9px;color:green;">+5 幸福</span>
+    </button>
+</div>
             <div class="homework-panel">
                 <div class="ow-section-title" style="margin-top:0; border:none;">
                     批改課業 (-2 幸福/份) <span id="tag-late" class="tag-late">先玩後改：雙倍消耗</span>
@@ -685,6 +768,46 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <script>
+
+
+
+// ==========================================
+// SVG 圖示庫 (完整定義)
+// ==========================================
+const SVGS = {
+    // 教學活動
+    read: `<svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>`,
+    fun: `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`, // 這裡改用驚嘆號/趣味符號，或用糖果
+    fun_alt: `<svg viewBox="0 0 24 24"><path d="M11.7 5.6C9.9 3.5 7 3.3 5.4 5.3c-1.5 1.9-1.2 4.7.7 6.4l2.4 2.1L4 18.3 5.7 20l4.5-4.5 2.4 2.1c1.8 1.6 4.6 1.1 6.1-.8 1.5-2 1.3-4.9-.5-6.9l-6.5-4.3z"/></svg>`, // 糖果
+    plan: `<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`,
+    drill: `<svg viewBox="0 0 24 24"><path d="M19.4 12.6l-7.4-7.4C11.79 4.99 11.53 4.93 11.26 5c-.32-.08-.66-.05-.96.11l-2.67 1.4L4.06 3 3 4.06l3.5 3.5-1.4 2.67c-.16.3-.13.64-.05.96-.07.27-.01.53.2.74l7.4 7.4c.78.78 2.05.78 2.83 0l3.92-3.92c.78-.78.78-2.05 0-2.83zM10.5 13.5l-2-2 4-4 2 2-4 4z"/></svg>`, // 劍/武器
+    hea: `<svg viewBox="0 0 24 24"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>`, // 咖啡
+    
+    // 行政與系統
+    admin: `<svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>`,
+    recover: `<svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>`,
+    grade: `<svg viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>`,
+    offwork: `<svg viewBox="0 0 24 24"><path d="M9 2c-1.05 0-2.05.16-3 .46 4.06 1.27 7 5.06 7 9.54 0 4.48-2.94 8.27-7 9.54.95.3 1.95.46 3 .46 5.52 0 10-4.48 10-10S14.52 2 9 2z"/></svg>`,
+    nextYear: `<svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>`,
+    dse: `<svg viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg>`,
+
+    // 娛樂與生活
+    food: `<svg viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>`,
+    movie: `<svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`,
+    shop: `<svg viewBox="0 0 24 24"><path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-1.99.9-1.99 2L3 20c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm0 14c-2.76 0-5-2.24-5-5h2c0 1.66 1.34 3 3 3s3-1.34 3-3h2c0 2.76-2.24 5-5 5z"/></svg>`,
+    read_ent: `<svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm-9 3c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm9-7c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm11 6c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>`, // 用書本或眼睛
+    sport: `<svg viewBox="0 0 24 24"><path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.44L5.48 10h5l1.5-4.5h6.01v2h-4.01l-1 3 3 1.5V20h-2v-5l-2.5-1.5-1.5 6.48h-2.49z"/></svg>`,
+    bed: `<svg viewBox="0 0 24 24"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>`,
+    holiday: `<svg viewBox="0 0 24 24"><path d="M13 9h-2L6.6 20.6l1.8.8L11 15h2l2.6 6.4 1.8-.8L13 9zm-2 4l1.2-3.2 1.2 3.2h-2.4zM20.5 4c-2.61.7-5.67 1-8.5 1S6.11 4.7 3.5 4L3 6c1.86.5 4 .83 6 1v13h2V7c2-.17 4.14-.5 6-1l-.5-2z"/></svg>`, // 遮陽傘/帳篷
+    
+    // 其他
+    door: `<svg viewBox="0 0 24 24"><path d="M19 19V5c0-1.1-.9-2-2-2H7c-1.1 0-2 .9-2 2v14H3v2h18v-2h-2zm-2 0H7V5h10v14zm-4-8h2v2h-2z"/></svg>`,
+    tea: `<svg viewBox="0 0 24 24"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>`,
+    old: `<svg viewBox="0 0 24 24"><path d="M15 4c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2zM6 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM12 8c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2zm0 6c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2z"/></svg>`, // 抽象人群
+    grad: `<svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>`
+};
+
+
         // ==========================================
         // 1. 設定與常量
         // ==========================================
@@ -1053,6 +1176,64 @@
             dispose() { if (this.labelEl) this.labelEl.remove(); if (this.bubbleEl) this.bubbleEl.remove(); }
         }
 
+
+
+
+// === 初始化圖示 (將 SVG 填入 HTML) ===
+function initIcons() {
+    // 1. 教學按鈕
+    document.querySelector('#btn-read .btn-icon').innerHTML = SVGS.read;
+    document.querySelector('#btn-fun .btn-icon').innerHTML = SVGS.fun_alt;
+    document.querySelector('#btn-plan .btn-icon').innerHTML = SVGS.plan;
+    document.querySelector('#btn-drill .btn-icon').innerHTML = SVGS.drill;
+    document.querySelector('#btn-hea .btn-icon').innerHTML = SVGS.hea;
+    
+    // 2. 行政按鈕
+    document.querySelector('#btn-admin .btn-icon').innerHTML = SVGS.admin;
+    document.querySelector('#btn-recover .btn-icon').innerHTML = SVGS.recover;
+    document.querySelector('#btn-grade-work .btn-icon').innerHTML = SVGS.grade;
+    document.querySelector('#btn-offwork .btn-icon').innerHTML = SVGS.offwork;
+    document.querySelector('#btn-next-partial .btn-icon').innerHTML = SVGS.nextYear;
+    
+    // 3. DSE 火焰
+    const dseFires = document.querySelectorAll('.dse-fire');
+    dseFires.forEach(el => el.innerHTML = SVGS.dse);
+    
+    // 4. 下班娛樂按鈕
+    const setIcon = (id, svg) => {
+        const el = document.querySelector(`#${id} .ow-icon`);
+        if(el) el.innerHTML = svg;
+    };
+    setIcon('btn-ent-dinner', SVGS.food);
+    setIcon('btn-ent-movie', SVGS.movie);
+    setIcon('btn-ent-shopping', SVGS.shop);
+    setIcon('btn-ent-read', SVGS.read); // 娛樂閱讀
+    setIcon('btn-ent-sport', SVGS.sport);
+    setIcon('btn-ent-sleep', SVGS.bed);
+    
+    // 5. 批改與休息
+    setIcon('btn-do-grade', SVGS.grade);
+    // 假期休息按鈕在 HTML 中可能沒有 id，我們假設結構是固定的，或你可以給該按鈕加 id
+    const holidayRestBtn = document.getElementById('btn-holiday-rest');
+    if(holidayRestBtn) holidayRestBtn.querySelector('.ow-icon').innerHTML = SVGS.bed;
+
+    // 6. 模態框預設圖示
+    document.getElementById('modal-icon').innerHTML = SVGS.old;
+    
+    // 7. 感言頭像
+    const sentAvatar = document.querySelector('.sent-avatar');
+    if(sentAvatar) {
+        sentAvatar.innerHTML = SVGS.grad;
+        sentAvatar.style.fill = "#fff";
+        sentAvatar.style.width = "60px";
+        sentAvatar.style.height = "60px";
+    }
+}
+
+// 務必執行初始化
+initIcons();
+
+
         // ==========================================
         // 3. 遊戲邏輯與交互
         // ==========================================
@@ -1275,31 +1456,36 @@
 
 
         
-      function randomizeStudentNeed() {
-            const r = Math.random(); // 生成 0.0 到 1.0 之間的隨機數
-            const dot = document.getElementById('need-dot');
-            const txt = document.getElementById('need-text');
+     function randomizeStudentNeed() {
+    const r = Math.random();
+    const dot = document.getElementById('need-dot');
+    const txt = document.getElementById('need-text');
 
-            // 50% 機率是「增加閱讀量」
-            if (r < 0.5) {
-                currentNeed = 'read'; 
-                txt.innerText = "增加閱讀量"; 
-                txt.style.color = "var(--accent-read)"; 
-                dot.style.background = "var(--accent-read)";
-            } else {
-                // 剩餘 50% 機率均分給其他三個活動 (每個約 16.6%)
-                const choices = [
-                    { id: 'fun', label: '設計趣味教學', color: 'var(--accent-fun)' },
-                    { id: 'plan', label: '認真備課', color: 'var(--accent-plan)' },
-                    { id: 'drill', label: '試題操練', color: 'var(--accent-drill)' }
-                ];
-                const choice = choices[Math.floor(Math.random() * choices.length)];
-                currentNeed = choice.id; 
-                txt.innerText = choice.label; 
-                txt.style.color = choice.color; 
-                dot.style.background = choice.color;
-            }
-        }
+    if (r < 0.5) {
+        currentNeed = 'read'; 
+        // 插入 SVG 與文字
+        txt.innerHTML = `<span style="display:inline-block; width:16px; height:16px; margin-right:5px; vertical-align:middle;">${SVGS.read}</span> 增加閱讀量`;
+        // 設定顏色
+        txt.style.color = "var(--accent-read)"; 
+        dot.style.background = "var(--accent-read)";
+        // 強制 SVG 顏色
+        txt.querySelector('svg').style.fill = "var(--accent-read)";
+    } else {
+        const choices = [
+            { id: 'fun', label: '設計趣味教學', color: 'var(--accent-fun)', svg: SVGS.fun_alt },
+            { id: 'plan', label: '認真備課', color: 'var(--accent-plan)', svg: SVGS.plan },
+            { id: 'drill', label: '試題操練', color: 'var(--accent-drill)', svg: SVGS.drill }
+        ];
+        const choice = choices[Math.floor(Math.random() * choices.length)];
+        currentNeed = choice.id; 
+        
+        txt.innerHTML = `<span style="display:inline-block; width:16px; height:16px; margin-right:5px; vertical-align:middle;">${choice.svg}</span> ${choice.label}`;
+        txt.style.color = choice.color; 
+        dot.style.background = choice.color;
+        // 強制 SVG 顏色
+        txt.querySelector('svg').style.fill = choice.color;
+    }
+}
 
         // 綁定按鈕
         document.getElementById('btn-read').addEventListener('click', () => handleAction('read', 1.0, 1, 14, "增加閱讀量：提升維度！", true));
@@ -1309,25 +1495,28 @@
         document.getElementById('btn-hea').addEventListener('click', () => handleAction('hea', 0.5, -1, 2, "摸魚教學：得過且過。", false));
         
         // DSE 成績表與感言邏輯 (Constraint 5)
-        document.getElementById('btn-dse').addEventListener('click', () => {
+       document.getElementById('btn-dse').addEventListener('click', () => {
     isDseMode = true;
-    document.getElementById('modal-icon').innerText = "👴";
+    
+    // 設定 SVG (老人/校長)
+    const iconEl = document.getElementById('modal-icon');
+    iconEl.innerHTML = SVGS.old;
+    iconEl.querySelector('svg').style.fill = "#333";
+
     document.getElementById('modal-title').innerText = "教職員會議";
     
     // 計算成績 (已修正 getTotalHeight 錯誤)
     let studentsData = students.map(s => {
-        const h = s.getContainerHeight(); // 修正為正確的函數名稱
+        const h = s.getContainerHeight(); 
         const score = getDSEScore(h);
         return { student: s, h: h, score: score, knowledge: s.landedParticles.length };
     });
     
-    // 排序 (分數高 -> 低, 知識多 -> 少)
     studentsData.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         return b.knowledge - a.knowledge;
     });
 
-    // 生成表格
     const dseContainer = document.getElementById('dse-results');
     dseContainer.innerHTML = '';
     const table = document.createElement('table');
@@ -1368,14 +1557,12 @@
     
     document.getElementById('principal-msg').innerHTML = msg;
     
-    // ▼▼▼ 修改重點：設定按鈕為「下一屆」模式 ▼▼▼
     const restartBtn = document.getElementById('btn-restart');
     restartBtn.innerText = "送別畢業生 (迎接下一屆)";
-    restartBtn.onclick = startNextBatch; // 綁定剛剛新增的函數
-    restartBtn.style.background = "var(--accent-plan)"; // 改成藍色系，代表繼續
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    restartBtn.onclick = startNextBatch; 
+    restartBtn.style.background = "var(--accent-plan)"; 
 
-    document.getElementById('btn-close-modal').style.display = 'block'; // 允許關閉看感言
+    document.getElementById('btn-close-modal').style.display = 'block'; 
     document.getElementById('modal-overlay').style.display = 'flex';
 });
 
@@ -1688,26 +1875,39 @@
         // 下班相關 (OffWork)
         document.getElementById('btn-offwork').addEventListener('click', startOffWork);
         function startOffWork() {
-            TEACHER.offWorkEnergy = 1; TEACHER.hasEntertainedTonight = false; TEACHER.bonusEnergyNextDay = 0;
-            TEACHER.dailyStats.entertained = false; TEACHER.dailyStats.adminCount = hasDoneAdmin ? 1 : 0;
-            document.getElementById('offwork-overlay').style.display = 'flex';
-            document.getElementById('ow-title').innerText = `下班時間 (Day ${TEACHER.daysInYear}/3)`;
-            document.getElementById('ow-icon').innerText = "🌙";
-            document.getElementById('offwork-box').style.borderColor = "var(--accent-night)";
-            document.getElementById('holiday-options').style.display = 'none'; 
-            const endBtn = document.getElementById('btn-end-day'); endBtn.disabled = false; endBtn.innerText = "💤 直接睡覺 (明日 +5 幸福)";
-            updateOffWorkUI();
-        }
+    TEACHER.offWorkEnergy = 1; TEACHER.hasEntertainedTonight = false; TEACHER.bonusEnergyNextDay = 0;
+    TEACHER.dailyStats.entertained = false; TEACHER.dailyStats.adminCount = hasDoneAdmin ? 1 : 0;
+    
+    document.getElementById('offwork-overlay').style.display = 'flex';
+    document.getElementById('ow-title').innerText = `下班時間 (Day ${TEACHER.daysInYear}/3)`;
+    
+    // 設定 SVG
+    const iconEl = document.getElementById('ow-icon');
+    iconEl.innerHTML = SVGS.offwork;
+    iconEl.querySelector('svg').style.fill = "var(--accent-night)";
+    
+    document.getElementById('offwork-box').style.borderColor = "var(--accent-night)";
+    document.getElementById('holiday-options').style.display = 'none'; 
+    const endBtn = document.getElementById('btn-end-day'); endBtn.disabled = false; endBtn.innerText = "💤 直接睡覺 (明日 +5 幸福)";
+    updateOffWorkUI();
+}
         function startHoliday() {
-            TEACHER.isHoliday = true; TEACHER.offWorkEnergy = 0; TEACHER.hasEntertainedTonight = false; TEACHER.bonusEnergyNextDay = 0;
-            document.getElementById('offwork-overlay').style.display = 'flex';
-            document.getElementById('ow-title').innerText = "暑假長假"; document.getElementById('ow-icon').innerText = "🏖️";
-            document.getElementById('ow-title').className = "offwork-header holiday-header";
-            document.getElementById('offwork-box').style.borderColor = "var(--accent-holiday)";
-            document.getElementById('holiday-options').style.display = 'block'; 
-            const endBtn = document.getElementById('btn-end-day'); endBtn.disabled = false; endBtn.innerText = "💤 結束假期 (前往新學年)";
-            updateOffWorkUI();
-        }
+    TEACHER.isHoliday = true; TEACHER.offWorkEnergy = 0; TEACHER.hasEntertainedTonight = false; TEACHER.bonusEnergyNextDay = 0;
+    
+    document.getElementById('offwork-overlay').style.display = 'flex';
+    document.getElementById('ow-title').innerText = "暑假長假"; 
+    
+    // 設定 SVG
+    const iconEl = document.getElementById('ow-icon');
+    iconEl.innerHTML = SVGS.holiday;
+    iconEl.querySelector('svg').style.fill = "var(--accent-holiday)";
+
+    document.getElementById('ow-title').className = "offwork-header holiday-header";
+    document.getElementById('offwork-box').style.borderColor = "var(--accent-holiday)";
+    document.getElementById('holiday-options').style.display = 'block'; 
+    const endBtn = document.getElementById('btn-end-day'); endBtn.disabled = false; endBtn.innerText = "💤 結束假期 (前往新學年)";
+    updateOffWorkUI();
+}
         function updateOffWorkUI() {
             document.getElementById('ow-energy').innerText = TEACHER.offWorkEnergy;
             document.getElementById('tag-late').style.display = TEACHER.hasEntertainedTonight ? 'inline-block' : 'none';
@@ -1759,17 +1959,20 @@
         });
        function showGameOver(reason) {
     document.getElementById('offwork-overlay').style.display = 'none';
-    document.getElementById('modal-icon').innerText = "🚪";
+    
+    // 設定 SVG (門)
+    const iconEl = document.getElementById('modal-icon');
+    iconEl.innerHTML = SVGS.door;
+    iconEl.querySelector('svg').style.fill = "#c0392b";
+    
     document.getElementById('modal-title').innerText = "遊戲結束";
     
     document.getElementById('dse-results').innerHTML = `<div style="color:#c0392b; font-weight:bold; font-size:16px;">GAME OVER</div><div style="margin-top:10px;">${reason}</div>`;
     
-    // ▼▼▼ 修改重點：設定按鈕為「重新開始」模式 (重整網頁) ▼▼▼
     const restartBtn = document.getElementById('btn-restart');
     restartBtn.innerText = "重新開始";
-    restartBtn.style.background = "#333"; // 黑色
-    restartBtn.onclick = function() { location.reload(); };
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    restartBtn.style.background = "#333"; 
+    restartBtn.onclick = function() { location.reload(); }; 
 
     document.getElementById('principal-msg').innerText = "你的教書生涯到此結束。";
     document.getElementById('modal-overlay').style.display = 'flex';
@@ -1841,10 +2044,15 @@
             });
             updateUI();
         }
-       function showRetirement() {
+      function showRetirement() {
     document.getElementById('offwork-overlay').style.display = 'none'; 
     document.getElementById('summary-overlay').style.display = 'none';
-    document.getElementById('modal-icon').innerText = "🍵"; 
+    
+    // 設定 SVG (茶)
+    const iconEl = document.getElementById('modal-icon');
+    iconEl.innerHTML = SVGS.tea;
+    iconEl.querySelector('svg').style.fill = "var(--color-high)";
+
     document.getElementById('modal-title').innerText = "光榮退休";
     document.getElementById('modal-title').style.color = "var(--color-high)";
     
@@ -1858,12 +2066,10 @@
     document.getElementById('principal-msg').innerText = "";
     document.getElementById('btn-close-modal').style.display = 'none';
     
-    // ▼▼▼ 修改重點：退休也是遊戲結束，按鈕設為重整 ▼▼▼
     const restartBtn = document.getElementById('btn-restart');
     restartBtn.innerText = "重新開始";
     restartBtn.style.background = "#333";
     restartBtn.onclick = function() { location.reload(); };
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
     document.getElementById('modal-overlay').style.display = 'flex';
 }
