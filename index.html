@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
@@ -1239,6 +1240,7 @@ function playLandSound() {
        class Student {
             constructor(id, xPos, typeOverride = null) {
                 this.id = id; this.xPos = xPos;
+                this.isSelected = true; // --- 新增：預設為受眾 ---
                 this.name = STUDENT_NAMES[Math.floor(Math.random() * STUDENT_NAMES.length)];
                 
                 if (typeOverride) this.type = typeOverride;
@@ -1768,7 +1770,16 @@ function triggerButtonShake(btnId) {
         let currentClickMaxDelay = 0;
         const physicsFallTime = 2500; // 物理掉落緩衝時間
 
+        // --- 新增：計算受眾與倍率邏輯 ---
+        const selectedCount = students.filter(st => st.isSelected !== false).length;
+        const multiplier = (selectedCount > 0 && selectedCount < students.length / 2) ? 2 : 1;
+        // -----------------------------
+
         students.forEach((s, idx) => {
+            // --- 新增：跳過非受眾 ---
+            if (s.isSelected === false) return;
+            // ----------------------
+
             let particlesToSpawn = 0;
             
             if (isBored) {
@@ -1777,17 +1788,27 @@ function triggerButtonShake(btnId) {
                 particlesToSpawn = isNeed ? Math.ceil(effectiveBase * 1.2) : effectiveBase;
             }
 
+            // --- 新增：套用倍率 ---
+            particlesToSpawn *= multiplier;
+            // --------------------
+
             // 閱讀量 70% 上限檢查
             if (actionId === 'read') {
-                const grew = s.tryGrowReading();
-                if (grew) {
-                    spawnDirectLandedParticle(s); 
-                } else {
+                // --- 修改：根據倍率多次執行 ---
+                let grew = false;
+                for(let m=0; m<multiplier; m++) {
+                    if (s.tryGrowReading()) {
+                        grew = true;
+                        spawnDirectLandedParticle(s); 
+                    }
+                }
+                if (!grew) {
                     const currentCap = s.getCurrentCapacity();
                     if (s.landedParticles.length >= currentCap * 0.7) {
                         particlesToSpawn = 0; 
                     }
                 }
+                // ---------------------------
             }
 
             // 生成粒子
@@ -2682,7 +2703,7 @@ function startNextBatch() {
         
         if (Math.abs(pos.z) > 1 || Math.abs(pos.x) > 1.1) { 
             s.labelEl.style.opacity = 0; s.bubbleEl.style.opacity = 0; 
-        } else { s.labelEl.style.opacity = 0.9; }
+        } else { s.labelEl.style.opacity = (s.isSelected === false) ? 0.3 : 0.9; }
     });
 
     // 粒子物理與碰撞邏輯
@@ -2779,6 +2800,74 @@ function startNextBatch() {
     }
     renderer.render(scene, camera);
 }
+
+// === 新增：點擊選擇受眾邏輯 ===
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('click', (event) => {
+    // 防止點擊 UI 時觸發
+    const target = event.target;
+    if (target.closest('#top-dashboard') || 
+        target.closest('#start-screen') || 
+        target.closest('#modal-overlay') || 
+        target.closest('#summary-overlay') || 
+        target.closest('#offwork-overlay') || 
+        target.closest('#report-overlay') || 
+        target.closest('#sentiment-overlay') ||
+        target.closest('.copyright-footer') ||
+        target.tagName.toLowerCase() === 'button' ||
+        target.tagName.toLowerCase() === 'input' ||
+        target.tagName.toLowerCase() === 'select') {
+        return;
+    }
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    const groups = students.map(s => s.group);
+    const intersects = raycaster.intersectObjects(groups, true);
+
+    if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+        
+        const student = students.find(s => {
+            let found = false;
+            s.group.traverse(child => {
+                if (child === clickedObject) found = true;
+            });
+            return found;
+        });
+
+        if (student) {
+            if (student.isSelected === undefined) student.isSelected = true;
+            student.isSelected = !student.isSelected;
+            
+            student.group.traverse(child => {
+                if (child.isMesh && child.material) {
+                    if (!child.userData.hasClonedMaterial) {
+                        child.material = child.material.clone();
+                        child.userData.hasClonedMaterial = true;
+                        child.userData.origColor = child.material.color.getHex();
+                    }
+                    
+                    if (student.isSelected) {
+                        child.material.color.setHex(child.userData.origColor);
+                    } else {
+                        const c = new THREE.Color(child.userData.origColor);
+                        c.multiplyScalar(0.3);
+                        child.material.color.setHex(c.getHex());
+                    }
+                }
+            });
+            
+            student.labelEl.style.opacity = student.isSelected ? "0.9" : "0.3";
+        }
+    }
+});
+// ============================
     </script>
 
         <footer class="copyright-footer">
