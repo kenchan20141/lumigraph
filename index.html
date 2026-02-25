@@ -1249,22 +1249,28 @@ const SVGS = {
 
 // 1. 預先建立基礎音效物件
 // 請確保 '掉落.mp3' 檔案位於與 HTML 相同的資料夾中
+// ==========================================
+// 音效系統 (MP3 版本)
+// ==========================================
 const dropSoundBase = new Audio('掉落.mp3');
-
-// 2. 設定基礎音量 (0.0 到 1.0，建議不要設太高以免多重播放時爆音)
 dropSoundBase.volume = 0.3; 
 
 function playLandSound() {
-    // 為了讓多個粒子同時落地時聲音可以重疊 (而不是切斷上一個聲音)，
-    // 我們每次播放時都複製一個新的音效節點 (cloneNode)
     const sound = dropSoundBase.cloneNode();
-    sound.volume = 0.3; // 確保複製出來的也有音量設定
-    
-    // 播放音效
-    // 注意：瀏覽器政策規定，必須要在使用者與頁面互動(點擊)後才能播放聲音
+    sound.volume = 0.3;
+    sound.play().catch(e => {});
+}
+
+// === 新增：鍵盤敲擊音效 ===
+const keyboardSoundBase = new Audio('鍵盤.mp3');
+keyboardSoundBase.volume = 0.6; // 根據你的音效檔自行調整音量 (0.0 ~ 1.0)
+
+function playKeyboardSound() {
+    // 使用 cloneNode 確保連續快速點擊時，聲音可以重疊而不會被切斷
+    const sound = keyboardSoundBase.cloneNode();
+    sound.volume = 0.6;
     sound.play().catch(e => {
-        // 忽略自動播放限制的錯誤 (通常發生在剛載入未點擊時)
-        // console.log("等待使用者互動以播放音效..."); 
+        // 忽略自動播放限制的錯誤
     });
 }
 
@@ -3495,7 +3501,7 @@ function setupGradingInteraction(group, onDone, count = 1) {
     };
 }
 
-// === 優化版：行政互動 (移除生硬的字體代碼，套用毛玻璃) ===
+// === 優化版：行政互動 (逼真的紙疊、飛紙動畫與鍵盤音效) ===
 function setupAdminInteraction(group, onDone) {
     const table = new THREE.Mesh(new THREE.BoxGeometry(14, 0.5, 9), new THREE.MeshStandardMaterial({color: 0x8F9E8B}));
     table.position.y = -0.5;
@@ -3529,12 +3535,40 @@ function setupAdminInteraction(group, onDone) {
     
     group.add(keyboard);
 
-    const paperStack = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 2.5), new THREE.MeshStandardMaterial({color: 0xFFFFFF}));
-    paperStack.position.set(-5, 0.75, 0);
+    // ========== 逼真的文件紙疊 ==========
+    const paperStack = new THREE.Group();
+    const sheetGeo = new THREE.BoxGeometry(2, 0.02, 2.8); // 極薄的紙張幾何
+    const sheetMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.9 });
+    
+    const numSheets = 25; // 總共疊 25 張紙
+    for(let i = 0; i < numSheets; i++) {
+        const sheet = new THREE.Mesh(sheetGeo, sheetMat);
+        sheet.position.y = i * 0.04; // 逐層往上疊
+        
+        // 加上隨機偏移與旋轉，製造凌亂感
+        sheet.position.x = (Math.random() - 0.5) * 0.15; 
+        sheet.position.z = (Math.random() - 0.5) * 0.15; 
+        sheet.rotation.y = (Math.random() - 0.5) * 0.15; 
+        
+        // 在最上面幾張紙加上代表「文字/表格」的深灰色小方塊
+        if(i > numSheets - 6) {
+            const lineMat = new THREE.MeshBasicMaterial({color: 0xcccccc});
+            for(let l = 0; l < 4; l++) {
+                const line = new THREE.Mesh(new THREE.PlaneGeometry(1.2 + Math.random() * 0.4, 0.05), lineMat);
+                line.rotation.x = -Math.PI/2;
+                line.position.set(-0.1, 0.011, -0.8 + l * 0.3); // 排列文字行
+                sheet.add(line);
+            }
+        }
+        paperStack.add(sheet);
+    }
+    
+    // 桌子表面高度是 -0.25，讓紙疊完美放在桌上
+    paperStack.position.set(-4.5, -0.25, 0); 
     paperStack.rotation.y = 0.2;
     group.add(paperStack);
+    // ====================================
 
-    // ★ 使用乾淨的呼叫方式，不再傳入強制顏色
     const labelPos = new THREE.Vector3(0, 506, -5); 
     const instruction = create2DLabel("點擊鍵盤處理行政", labelPos);
 
@@ -3553,20 +3587,35 @@ function setupAdminInteraction(group, onDone) {
             isTyping = true;
             clicks++;
 
+            // ★★★ 觸發鍵盤音效 ★★★
+            playKeyboardSound();
+
+            // 鍵盤敲擊動畫
             gsap.to(keyboard.position, {
                 y: -0.2, duration: 0.05, yoyo: true, repeat: 1, 
                 onComplete: () => isTyping = false
             });
 
+            // 螢幕跳出代碼/處理條
             const line = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.15), new THREE.MeshBasicMaterial({color: 0x64ffda}));
             line.position.set(0, 4.2 - (clicks * 0.5), -1.28); 
             group.add(line);
             
-            // 回饋文字改用莫蘭迪灰藍色
-            create2DFeedback("生命誠可貴...", new THREE.Vector3(0, 503, 1.5), "#7B9ACC");
+            create2DFeedback("收手啦...", new THREE.Vector3(0, 503, 1.5), "#7B9ACC");
 
+            // ========== 動態特效：每打字一次，最上方的一張紙就會飛走 ==========
+            if (paperStack.children.length > 0) {
+                const topSheet = paperStack.children[paperStack.children.length - 1];
+                // 往螢幕方向飛起，並在空中縮小消失
+                gsap.to(topSheet.position, { x: -2, y: topSheet.position.y + 1.5, z: -2, duration: 0.4, ease: "power1.out" });
+                gsap.to(topSheet.rotation, { y: Math.random() * 2, x: Math.random() * 1, duration: 0.4 });
+                gsap.to(topSheet.scale, { x: 0, y: 0, z: 0, duration: 0.4, onComplete: () => {
+                    paperStack.remove(topSheet);
+                }});
+            }
+
+            // 處理完成的結算
             if (clicks >= requiredClicks) {
-                // ★ 失敗時套用優雅的 CSS Class，不再使用 inline style
                 instruction.innerText = "徒勞無功，毫無收穫。";
                 instruction.classList.add('label-error'); 
 
