@@ -1320,6 +1320,9 @@ function playLandSound() {
 // ==========================================
 // Student 類別 - 修訂版 (100% 完整輸出)
 // ==========================================
+// ==========================================
+// Student 類別 - 修訂版 (100% 完整輸出)
+// ==========================================
 class Student {
     constructor(id, xPos, typeOverride = null) {
         this.id = id;
@@ -1337,11 +1340,11 @@ class Student {
             else this.type = STUDENT_TYPES.LOW;
         }
  
-        // 2. --- 核心修改：所有資質類型均有 30% 機率成為「動機極低」---
+        // 2. --- 所有資質類型均有 30% 機率成為「動機極低」 ---
         this.isUltraLow = (Math.random() < 0.3);
         this.soloActionCount = 0; // 追蹤被單獨教學的連續次數
  
-        // 3. 物理容量與高度設定 (動機極低的容器高度仍由其資質決定)
+        // 3. 物理容量與高度設定
         if (this.type.id === 'low') {
             this.particleCap = 15;
             this.maxCapLimit = Math.floor(Math.random() * 11) + 25;
@@ -1462,7 +1465,15 @@ class Student {
         return Math.floor(this.getContainerHeight() / 0.006);
     }
     
-    tryGrowReading() {
+    // --- 修改：增加 force 參數，控制動機極低學生的維度增長 ---
+    tryGrowReading(force = false) {
+        // 如果是動機極低學生，且沒有獲得「單獨教導」的強制許可(force)，則無法增長
+        if (this.isUltraLow && !force) {
+            this.shake();
+            return false;
+        }
+ 
+        // 天資差學生的容量/高度限制
         if (this.type.id === 'low') {
             if (this.particleCap < this.maxCapLimit) {
                 this.particleCap++;
@@ -1474,6 +1485,8 @@ class Student {
                 return false;
             }
         }
+        
+        // 普通與天資聰穎學生的增長邏輯
         if (!this.type.canGrow || this.getContainerHeight() >= this.type.maxHeight) {
             this.shake();
             return false;
@@ -1484,6 +1497,7 @@ class Student {
     }
  
     growGrade() {
+        // 學年轉換時的自然成長
         if (this.type.id === 'low') {
             if (this.particleCap < this.maxCapLimit) {
                 this.particleCap++;
@@ -1510,24 +1524,16 @@ class Student {
         const isTarget = (this.isSelected !== false);
         const bonusHtml = (isSmallClass && isTarget) ? '<span class="x2-indicator">x2</span>' : '';
         
-        // --- 核心修改：針對不同資質的「動機極低」學生顯示不同的標籤 ---
         let typeName = this.type.name;
         let typeColor = this.type.color;
         let soloProgressHtml = "";
  
         if (this.isUltraLow) {
-            typeColor = "#666666"; // 統一使用灰色表示無動機狀態
-            
-            // 根據原資質決定特殊顯示名稱
-            if (this.type.id === 'high') {
-                typeName = "資質聰穎（極低動機）";
-            } else if (this.type.id === 'avg') {
-                typeName = "資質平庸（極低動機）";
-            } else {
-                typeName = "資質駑鈍（極低動機）";
-            }
+            typeColor = "#666666";
+            if (this.type.id === 'high') typeName = "天資聰穎(極低動機)";
+            else if (this.type.id === 'avg') typeName = "天資平庸(極低動機)";
+            else typeName = "天資駑鈍(極低動機)";
  
-            // 顯示單獨教學進度
             if (this.soloActionCount > 0) {
                 soloProgressHtml = `<br><span style="color:#e67e22; font-size:10px; font-weight:bold;">關注中: ${this.soloActionCount}/3</span>`;
             }
@@ -1565,7 +1571,6 @@ class Student {
     
     updateVisuals(instant = false) {
         const dur = instant ? 0 : 0.8;
-        
         gsap.to(this.baseMesh.scale, { y: this.baseHeight, duration: dur });
         gsap.to(this.baseMesh.position, { y: this.containerBottom + (this.baseHeight / 2), duration: dur });
         
@@ -1878,25 +1883,33 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
  
         setStatus(name + (isNeed ? " (回應需求！)" : ""));
         
-        // --- 單獨教學機制 ---
         students.forEach(s => {
-            if (selectedCount === 1 && selectedStudents[0] === s) {
-                if (s.isUltraLow) {
-                    s.soloActionCount++;
-                    if (s.soloActionCount >= 3) {
-                        s.soloActionCount = 0;
-                        // 獎勵：傳入 true 允許動機極低學生獲得這 5 點
-                        for(let i=0; i<5; i++) {
-                            setTimeout(() => spawnDirectLandedParticle(s, true), i * 100);
-                        }
-                        s.showBubble("老師竟然特地為我準備...", "bubble-high", 0);
-                        changeHappiness(5);
-                    }
-                }
-            } else {
-                s.soloActionCount = 0;
+    const isSoloTarget = (selectedCount === 1 && selectedStudents[0] === s);
+    
+    if (isSoloTarget) {
+        if (s.isUltraLow) {
+            // --- 核心邏輯：如果單獨受眾是動機極低學生，且目前行動是「閱讀」 ---
+            if (actionId === 'read') {
+                // 強制允許增加高度（1次閱讀 = 1次高度增加）
+                s.tryGrowReading(true);
             }
-        });
+            
+            s.soloActionCount++;
+            
+            if (s.soloActionCount >= 3) {
+                s.soloActionCount = 0;
+                // 3次後的特殊獎勵（5個粒子）
+                for(let i=0; i<5; i++) {
+                    setTimeout(() => spawnDirectLandedParticle(s, true), i * 100);
+                }
+                s.showBubble("老師竟然特地為我準備...", "bubble-high", 0);
+                changeHappiness(5);
+            }
+        }
+    } else {
+        s.soloActionCount = 0; // 若不是唯一受眾，重置計數
+    }
+});
  
         let currentClickMaxDelay = 0;
         const physicsFallTime = 2500;
