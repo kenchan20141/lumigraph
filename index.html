@@ -2793,7 +2793,7 @@ document.getElementById('btn-admin').addEventListener('click', () => {
     TEACHER.dailyStats.entertained = false; TEACHER.dailyStats.adminCount = hasDoneAdmin ? 1 : 0;
     
     document.getElementById('offwork-overlay').style.display = 'flex';
-    document.getElementById('ow-title').innerText = `下班時間 (Day ${TEACHER.daysInYear}/3)`;
+    document.getElementById('ow-title').innerText = `下班時間 (Day ${TEACHER.daysInYear})`;
     
     const iconEl = document.getElementById('ow-icon');
     iconEl.innerHTML = SVGS.offwork;
