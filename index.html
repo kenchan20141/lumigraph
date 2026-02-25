@@ -1317,7 +1317,7 @@ function playLandSound() {
             transmission: 0.5, transparent: true, opacity: 0.8, side: THREE.DoubleSide 
         });
 
-      // ==========================================
+// ==========================================
 // Student 類別 - 修訂版 (100% 完整輸出)
 // ==========================================
 class Student {
@@ -1327,7 +1327,7 @@ class Student {
         this.isSelected = true; // 預設為受眾
         this.name = STUDENT_NAMES[Math.floor(Math.random() * STUDENT_NAMES.length)];
         
-        // 確定學生資質類型
+        // 1. 確定學生資質類型
         if (typeOverride) {
             this.type = typeOverride;
         } else {
@@ -1337,14 +1337,13 @@ class Student {
             else this.type = STUDENT_TYPES.LOW;
         }
  
-        // --- 新增：動機極低學生判定 (天資差的學生中有 30% 機率) ---
-        this.isUltraLow = (this.type.id === 'low' && Math.random() < 0.3);
-        this.soloActionCount = 0; // 追蹤被「單獨教學」的次數
+        // 2. --- 核心修改：所有資質類型均有 30% 機率成為「動機極低」---
+        this.isUltraLow = (Math.random() < 0.3);
+        this.soloActionCount = 0; // 追蹤被單獨教學的連續次數
  
-        // 物理容量與高度設定
+        // 3. 物理容量與高度設定 (動機極低的容器高度仍由其資質決定)
         if (this.type.id === 'low') {
             this.particleCap = 15;
-            // 設定隨機上限：25 至 35 之間
             this.maxCapLimit = Math.floor(Math.random() * 11) + 25;
         } else {
             this.particleCap = 999;
@@ -1356,11 +1355,11 @@ class Student {
         this.landedParticles = [];
         this.bubbleOffsetY = (id % 2 === 0) ? 6.5 : 5.0;
  
-        // 視覺參數：容器抬高
+        // 視覺偏移設定
         this.containerOffset = 1.5;
         this.containerBottom = this.containerOffset - 0.5;
  
-        // 建立 DOM 元素 (標籤與對話框)
+        // 建立 DOM 元素
         this.labelEl = document.createElement('div');
         this.labelEl.className = 'student-label';
         document.getElementById('labels-container').appendChild(this.labelEl);
@@ -1374,11 +1373,11 @@ class Student {
         this.group.position.set(xPos, 0, 0);
         scene.add(this.group);
         
-        // 1. 學生形象 (Avatar)
+        // 建立 3D 形象
         this.avatar = this.createAvatar();
         this.group.add(this.avatar);
  
-        // 2. 玻璃容器材質 (若動機極低，顏色會稍深以示區別，或維持原色但透過標籤區分)
+        // 建立容器材質
         const typeColor = new THREE.Color(this.type.color);
         this.glassMaterial = new THREE.MeshPhysicalMaterial({
             color: typeColor,
@@ -1390,17 +1389,16 @@ class Student {
             side: THREE.DoubleSide
         });
  
-        // 3. 容器本體
+        // 容器模型
         this.baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), this.glassMaterial);
         this.group.add(this.baseMesh);
  
-        // 4. 容器底蓋
         const bottomCap = new THREE.Mesh(new THREE.CircleGeometry(2, 64), this.glassMaterial);
         bottomCap.rotation.x = -Math.PI/2;
         bottomCap.position.y = this.containerBottom;
         this.group.add(bottomCap);
  
-        // 5. 閱讀增長環
+        // 閱讀維度模型
         this.readGroup = new THREE.Group();
         this.group.add(this.readGroup);
  
@@ -1419,21 +1417,21 @@ class Student {
         const avatarGroup = new THREE.Group();
         avatarGroup.position.y = -2.5;
  
-        // 身體 (上衣) - 使用學生類型的顏色
+        // 身體 (上衣顏色由資質決定)
         const bodyGeo = new THREE.CylinderGeometry(0.5, 0.7, 1.4, 16);
         const bodyMat = new THREE.MeshStandardMaterial({ color: this.type.color });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 0.7;
         avatarGroup.add(body);
  
-        // 褲子 (深灰色)
+        // 褲子
         const legGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.8, 16);
         const legMat = new THREE.MeshStandardMaterial({ color: 0x34495e });
         const legs = new THREE.Mesh(legGeo, legMat);
         legs.position.y = 0.2;
         avatarGroup.add(legs);
  
-        // 領帶 (白色)
+        // 領帶
         const tieGeo = new THREE.BoxGeometry(0.3, 0.6, 0.1);
         const tieMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
         const tie = new THREE.Mesh(tieGeo, tieMat);
@@ -1465,7 +1463,6 @@ class Student {
     }
     
     tryGrowReading() {
-        // 如果是 LOW 類型 (包含 UltraLow)
         if (this.type.id === 'low') {
             if (this.particleCap < this.maxCapLimit) {
                 this.particleCap++;
@@ -1477,7 +1474,6 @@ class Student {
                 return false;
             }
         }
-        // 其他正常類型
         if (!this.type.canGrow || this.getContainerHeight() >= this.type.maxHeight) {
             this.shake();
             return false;
@@ -1509,23 +1505,29 @@ class Student {
     }
     
     updateLabelText() {
-        // 計算當前受眾人數
         const selectedCount = students.filter(st => st.isSelected !== false).length;
         const isSmallClass = (selectedCount > 0 && selectedCount <= students.length / 2);
         const isTarget = (this.isSelected !== false);
-        
-        // 判定加成顯示
         const bonusHtml = (isSmallClass && isTarget) ? '<span class="x2-indicator">x2</span>' : '';
         
-        // --- 核心邏輯：動機極低學生標籤化 ---
+        // --- 核心修改：針對不同資質的「動機極低」學生顯示不同的標籤 ---
         let typeName = this.type.name;
         let typeColor = this.type.color;
         let soloProgressHtml = "";
  
         if (this.isUltraLow) {
-            typeName = "動機極低";
-            typeColor = "#666666"; // 使用深灰色表示無動機
-            // 如果正在被單獨關注，顯示進度
+            typeColor = "#666666"; // 統一使用灰色表示無動機狀態
+            
+            // 根據原資質決定特殊顯示名稱
+            if (this.type.id === 'high') {
+                typeName = "資質聰穎（極低動機）";
+            } else if (this.type.id === 'avg') {
+                typeName = "資質平庸（極低動機）";
+            } else {
+                typeName = "資質駑鈍（極低動機）";
+            }
+ 
+            // 顯示單獨教學進度
             if (this.soloActionCount > 0) {
                 soloProgressHtml = `<br><span style="color:#e67e22; font-size:10px; font-weight:bold;">關注中: ${this.soloActionCount}/3</span>`;
             }
@@ -1564,12 +1566,10 @@ class Student {
     updateVisuals(instant = false) {
         const dur = instant ? 0 : 0.8;
         
-        // BaseMesh 縮放與位置
         gsap.to(this.baseMesh.scale, { y: this.baseHeight, duration: dur });
         gsap.to(this.baseMesh.position, { y: this.containerBottom + (this.baseHeight / 2), duration: dur });
         
         const readH = Math.max(0.01, this.readingHeight);
-        // 閱讀環與閱讀管
         gsap.to(this.readGroup.position, { y: this.containerBottom + this.baseHeight, duration: dur });
         gsap.to(this.readMesh.scale, { y: readH, duration: dur });
         gsap.to(this.readMesh.position, { y: readH / 2, duration: dur });
@@ -1850,14 +1850,18 @@ let batchStartHappy = 0;
 // === 修改後的 handleAction ===
 function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
     triggerButtonShake('btn-' + actionId);
+ 
     if (actionId === lastActionType) { consecutiveActionCount++; }
     else { lastActionType = actionId; consecutiveActionCount = 1; }
+ 
     const isNeed = (actionId === currentNeed);
     let isBored = (consecutiveActionCount >= 4 && !isNeed);
     let effectiveBase = isNeed ? 14 : baseParticles;
+ 
     const selectedStudents = students.filter(st => st.isSelected !== false);
     const selectedCount = selectedStudents.length;
     const currentMultiplier = (selectedCount > 0 && selectedCount <= students.length / 2) ? 2 : 1;
+ 
     if (spendEnergy(cost) > 0) {
         if (batchSnapshot === null) {
             batchSnapshot = students.map(s => s.landedParticles.length);
@@ -1871,41 +1875,48 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
             if (happyCost > 0) { changeHappiness(-happyCost); }
             else if (happyCost < 0) { changeHappiness(Math.abs(happyCost)); }
         }
+ 
         setStatus(name + (isNeed ? " (回應需求！)" : ""));
         
-        // --- 新增：單獨教學機制邏輯 ---
+        // --- 單獨教學機制 ---
         students.forEach(s => {
-            // 如果受眾不是「只有他一個人」，重置計數器
             if (selectedCount === 1 && selectedStudents[0] === s) {
                 if (s.isUltraLow) {
                     s.soloActionCount++;
                     if (s.soloActionCount >= 3) {
-                        s.soloActionCount = 0; // 觸發後重置
-                        // 獎勵：直接給予 5 點元素 (不被排斥)
+                        s.soloActionCount = 0;
+                        // 獎勵：傳入 true 允許動機極低學生獲得這 5 點
                         for(let i=0; i<5; i++) {
-                            setTimeout(() => spawnDirectLandedParticle(s), i * 100);
+                            setTimeout(() => spawnDirectLandedParticle(s, true), i * 100);
                         }
                         s.showBubble("老師竟然特地為我準備...", "bubble-high", 0);
-                        changeHappiness(5); // 老師感到欣慰
+                        changeHappiness(5);
                     }
                 }
             } else {
-                s.soloActionCount = 0; // 只要不是唯一受眾，次數歸零
+                s.soloActionCount = 0;
             }
         });
  
         let currentClickMaxDelay = 0;
         const physicsFallTime = 2500;
+ 
         students.forEach((s, idx) => {
             if (s.isSelected === false) return;
+ 
             let particlesToSpawn = isBored ? 1 : (isNeed ? Math.ceil(effectiveBase * 1.2) : effectiveBase);
             particlesToSpawn *= currentMultiplier;
+ 
+            // --- 修正閱讀邏輯：動機極低學生不增加元素 ---
             if (actionId === 'read') {
                 for(let m=0; m < currentMultiplier; m++) {
-                    s.tryGrowReading();
-                    spawnDirectLandedParticle(s);
+                    s.tryGrowReading(); 
+                    if (!s.isUltraLow) {
+                        spawnDirectLandedParticle(s);
+                    }
                 }
             }
+ 
             if (particlesToSpawn > 0) {
                 const interval = growReading ? 30 : 0;
                 const spawnDuration = (particlesToSpawn - 1) * interval;
@@ -1918,7 +1929,9 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
             }
             triggerStudentDialogue(s, actionId, idx);
         });
+ 
         if (actionId !== 'hea') randomizeStudentNeed();
+ 
         batchTimer = setTimeout(() => {
             const studentChanges = students.map((s, index) => ({
                 student: s,
@@ -1930,6 +1943,7 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
         }, currentClickMaxDelay);
     }
 }
+ 
 
         
      function randomizeStudentNeed() {
@@ -2144,28 +2158,35 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
     scene.add(p); particles.push(p);
 }
 
-       function spawnDirectLandedParticle(student) {
-            const rimY = student.getRimY();
-            
-            if (student.type.id === 'low' && student.landedParticles.length >= student.particleCap) return;
-            
-            // 檢查是否已滿 (相對於容器底部)
-            const currentFillHeight = student.containerBottom + (student.landedParticles.length * 0.006);
-            if (currentFillHeight > rimY) return;
-            
-            const colors = [CONFIG.colors.pPlan, CONFIG.colors.pDrill, CONFIG.colors.pFun];
-            const p = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), new THREE.MeshStandardMaterial({ color: colors[Math.floor(Math.random() * colors.length)] }));
-            
-            const r = Math.random() * 1.5, theta = Math.random() * Math.PI * 2;
-            
-            // 修正落點：基於容器底部 (containerBottom) 向上堆疊
-            const landY = student.containerBottom + (student.landedParticles.length * 0.006) + Math.random() * 0.5;
-            
-            p.position.set(student.xPos + r * Math.cos(theta), landY, r * Math.sin(theta));
-            p.userData = { student: student, state: 'landed' };
-            scene.add(p); particles.push(p); student.landedParticles.push(p); student.updateLabelText();
-        }
-
+     function spawnDirectLandedParticle(student, isSpecialReward = false) {
+    const rimY = student.getRimY();
+    
+    // 只有特殊獎勵 (關注 3 次或老師恢復心力) 才能突破動機極低學生的防線
+    if (student.isUltraLow && !isSpecialReward) return;
+    
+    // LOW 類型的容量限制
+    if (student.type.id === 'low' && student.landedParticles.length >= student.particleCap) return;
+    
+    const currentFillHeight = student.containerBottom + (student.landedParticles.length * 0.006);
+    if (currentFillHeight > rimY) return;
+    
+    const colors = [CONFIG.colors.pPlan, CONFIG.colors.pDrill, CONFIG.colors.pFun];
+    const p = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, 0.22, 0.22),
+        new THREE.MeshStandardMaterial({ color: colors[Math.floor(Math.random() * colors.length)] })
+    );
+    
+    const r = Math.random() * 1.5, theta = Math.random() * Math.PI * 2;
+    const landY = student.containerBottom + (student.landedParticles.length * 0.006) + Math.random() * 0.1;
+    
+    p.position.set(student.xPos + r * Math.cos(theta), landY, r * Math.sin(theta));
+    p.userData = { student: student, state: 'landed' };
+    
+    scene.add(p);
+    particles.push(p);
+    student.landedParticles.push(p);
+    student.updateLabelText();
+}
         // 輔助 UI 函數
         function setStatus(text, isError=false) {
             const el = document.getElementById('status-text');
@@ -2360,39 +2381,48 @@ function updateOffWorkUI() {
             }
         });
 
-      document.getElementById('btn-recover').addEventListener('click', () => {
-            // 觸發按鈕震動
-            triggerButtonShake('btn-recover');
-
-            if (TEACHER.recoveriesLeft > 0) { 
-                let recoverAmount = TEACHER.maxEnergy; // 原本應恢復的量
-                let msg = "";
-
-                // 檢查是否有透支
-                if (TEACHER.energyDebt > 0) {
-                    if (recoverAmount >= TEACHER.energyDebt) {
-                        // 恢復量足夠還債
-                        recoverAmount -= TEACHER.energyDebt;
-                        msg = `休息恢復精力，並償還了 ${TEACHER.energyDebt.toFixed(1)} 透支。`;
-                        TEACHER.energyDebt = 0; // 債務歸零
-                    } else {
-                        // 恢復量不足以還債
-                        TEACHER.energyDebt -= recoverAmount;
-                        recoverAmount = 0; // 心力依然是 0
-                        msg = `休息僅夠償還部分透支，仍欠 ${TEACHER.energyDebt.toFixed(1)} 心力...`;
-                    }
-                } else {
-                    msg = "休息恢復精力。";
+    document.getElementById('btn-recover').addEventListener('click', () => {
+    triggerButtonShake('btn-recover');
+ 
+    if (TEACHER.recoveriesLeft > 0) {
+        let recoverAmount = TEACHER.maxEnergy;
+        let msg = "";
+ 
+        // 處理債務
+        if (TEACHER.energyDebt > 0) {
+            if (recoverAmount >= TEACHER.energyDebt) {
+                recoverAmount -= TEACHER.energyDebt;
+                msg = `休息恢復精力，並償還了 ${TEACHER.energyDebt.toFixed(1)} 透支。`;
+                TEACHER.energyDebt = 0;
+            } else {
+                TEACHER.energyDebt -= recoverAmount;
+                recoverAmount = 0;
+                msg = `休息僅夠償還部分透支，仍欠 ${TEACHER.energyDebt.toFixed(1)} 心力...`;
+            }
+        } else {
+            msg = "老師通過休息與研習提升了自己。";
+        }
+ 
+        // --- 新增：資質較好的學生自動獲得元素 (無論動機是否極低) ---
+        students.forEach(s => {
+            if (s.type.id === 'high') {
+                // 天資好：自動 +2
+                for(let i=0; i<2; i++) {
+                    setTimeout(() => spawnDirectLandedParticle(s, true), i * 150);
                 }
-
-                // 套用數值
-                TEACHER.currentEnergy = recoverAmount; 
-                TEACHER.recoveriesLeft--; 
-                
-                updateUI(); 
-                setStatus(msg, TEACHER.currentEnergy === 0); // 如果還是 0，顯示警告色
+            } else if (s.type.id === 'avg') {
+                // 天資中等：自動 +1
+                setTimeout(() => spawnDirectLandedParticle(s, true), 150);
             }
         });
+ 
+        TEACHER.currentEnergy = recoverAmount;
+        TEACHER.recoveriesLeft--;
+        
+        updateUI();
+        setStatus(msg + " (優秀學生受老師啟發自發進步)", TEACHER.currentEnergy === 0);
+    }
+});
         document.getElementById('btn-next-partial').addEventListener('click', () => { if (!hasDoneAdmin) { setStatus("必須先完成行政工作！", true); return; } startNewYear(); });
      document.getElementById('btn-admin').addEventListener('click', () => {
     triggerButtonShake('btn-admin');
@@ -2834,22 +2864,15 @@ function startNextBatch() {
                 const dist = Math.sqrt(Math.pow(p.position.x - s.xPos, 2) + Math.pow(p.position.z, 2));
                 
                 // 進入容器範圍
-                if (dist < 1.95) {
-                    if (p.userData.rejected) {
-                        // 排斥彈出
-                        let ejectForce = 0.15; 
-                        if (s.type.id === 'high') ejectForce = 0.1; 
-                        if (s.type.id === 'low') ejectForce = 0.35; 
-                        p.userData.vel.x = (p.position.x - s.xPos) * ejectForce + (Math.random()-0.5)*0.1; 
-                        p.userData.vel.z = p.position.z * ejectForce + (Math.random()-0.5)*0.1; 
-                        p.userData.vel.y = 0.15; 
-                        p.userData.state = 'spilling';
-                    } else if (s.type.id === 'low' && s.landedParticles.length >= s.particleCap) {
-                        // 容量已滿彈出
-                        p.userData.vel.x = (p.position.x - s.xPos) * 0.2; 
-                        p.userData.vel.z = p.position.z * 0.2; 
-                        p.userData.state = 'spilling';
-                    } else {
+               if (dist < 1.95) {
+    // 嚴格檢查：只要是 rejected，或者是滿載的 UltraLow 學生
+    if (p.userData.rejected || (s.isUltraLow && p.userData.state !== 'landed')) {
+        let ejectForce = s.isUltraLow ? 0.4 : 0.15; // 動機極低學生的排斥力更強
+        p.userData.vel.x = (p.position.x - s.xPos) * ejectForce + (Math.random()-0.5)*0.1;
+        p.userData.vel.z = p.position.z * ejectForce + (Math.random()-0.5)*0.1;
+        p.userData.vel.y = 0.2;
+        p.userData.state = 'spilling';
+    } else {
                         // 嘗試著陸
                         // 計算目前的堆疊高度
                         const currentFillY = s.containerBottom + (s.landedParticles.length * 0.006);
