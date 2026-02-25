@@ -1449,7 +1449,7 @@ if (this.type.id === 'low') {
             this.particleCap++; 
             this.readingHeight += this.type.readGrow; 
             this.updateVisuals(); 
-            if (GAME_MODE === 'full') changeHappiness(0.1);
+    
             return true; 
         } else { 
             this.shake(); 
@@ -1459,7 +1459,7 @@ if (this.type.id === 'low') {
                 if (!this.type.canGrow || this.getContainerHeight() >= this.type.maxHeight) { this.shake(); return false; }
                 this.readingHeight += this.type.readGrow; 
                 this.updateVisuals(); 
-                if (GAME_MODE === 'full') changeHappiness(0.1); 
+          
                 return true;
             }
 
@@ -1721,29 +1721,23 @@ initIcons();
         }
 
         // 修改：新增 currentEnergy 和 currentHappy 參數
-     function createActionReport(energyCost, happyCost, studentChanges, currentEnergy, currentHappy, multiplier) {
-    // 1. 更新消耗數據
+    // === 修改後的 createActionReport ===
+function createActionReport(energyCost, totalHappyChange, studentChanges, currentEnergy, currentHappy, multiplier) {
     const rptEnergy = document.getElementById('rpt-energy');
     rptEnergy.innerHTML = `${currentEnergy.toFixed(1)} <span class="rpt-total val-neg">(-${energyCost.toFixed(1)})</span>`;
     
     const rptHappy = document.getElementById('rpt-happy');
     if (GAME_MODE === 'full') {
-        let changeHtml = happyCost > 0 ? `<span class="rpt-total val-neg">(-${happyCost})</span>` :
-                        (happyCost < 0 ? `<span class="rpt-total val-pos">(+${Math.abs(happyCost)})</span>` : `<span class="rpt-total val-neu">(0)</span>`);
-        rptHappy.innerHTML = `${Math.floor(currentHappy)} ${changeHtml}`;
+        // 根據總變化量決定符號
+        let sign = totalHappyChange > 0 ? "+" : "";
+        let colorClass = totalHappyChange > 0 ? "val-pos" : (totalHappyChange < 0 ? "val-neg" : "val-neu");
+        
+        rptHappy.innerHTML = `${Math.floor(currentHappy)} <span class="rpt-total ${colorClass}">(${sign}${totalHappyChange.toFixed(1)})</span>`;
     } else {
         rptHappy.innerText = "-";
     }
- 
-    // 2. 核心視覺：顯示/隱藏倍率勳章
     const tag = document.getElementById('rpt-multiplier-tag');
-    if (multiplier > 1) {
-        tag.style.display = 'block';
-    } else {
-        tag.style.display = 'none';
-    }
- 
-    // 3. 更新學生成績列表
+    tag.style.display = (multiplier > 1) ? 'block' : 'none';
     const tbody = document.getElementById('rpt-tbody');
     tbody.innerHTML = '';
     
@@ -1752,15 +1746,10 @@ initIcons();
         const capacity = sc.student.getCurrentCapacity();
         const current = sc.student.landedParticles.length;
         
-        // 如果有倍率且數值增加，顯示 x2 標籤
         let changeText = sc.added > 0 ? `+${sc.added}` : (sc.added < 0 ? `${sc.added}` : '0');
         if (multiplier > 1 && sc.added > 0) {
             changeText += `<i class="rpt-x2">x2</i>`;
         }
-        
-        if (sc.boredomLimit) changeText += " (厭倦)";
-        if (sc.capLimit) changeText = "0 (已滿)";
- 
         tr.innerHTML = `
             <td style="color:${sc.student.type.color}; font-weight:bold;">${sc.student.name}</td>
             <td>${current} / ${capacity}</td>
@@ -1803,53 +1792,48 @@ function triggerButtonShake(btnId) {
     );
 }
 
+// === 在全局狀態區新增這一個變數 ===
+let batchStartHappy = 0;
+ 
+// === 修改後的 handleAction ===
 function handleAction(actionId, cost, happyCost, baseParticles, name, growReading = false) {
     triggerButtonShake('btn-' + actionId);
- 
-    // 厭倦系統邏輯
     if (actionId === lastActionType) { consecutiveActionCount++; }
     else { lastActionType = actionId; consecutiveActionCount = 1; }
- 
     const isNeed = (actionId === currentNeed);
     let isBored = (consecutiveActionCount >= 4 && !isNeed);
     let effectiveBase = isNeed ? 14 : baseParticles;
- 
-    // --- 計算倍率：受眾人數 <= 學生總數一半時加倍 ---
     const selectedCount = students.filter(st => st.isSelected !== false).length;
     const currentMultiplier = (selectedCount > 0 && selectedCount <= students.length / 2) ? 2 : 1;
- 
     if (spendEnergy(cost) > 0) {
-        // 連擊初始化
+        // --- 連擊初始化 ---
         if (batchSnapshot === null) {
             batchSnapshot = students.map(s => s.landedParticles.length);
-            batchTotalCost = 0; batchTotalHappy = 0;
+            batchStartHappy = TEACHER.happiness; // 紀錄點擊前的幸福度
+            batchTotalCost = 0;
         }
+        
         if (batchTimer) { clearTimeout(batchTimer); batchTimer = null; }
- 
         batchTotalCost += cost;
+        
+        // 扣除按鈕的基本成本
         if (GAME_MODE === 'full') {
-            if (happyCost > 0) { changeHappiness(-happyCost); batchTotalHappy += happyCost; }
-            else if (happyCost < 0) { changeHappiness(Math.abs(happyCost)); batchTotalHappy += happyCost; }
+            if (happyCost > 0) { changeHappiness(-happyCost); }
+            else if (happyCost < 0) { changeHappiness(Math.abs(happyCost)); }
         }
- 
         setStatus(name + (isNeed ? " (回應需求！)" : ""));
- 
         let currentClickMaxDelay = 0;
         const physicsFallTime = 2500;
- 
         students.forEach((s, idx) => {
-            if (s.isSelected === false) return; // 非受眾跳過
- 
+            if (s.isSelected === false) return;
             let particlesToSpawn = isBored ? 1 : (isNeed ? Math.ceil(effectiveBase * 1.2) : effectiveBase);
-            particlesToSpawn *= currentMultiplier; // 套用倍率
- 
-            // 閱讀量特殊邏輯
+            particlesToSpawn *= currentMultiplier;
             if (actionId === 'read') {
                 for(let m=0; m < currentMultiplier; m++) {
-                    if (s.tryGrowReading()) spawnDirectLandedParticle(s);
+                    s.tryGrowReading(); // 內部已移除 changeHappiness(0.1)
+                    spawnDirectLandedParticle(s);
                 }
             }
- 
             if (particlesToSpawn > 0) {
                 const interval = growReading ? 30 : 0;
                 const spawnDuration = (particlesToSpawn - 1) * interval;
@@ -1860,28 +1844,31 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
                     setTimeout(() => spawnParticle(actionId, s), i * interval);
                 }
             }
+            // 這裡會觸發對話，對話會呼叫 changeHappiness 改動數值
             triggerStudentDialogue(s, actionId, idx);
         });
- 
         if (actionId !== 'hea') randomizeStudentNeed();
- 
-        // 設定延遲結算，傳入計算好的倍率
+        // 延遲結算
         batchTimer = setTimeout(() => {
             const studentChanges = students.map((s, index) => ({
                 student: s,
                 added: s.landedParticles.length - batchSnapshot[index]
             }));
  
+            // 計算這段時間內幸福度的總淨變化量
+            const totalHappyNetChange = TEACHER.happiness - batchStartHappy;
             createActionReport(
                 batchTotalCost,
-                batchTotalHappy,
+                totalHappyNetChange, // 傳入淨變化量
                 studentChanges,
                 TEACHER.currentEnergy,
                 TEACHER.happiness,
-                currentMultiplier // 這裡傳遞倍率給報告
+                currentMultiplier
             );
- 
-            batchSnapshot = null; batchTimer = null; batchTotalCost = 0; batchTotalHappy = 0;
+            batchSnapshot = null;
+            batchTimer = null;
+            batchTotalCost = 0;
+            batchStartHappy = 0;
         }, currentClickMaxDelay);
     }
 }
@@ -2123,13 +2110,47 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
             el.innerText = text; el.className = isError ? "warning-text" : "";
             el.style.color = isError ? 'var(--accent-dse)' : 'var(--accent-plan)';
         }
-        function changeHappiness(amount) {
-            if (GAME_MODE === 'partial') return;
-            TEACHER.happiness += amount;
-            if (TEACHER.happiness > TEACHER.maxHappiness) TEACHER.happiness = TEACHER.maxHappiness;
-            TEACHER.dailyStats.happyChange += amount;
-            updateUI();
+       // === 修改後的 changeHappiness ===
+function changeHappiness(amount) {
+    if (GAME_MODE === 'partial') return;
+    TEACHER.happiness += amount;
+    if (TEACHER.happiness > TEACHER.maxHappiness) TEACHER.happiness = TEACHER.maxHappiness;
+    TEACHER.dailyStats.happyChange += amount;
+    
+    updateUI(); // 更新主界面
+    
+    // 如果下班/暑假窗口開啟中，同步更新
+    if (document.getElementById('offwork-overlay').style.display === 'flex') {
+        const owHappy = document.getElementById('ow-happy');
+        if(owHappy) {
+            owHappy.innerText = Math.floor(TEACHER.happiness);
+            owHappy.style.color = TEACHER.happiness < 30 ? 'var(--accent-dse)' : 'var(--accent-happy)';
         }
+    }
+}
+ 
+// === 修改後的 updateOffWorkUI (確保暑假開啟時能抓到數值) ===
+function updateOffWorkUI() {
+    document.getElementById('ow-energy').innerText = TEACHER.offWorkEnergy;
+    
+    // 更新幸福感數值與顏色
+    const owHappy = document.getElementById('ow-happy');
+    owHappy.innerText = Math.floor(TEACHER.happiness);
+    owHappy.style.color = TEACHER.happiness < 30 ? 'var(--accent-dse)' : 'var(--accent-happy)';
+ 
+    document.getElementById('ow-pending-work').innerText = TEACHER.gradingPile;
+    document.getElementById('tag-late').style.display = TEACHER.hasEntertainedTonight ? 'inline-block' : 'none';
+    
+    const slider = document.getElementById('rng-grading');
+    slider.max = TEACHER.gradingPile;
+    slider.value = 0;
+    slider.disabled = TEACHER.gradingPile === 0;
+    
+    if(TEACHER.isHoliday) {
+        document.getElementById('val-holiday-rest').innerText = document.getElementById('rng-holiday-rest').value;
+    }
+    updateGradingPreview();
+}
        function spendEnergy(maxCost) {
             // 如果已經完全沒力 (小於 0.05 視為 0)，則禁止行動，回傳 0 表示失敗
             if (TEACHER.currentEnergy <= 0.05) return 0;
@@ -2355,30 +2376,46 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
     const endBtn = document.getElementById('btn-end-day'); endBtn.disabled = false; endBtn.innerText = "💤 直接睡覺 (明日 +5 幸福)";
     updateOffWorkUI();
 }
-        function startHoliday() {
-    TEACHER.isHoliday = true; TEACHER.offWorkEnergy = 0; TEACHER.hasEntertainedTonight = false; TEACHER.bonusEnergyNextDay = 0;
+       function startHoliday() {
+    TEACHER.isHoliday = true;
+    TEACHER.offWorkEnergy = 5; // 修正此處：從 0 改為 5，讓長假有心力進行規劃
+    TEACHER.hasEntertainedTonight = false;
+    TEACHER.bonusEnergyNextDay = 0;
     
     document.getElementById('offwork-overlay').style.display = 'flex';
-    document.getElementById('ow-title').innerText = "暑假長假"; 
+    document.getElementById('ow-title').innerText = "暑假長假";
     
     // 設定 SVG
     const iconEl = document.getElementById('ow-icon');
-    iconEl.innerHTML = SVGS.holiday;
-    iconEl.querySelector('svg').style.fill = "var(--accent-holiday)";
-
+    if(iconEl) {
+        iconEl.innerHTML = SVGS.holiday;
+        if(iconEl.querySelector('svg')) iconEl.querySelector('svg').style.fill = "var(--accent-holiday)";
+    }
+ 
     document.getElementById('ow-title').className = "offwork-header holiday-header";
     document.getElementById('offwork-box').style.borderColor = "var(--accent-holiday)";
-    document.getElementById('holiday-options').style.display = 'block'; 
-    const endBtn = document.getElementById('btn-end-day'); endBtn.disabled = false; endBtn.innerText = "💤 結束假期 (前往新學年)";
+    document.getElementById('holiday-options').style.display = 'block';
+    const endBtn = document.getElementById('btn-end-day');
+    endBtn.disabled = false;
+    endBtn.innerText = "💤 結束假期 (前往新學年)";
     updateOffWorkUI();
 }
-        function updateOffWorkUI() {
-            document.getElementById('ow-energy').innerText = TEACHER.offWorkEnergy;
-            document.getElementById('tag-late').style.display = TEACHER.hasEntertainedTonight ? 'inline-block' : 'none';
-            const slider = document.getElementById('rng-grading'); slider.max = TEACHER.gradingPile; slider.value = 0; slider.disabled = TEACHER.gradingPile === 0;
-            if(TEACHER.isHoliday) document.getElementById('val-holiday-rest').innerText = document.getElementById('rng-holiday-rest').value;
-            updateGradingPreview();
-        }
+       function updateOffWorkUI() {
+    document.getElementById('ow-energy').innerText = TEACHER.offWorkEnergy;
+    // 新增下面這行：更新彈窗內的幸福感數值
+    document.getElementById('ow-happy').innerText = Math.floor(TEACHER.happiness);
+    
+    document.getElementById('tag-late').style.display = TEACHER.hasEntertainedTonight ? 'inline-block' : 'none';
+    const slider = document.getElementById('rng-grading');
+    slider.max = TEACHER.gradingPile;
+    slider.value = 0;
+    slider.disabled = TEACHER.gradingPile === 0;
+    
+    if(TEACHER.isHoliday) {
+        document.getElementById('val-holiday-rest').innerText = document.getElementById('rng-holiday-rest').value;
+    }
+    updateGradingPreview();
+}
         document.getElementById('rng-holiday-rest').addEventListener('input', updateOffWorkUI);
         document.getElementById('rng-grading').addEventListener('input', updateGradingPreview);
         function updateGradingPreview() {
@@ -2755,7 +2792,7 @@ function startNextBatch() {
                                 const r = Math.random() * 1.5, t = Math.random() * Math.PI * 2; 
                                 p.position.x = s.xPos + r * Math.cos(t); 
                                 p.position.z = r * Math.sin(t);
-                                if (GAME_MODE === 'full') changeHappiness(0.1); 
+                         
                             }
                         } else { 
                             // 物理溢出
