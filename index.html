@@ -755,6 +755,99 @@
     vertical-align: middle;
 }
 
+        /* 睡覺遮罩樣式 */
+#sleep-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #000; z-index: 300; display: none;
+    justify-content: center; align-items: center; flex-direction: column;
+    color: #fff;
+}
+.zzz-anim {
+    font-size: 60px; font-weight: bold;
+    animation: floatZ 2s infinite ease-in-out;
+}
+.sleep-desc {
+    margin-top: 20px; font-size: 16px; color: #888;
+    font-family: 'Noto Serif TC', serif; letter-spacing: 2px;
+}
+@keyframes floatZ {
+    0%, 100% { transform: scale(1) translateY(0); opacity: 0.5; }
+    50% { transform: scale(1.2) translateY(-10px); opacity: 1; }
+}
+
+        /* 2D 互動文字與標籤樣式 */
+.interaction-label {
+    position: absolute;
+    font-family: 'Noto Serif TC', serif;
+    font-weight: bold;
+    color: #fff;
+    font-size: 18px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: none; /* 讓滑鼠穿透 */
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    transition: opacity 0.5s;
+    background: rgba(0,0,0,0.1); /* 極淡的背景增加對比 */
+    padding: 5px 15px;
+    border-radius: 20px;
+    backdrop-filter: blur(2px);
+}
+
+.floating-text-2d {
+    position: absolute;
+    font-family: 'Noto Serif TC', serif;
+    font-weight: bold;
+    font-size: 16px;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: 101;
+    animation: floatUpFade 1.5s forwards ease-out;
+    text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff; /* 描邊效果 */
+}
+
+@keyframes floatUpFade {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    20% { transform: translate(-50%, -80%) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, -150%) scale(1.0); opacity: 0; }
+}
+
+        /* 禁用娛樂按鈕的視覺樣式 */
+/* 禁用娛樂按鈕的強制視覺樣式 */
+.disabled-ow-btn {
+    background: #f0f0f0 !important;
+    border-color: #dcdcdc !important;
+    color: #a0a0a0 !important;
+    pointer-events: none !important; /* 徹底禁用滑鼠點擊 */
+    filter: grayscale(1) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+.disabled-ow-btn .ow-icon svg {
+    fill: #a0a0a0 !important;
+}
+
+
+        /* 專屬 2D 蓋章特效 (不向上飄，原地放大壓下並淡出) */
+.fixed-stamp-2d {
+    position: absolute;
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 100px; /* 超大字體，非常顯眼 */
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: 101;
+    opacity: 0;
+    animation: stampDown 1s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-shadow: 0px 0px 10px rgba(192, 57, 43, 0.5); /* 紅色光暈 */
+}
+
+@keyframes stampDown {
+    0% { transform: translate(-50%, -50%) scale(3) rotate(-15deg); opacity: 0; }
+    15% { transform: translate(-50%, -50%) scale(1) rotate(-5deg); opacity: 0.9; }
+    80% { transform: translate(-50%, -50%) scale(1) rotate(-5deg); opacity: 0.9; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(-5deg); opacity: 0; }
+}
+
 
     </style>
 </head>
@@ -1318,16 +1411,13 @@ function playLandSound() {
         });
 
 // ==========================================
-// Student 類別 - 修訂版 (100% 完整輸出)
-// ==========================================
-// ==========================================
-// Student 類別 - 修訂版 (100% 完整輸出)
+// Student 類別 - 修訂版 (躺平視覺與動態狀態)
 // ==========================================
 class Student {
     constructor(id, xPos, typeOverride = null) {
         this.id = id;
         this.xPos = xPos;
-        this.isSelected = true; // 預設為受眾
+        this.isSelected = true; 
         this.name = STUDENT_NAMES[Math.floor(Math.random() * STUDENT_NAMES.length)];
         
         // 1. 確定學生資質類型
@@ -1340,9 +1430,14 @@ class Student {
             else this.type = STUDENT_TYPES.LOW;
         }
  
-        // 2. --- 所有資質類型均有 30% 機率成為「動機極低」 ---
-        this.isUltraLow = (Math.random() < 0.3);
-        this.soloActionCount = 0; // 追蹤被單獨教學的連續次數
+        // 2. --- 動機極低 (躺平) 設定 ---
+        // isOriginalUltraLow: 標記該學生是否"天生"屬於躺平族群 (用於學年轉換時判定)
+        // isUltraLow: 當前的狀態 (可能會變)
+        const isTangping = (Math.random() < 0.3);
+        this.isOriginalUltraLow = isTangping; 
+        this.isUltraLow = isTangping;
+        
+        this.soloActionCount = 0; 
  
         // 3. 物理容量與高度設定
         if (this.type.id === 'low') {
@@ -1376,7 +1471,7 @@ class Student {
         this.group.position.set(xPos, 0, 0);
         scene.add(this.group);
         
-        // 建立 3D 形象
+        // 建立 3D 形象 (Avatar)
         this.avatar = this.createAvatar();
         this.group.add(this.avatar);
  
@@ -1418,6 +1513,7 @@ class Student {
  
     createAvatar() {
         const avatarGroup = new THREE.Group();
+        // 基本位置
         avatarGroup.position.y = -2.5;
  
         // 身體 (上衣顏色由資質決定)
@@ -1447,9 +1543,46 @@ class Student {
         const head = new THREE.Mesh(headGeo, headMat);
         head.position.y = 1.6;
         avatarGroup.add(head);
+        
+        // --- 視覺躺平邏輯 ---
+        // 如果是躺平狀態，將整個人物旋轉 90 度並調整高度貼地
+        if (this.isUltraLow) {
+            avatarGroup.rotation.z = Math.PI / 2; // 向右倒下
+            avatarGroup.position.y = -3.8; // 調整至地板高度
+            avatarGroup.position.x = 0.5;  // 稍微置中修正
+            
+            // 加入"Zzz" 睡眠符號 (簡單的視覺提示)
+            const zGeo = new THREE.PlaneGeometry(0.8, 0.8);
+            // 這裡使用動態 Canvas 貼圖來繪製 Zzz，避免依賴外部圖片
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'transparent';
+            ctx.fillRect(0,0,64,64);
+            ctx.font = 'bold 40px Arial';
+            ctx.fillStyle = '#555';
+            ctx.fillText('Zzz', 0, 48);
+            const zTex = new THREE.CanvasTexture(canvas);
+            const zMat = new THREE.MeshBasicMaterial({ map: zTex, transparent: true, side: THREE.DoubleSide });
+            const zMesh = new THREE.Mesh(zGeo, zMat);
+            zMesh.position.set(1.5, 2.0, 0); // 浮在頭部上方
+            zMesh.rotation.z = -Math.PI / 2; // 抵消人物旋轉，讓字正向
+            
+            // 簡單的浮動動畫參照
+            zMesh.userData = { isZzz: true, offset: Math.random() };
+            avatarGroup.add(zMesh);
+        } else {
+            avatarGroup.rotation.y = (Math.random() - 0.5) * 0.5;
+        }
  
-        avatarGroup.rotation.y = (Math.random() - 0.5) * 0.5;
         return avatarGroup;
+    }
+    
+    // 用於狀態改變時重新生成 Avatar (躺平 <-> 站立)
+    updateAvatarPose() {
+        this.group.remove(this.avatar);
+        this.avatar = this.createAvatar();
+        this.group.add(this.avatar);
     }
     
     getContainerHeight() {
@@ -1465,15 +1598,12 @@ class Student {
         return Math.floor(this.getContainerHeight() / 0.006);
     }
     
-    // --- 修改：增加 force 參數，控制動機極低學生的維度增長 ---
     tryGrowReading(force = false) {
-        // 如果是動機極低學生，且沒有獲得「單獨教導」的強制許可(force)，則無法增長
         if (this.isUltraLow && !force) {
             this.shake();
             return false;
         }
  
-        // 天資差學生的容量/高度限制
         if (this.type.id === 'low') {
             if (this.particleCap < this.maxCapLimit) {
                 this.particleCap++;
@@ -1486,7 +1616,6 @@ class Student {
             }
         }
         
-        // 普通與天資聰穎學生的增長邏輯
         if (!this.type.canGrow || this.getContainerHeight() >= this.type.maxHeight) {
             this.shake();
             return false;
@@ -1497,7 +1626,6 @@ class Student {
     }
  
     growGrade() {
-        // 學年轉換時的自然成長
         if (this.type.id === 'low') {
             if (this.particleCap < this.maxCapLimit) {
                 this.particleCap++;
@@ -1528,6 +1656,7 @@ class Student {
         let typeColor = this.type.color;
         let soloProgressHtml = "";
  
+        // 根據即時狀態 isUltraLow 決定顯示文字
         if (this.isUltraLow) {
             typeColor = "#666666";
             if (this.type.id === 'high') typeName = "天資聰穎(躺平)";
@@ -1593,7 +1722,6 @@ class Student {
         if (this.bubbleEl) this.bubbleEl.remove();
     }
 }
-
 
 
 
@@ -1741,6 +1869,45 @@ initIcons();
         });
     });
 })();
+
+
+// ==========================================
+// 4. 工具與設定 (莫蘭迪色系 & 狀態管理)
+// ==========================================
+
+// 莫蘭迪色票 (Morandi Color Palette) - 低飽和度、高級感
+const MORANDI = [
+    0x8C9E9E, // 灰綠
+    0xD5C4A1, // 暖沙色
+    0xC89F9C, // 髒粉紅
+    0x8F9E8B, // 橄欖綠
+    0x6E7C7C, // 鐵灰
+    0xA89B9D, // 藕紫
+    0xD3D4D0, // 雲灰
+    0xE0CDCF, // 淺粉灰
+    0x9FA39A, // 鼠尾草綠
+    0xB5A89D  // 奶茶色
+];
+
+function getMorandiColor() {
+    return MORANDI[Math.floor(Math.random() * MORANDI.length)];
+}
+
+// 強制清除連擊結算 (防止互動時跳出報告)
+function clearPendingReports() {
+    // 1. 清除連擊計時器
+    if (batchTimer) {
+        clearTimeout(batchTimer);
+        batchTimer = null;
+    }
+    batchSnapshot = null;
+    batchTotalCost = 0;
+    batchStartHappy = 0;
+
+    // 2. 隱藏可能存在的報告窗口
+    document.getElementById('report-overlay').style.display = 'none';
+}
+
 
 
         
@@ -2225,18 +2392,45 @@ function changeHappiness(amount) {
     }
 }
  
-// === 修改後的 updateOffWorkUI (確保暑假開啟時能抓到數值) ===
+// ==========================================
+// 1. 下班狀態更新與娛樂入口
+// ==========================================
+
+// ==========================================
+// 1. 下班狀態更新與娛樂入口
+// ==========================================
+
+// ==========================================
+// 1. 下班狀態更新與娛樂入口 (修復版)
+// ==========================================
+
 function updateOffWorkUI() {
     document.getElementById('ow-energy').innerText = TEACHER.offWorkEnergy;
+    document.getElementById('ow-happy').innerText = Math.floor(TEACHER.happiness);
+    document.getElementById('ow-happy').style.color = TEACHER.happiness < 30 ? 'var(--accent-dse)' : 'var(--accent-happy)';
     
-    // 更新幸福感數值與顏色
-    const owHappy = document.getElementById('ow-happy');
-    owHappy.innerText = Math.floor(TEACHER.happiness);
-    owHappy.style.color = TEACHER.happiness < 30 ? 'var(--accent-dse)' : 'var(--accent-happy)';
- 
-    document.getElementById('ow-pending-work').innerText = TEACHER.gradingPile;
     document.getElementById('tag-late').style.display = TEACHER.hasEntertainedTonight ? 'inline-block' : 'none';
     
+    // --- 視覺呈現：無心力或已活動時，套用禁用的 CSS 樣式 ---
+    const entButtons = document.querySelectorAll('.ow-btn-grid .ow-btn');
+    const isOutOfEnergy = (TEACHER.offWorkEnergy < 1);
+    
+    entButtons.forEach(btn => {
+        // 「直接睡覺」按鈕邏輯獨立
+        if (btn.id === 'btn-ent-sleep') {
+            if (TEACHER.hasEntertainedTonight) btn.classList.add('disabled-ow-btn');
+            else btn.classList.remove('disabled-ow-btn');
+            return;
+        }
+
+        // 一般娛樂按鈕
+        if (isOutOfEnergy || TEACHER.hasEntertainedTonight) {
+            btn.classList.add('disabled-ow-btn');
+        } else {
+            btn.classList.remove('disabled-ow-btn');
+        }
+    });
+
     const slider = document.getElementById('rng-grading');
     slider.max = TEACHER.gradingPile;
     slider.value = 0;
@@ -2247,6 +2441,9 @@ function updateOffWorkUI() {
     }
     updateGradingPreview();
 }
+
+
+        
        function spendEnergy(maxCost) {
             // 如果已經完全沒力 (小於 0.05 視為 0)，則禁止行動，回傳 0 表示失敗
             if (TEACHER.currentEnergy <= 0.05) return 0;
@@ -2379,20 +2576,52 @@ function updateOffWorkUI() {
             this.appendChild(input); input.focus();
         });
 
-        document.getElementById('btn-grade-work').addEventListener('click', () => {
-            if (spendEnergy(1.0) > 0) {
-                if (TEACHER.gradingPile > 0) {
-                    TEACHER.gradingPile--; changeHappiness(-2); 
-                    setStatus("利用空堂時間批改了 1 份課業。");
-                    
-                    // ▼▼▼ 修改這一行：補上 TEACHER.currentEnergy 和 TEACHER.happiness ▼▼▼
-                    createActionReport(1.0, 2, [], TEACHER.currentEnergy, TEACHER.happiness);
-                    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-                    
-                } else { setStatus("暫無課業需要批改。"); TEACHER.currentEnergy += 1.0; }
-                updateUI();
+       // --- 修改：教學時段的批改按鈕 ---
+document.getElementById('btn-grade-work').addEventListener('click', () => {
+    // 檢查條件
+    if (TEACHER.gradingPile <= 0) {
+        setStatus("暫無課業需要批改。");
+        return;
+    }
+    if (TEACHER.currentEnergy <= 0.05) return; // 沒力氣
+
+    // 清除結算干擾
+    clearPendingReports();
+
+    // 啟動 3D 互動：批改 1 份
+    startInteractiveSession('grading', () => {
+        if (spendEnergy(1.0) > 0) {
+            TEACHER.gradingPile--; 
+            changeHappiness(-2); 
+            setStatus("仔細批改了 1 份課業 (蓋章認證！)。");
+            updateUI();
+        }
+    }, 1); // 傳入 1 代表批改數量
+});
+
+// --- 修改：下班時段的批改按鈕 ---
+document.getElementById('btn-do-grade').addEventListener('click', () => {
+    const papersToGrade = parseInt(document.getElementById('rng-grading').value);
+    if (papersToGrade > 0) {
+        const costPerPaper = TEACHER.hasEntertainedTonight ? 2 : 1;
+        const totalCost = papersToGrade * costPerPaper;
+
+        // 啟動 3D 互動：連續批改
+        startInteractiveSession('grading', () => {
+            if (TEACHER.offWorkEnergy >= totalCost) TEACHER.offWorkEnergy -= totalCost;
+            else { 
+                const diff = totalCost - TEACHER.offWorkEnergy; 
+                TEACHER.offWorkEnergy = 0; 
+                TEACHER.energyDebt += diff; 
             }
-        });
+            TEACHER.gradingPile = Math.max(0, TEACHER.gradingPile - papersToGrade);
+            const happyLoss = 2 * papersToGrade; 
+            changeHappiness(-happyLoss);
+            updateOffWorkUI(); 
+            updateUI(); 
+        }, papersToGrade); // 傳入批改數量，決定動畫次數
+    }
+});
 
     document.getElementById('btn-recover').addEventListener('click', () => {
     triggerButtonShake('btn-recover');
@@ -2437,65 +2666,91 @@ function updateOffWorkUI() {
     }
 });
         document.getElementById('btn-next-partial').addEventListener('click', () => { if (!hasDoneAdmin) { setStatus("必須先完成行政工作！", true); return; } startNewYear(); });
-     document.getElementById('btn-admin').addEventListener('click', () => {
+    // === 修改：行政按鈕監聽器 (加入 3D 互動與特定結算語) ===
+document.getElementById('btn-admin').addEventListener('click', () => {
     triggerButtonShake('btn-admin');
- 
-    // 1. 取得當前設定的行政消耗
+
+    // 檢查是否已完成
+    if (hasDoneAdmin) {
+        setStatus("行政工作已完成，無需重複。", true);
+        return;
+    }
+
+    // 取得消耗數值
     const eCost = parseFloat(document.getElementById('rng-admin').value);
     
-    // 2. 計算動態幸福度消耗 (3心力=10幸福，比例 10/3)
-    // 使用 Math.max(1.0, ...) 實作保底扣 1 點
-    let hCost = Math.max(1.0, eCost * (10 / 3));
-    
-    if (!hasDoneAdmin) {
-        // 紀錄點擊前的幸福度用於結算報告顯示淨變化
-        const batchStartHappy = TEACHER.happiness;
- 
+    // 計算幸福度消耗 (行政工作通常令人煩躁)
+    // 這裡設定：若心力消耗高，幸福感扣更多，但至少扣 3 點
+    let hCost = Math.max(3.0, eCost * 2.5);
+
+    // 清除可能存在的舊報告，避免干擾 3D 介面
+    clearPendingReports();
+
+    // ★★★ 關鍵修正：啟動 'admin' 類型的 3D 互動場景 ★★★
+    startInteractiveSession('admin', () => {
+        // --- 這是互動結束後的回調函數 (Callback) ---
+        
+        // 執行數值扣減邏輯
         if (TEACHER.currentEnergy >= eCost) {
             // 正常支付
             TEACHER.currentEnergy -= eCost;
             if (GAME_MODE === 'full') changeHappiness(-hCost);
-            setStatus(`完成行政工作，身心俱疲。`);
             
-            // 傳送結算報告：注意幸福度變化要傳負數 (-hCost)
+            // ★★★ 您的要求：顯示特定訊息 ★★★
+            setStatus("徒勞無功，毫無收穫。", true); // true 讓文字變紅/強調
+            
+            // 傳送結算報告
+            // 注意：這裡 happiness 傳入 -hCost 代表扣減
             createActionReport(eCost, -hCost, [], TEACHER.currentEnergy, TEACHER.happiness, 1);
         } else {
-            // 精力透支 (原本透支會額外扣 5 點壓力，這裡維持此邏輯並加上動態消耗)
+            // 精力透支邏輯
             const overdraft = eCost - TEACHER.currentEnergy;
-            const totalPenalty = hCost + 5; // 透支懲罰
+            const totalPenalty = hCost + 5; // 透支額外懲罰
             
             TEACHER.energyDebt += overdraft;
             TEACHER.currentEnergy = 0;
             
             if (GAME_MODE === 'full') changeHappiness(-totalPenalty);
-            setStatus(`強行處理行政，透支了 ${overdraft.toFixed(1)} 心力！`, true);
             
-            // 傳送結算報告
+            // 透支時的訊息
+            setStatus(`強行處理行政 (徒勞無功)，透支 ${overdraft.toFixed(1)} 心力！`, true);
+            
             createActionReport(eCost, -totalPenalty, [], TEACHER.currentEnergy, TEACHER.happiness, 1);
         }
         
+        // 標記為已完成，鎖定按鈕
         hasDoneAdmin = true;
         updateUI();
-    }
+    });
 });
         
         // 下班相關 (OffWork)
         document.getElementById('btn-offwork').addEventListener('click', startOffWork);
-        function startOffWork() {
+     function startOffWork() {
     TEACHER.offWorkEnergy = 1; TEACHER.hasEntertainedTonight = false; TEACHER.bonusEnergyNextDay = 0;
     TEACHER.dailyStats.entertained = false; TEACHER.dailyStats.adminCount = hasDoneAdmin ? 1 : 0;
     
     document.getElementById('offwork-overlay').style.display = 'flex';
     document.getElementById('ow-title').innerText = `下班時間 (Day ${TEACHER.daysInYear}/3)`;
     
-    // 設定 SVG
     const iconEl = document.getElementById('ow-icon');
     iconEl.innerHTML = SVGS.offwork;
     iconEl.querySelector('svg').style.fill = "var(--accent-night)";
     
     document.getElementById('offwork-box').style.borderColor = "var(--accent-night)";
     document.getElementById('holiday-options').style.display = 'none'; 
-    const endBtn = document.getElementById('btn-end-day'); endBtn.disabled = false; endBtn.innerText = "💤 直接睡覺 (明日 +5 幸福)";
+    
+    // 初始化下方藍色按鈕 (固定顯示 +1 心力)
+    const endBtn = document.getElementById('btn-end-day'); 
+    endBtn.disabled = false; 
+    endBtn.innerText = "💤 睡覺 (明日 +1 心力)"; 
+    
+    // 確保九宮格內的「直接睡覺」文字正確顯示為 +3 心力
+    const sleepGridBtn = document.getElementById('btn-ent-sleep');
+    if(sleepGridBtn) {
+        sleepGridBtn.innerHTML = `<span class="ow-icon">${SVGS.bed}</span><span class="ow-label">直接睡覺</span><br><span style="font-size:10px;color:#27ae60;font-weight:bold;">+3 心力</span>`;
+    }
+
     updateOffWorkUI();
 }
        function startHoliday() {
@@ -2522,24 +2777,10 @@ function updateOffWorkUI() {
     endBtn.innerText = "💤 結束假期 (前往新學年)";
     updateOffWorkUI();
 }
-       function updateOffWorkUI() {
-    document.getElementById('ow-energy').innerText = TEACHER.offWorkEnergy;
-    // 新增下面這行：更新彈窗內的幸福感數值
-    document.getElementById('ow-happy').innerText = Math.floor(TEACHER.happiness);
-    
-    document.getElementById('tag-late').style.display = TEACHER.hasEntertainedTonight ? 'inline-block' : 'none';
-    const slider = document.getElementById('rng-grading');
-    slider.max = TEACHER.gradingPile;
-    slider.value = 0;
-    slider.disabled = TEACHER.gradingPile === 0;
-    
-    if(TEACHER.isHoliday) {
-        document.getElementById('val-holiday-rest').innerText = document.getElementById('rng-holiday-rest').value;
-    }
-    updateGradingPreview();
-}
+     
         document.getElementById('rng-holiday-rest').addEventListener('input', updateOffWorkUI);
         document.getElementById('rng-grading').addEventListener('input', updateGradingPreview);
+
         function updateGradingPreview() {
             const papersToGrade = parseInt(document.getElementById('rng-grading').value);
             document.getElementById('val-grading-count').innerText = papersToGrade;
@@ -2551,18 +2792,918 @@ function updateOffWorkUI() {
             else { let msg = `消耗 ${totalCost} 心力`; if (TEACHER.hasEntertainedTonight) msg += " (雙倍)"; if (debt > 0) msg += `，將透支明日 ${debt} 心力`; previewEl.innerText = msg; previewEl.style.color = debt > 0 ? "var(--accent-dse)" : "var(--accent-night)"; }
             document.getElementById('btn-do-grade').disabled = papersToGrade === 0;
         }
-        function doEntertainment(type, btnId) {
-            if (type === 'sleep_early') {
-                if (!TEACHER.hasEntertainedTonight) { TEACHER.bonusEnergyNextDay = 2; changeHappiness(5); } else { TEACHER.bonusEnergyNextDay = 1; changeHappiness(3); }
-                document.getElementById('btn-end-day').click(); return;
+      // ==========================================
+// 互動娛樂系統 (Three.js 互動反饋)
+// ==========================================
+// ==========================================
+// 互動娛樂系統 (最終完整修復版)
+// 包含了：doEntertainment 定義、2D文字、睡覺動畫、高擬真食物、響應式相機
+// ==========================================
+
+// --- 全局變量 ---
+let entGroup = null;
+let isInteracting = false;
+let savedCameraState = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+let activeLabels = []; // 追蹤螢幕上的標籤以便清除
+
+// ==========================================
+// 1. 入口函數與 UI 狀態管理 (修復版)
+// ==========================================
+
+function doEntertainment(type, btnId) {
+    clearPendingReports();
+
+    // --- 處理「直接睡覺」邏輯 (+3心力) ---
+    if (type === 'sleep_early') {
+        if (TEACHER.hasEntertainedTonight) return; 
+        
+        // 給予 +3 心力，不加幸福
+        TEACHER.bonusEnergyNextDay = 3; 
+        
+        // 直接觸發結算報告 (不調用下方的藍色按鍵)
+        showSummary(); 
+        return;
+    }
+    
+    // --- 處理一般娛樂 ---
+    if (TEACHER.offWorkEnergy >= 1) {
+        startInteractiveSession(type, () => {
+            TEACHER.offWorkEnergy -= 1; 
+            TEACHER.hasEntertainedTonight = true; 
+            TEACHER.dailyStats.entertained = true;
+            
+            const happyGain = Math.floor(Math.random() * 3) + 6; 
+            changeHappiness(happyGain); 
+            
+            updateOffWorkUI(); // 刷新 UI 讓按鈕全部變灰
+            
+            const btn = document.getElementById(btnId);
+            if(btn && document.getElementById('offwork-overlay').style.display !== 'none') {
+                const rect = btn.getBoundingClientRect();
+                const floatEl = document.createElement('div');
+                floatEl.className = 'floating-bonus';
+                floatEl.innerText = `+${happyGain} 幸福`;
+                floatEl.style.left = `${rect.left + 20}px`;
+                floatEl.style.top = `${rect.top}px`;
+                floatEl.style.color = '#E91E63';
+                document.body.appendChild(floatEl);
+                setTimeout(() => floatEl.remove(), 1000);
             }
-            if (TEACHER.offWorkEnergy >= 1) {
-                TEACHER.offWorkEnergy -= 1; TEACHER.hasEntertainedTonight = true; TEACHER.dailyStats.entertained = true;
-                const happyGain = Math.floor(Math.random() * 3) + 6; changeHappiness(happyGain); 
-                const endBtn = document.getElementById('btn-end-day'); endBtn.innerText = "💤 睡覺 (明日 +1 心力)";
-                updateOffWorkUI();
+        });
+    }
+}
+// 睡覺過渡黑屏動畫
+function playSleepAnimation(onComplete) {
+    const overlay = document.getElementById('sleep-overlay');
+    const offwork = document.getElementById('offwork-overlay');
+    const summary = document.getElementById('summary-overlay');
+    
+    if(offwork) offwork.style.display = 'none';
+    if(summary) summary.style.display = 'none';
+    
+    if(overlay) {
+        overlay.style.display = 'flex';
+        overlay.style.opacity = 0;
+        gsap.to(overlay, { opacity: 1, duration: 1.0, onComplete: () => {
+            setTimeout(() => {
+                gsap.to(overlay, { opacity: 0, duration: 0.5, onComplete: () => {
+                    overlay.style.display = 'none';
+                    if(onComplete) onComplete();
+                }});
+            }, 1500); // 停留黑屏 1.5 秒
+        }});
+    } else {
+        if(onComplete) onComplete();
+    }
+}
+
+
+// --------------------------------------------------------
+// 2. 2D 文字工具函數
+// --------------------------------------------------------
+
+function create2DLabel(text, worldPos, color = "#fff") {
+    const div = document.createElement('div');
+    div.className = 'interaction-label';
+    div.innerText = text;
+    div.style.color = color;
+    document.body.appendChild(div);
+    activeLabels.push({ el: div, pos: worldPos });
+    return div;
+}
+
+function create2DFeedback(text, worldPos, color = "#E91E63") {
+    const div = document.createElement('div');
+    div.className = 'floating-text-2d';
+    div.innerText = text;
+    div.style.color = color;
+    update2DPosition(div, worldPos);
+    document.body.appendChild(div);
+    setTimeout(() => { div.remove(); }, 1500);
+}
+
+function update2DPosition(el, worldPos) {
+    const vec = worldPos.clone();
+    vec.project(camera);
+    const x = (vec.x * .5 + .5) * window.innerWidth;
+    const y = (vec.y * -.5 + .5) * window.innerHeight;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+}
+
+function clear2DLabels() {
+    activeLabels.forEach(item => item.el.remove());
+    activeLabels = [];
+}
+
+
+
+
+// 新增：原地重擊蓋章特效 (不會向上飄)
+function create2DStamp(text, worldPos, color = "#C0392B") {
+    const div = document.createElement('div');
+    div.className = 'fixed-stamp-2d';
+    div.innerText = text;
+    div.style.color = color;
+    div.style.border = `8px solid ${color}`;
+    div.style.borderRadius = "20px";
+    div.style.padding = "10px 20px";
+    
+    update2DPosition(div, worldPos);
+    document.body.appendChild(div);
+    
+    // 動畫結束後移除
+    setTimeout(() => { div.remove(); }, 1000);
+}
+
+
+
+
+
+
+
+        
+// --------------------------------------------------------
+// 3. 互動場景管理器
+// --------------------------------------------------------
+
+
+
+        
+function startInteractiveSession(type, onComplete, param = null) {
+    if (isInteracting) return;
+    isInteracting = true;
+
+    // 1. 保存當前相機狀態
+    savedCameraState.pos.copy(camera.position);
+    savedCameraState.target.copy(controls.target);
+
+    // 2. 隱藏所有 UI
+    document.getElementById('top-dashboard').style.display = 'none';
+    document.getElementById('labels-container').style.display = 'none';
+    document.getElementById('offwork-overlay').style.display = 'none'; // 暫時隱藏下班介面 (如果是從下班進來的)
+    document.getElementById('report-overlay').style.display = 'none'; 
+    document.querySelector('.copyright-footer').style.display = 'none';
+
+    // 3. 建立互動場景群組
+    entGroup = new THREE.Group();
+    entGroup.position.set(0, 500, 0); 
+    scene.add(entGroup);
+
+    // 4. 響應式相機設置 (移動到高空場景)
+    const isMobile = window.innerWidth < 800;
+    const camTargetY = 504; 
+    const camY = isMobile ? 525 : 518; 
+    const camZ = isMobile ? 18 : 12;   
+    
+    gsap.to(camera.position, { x: 0, y: camY, z: camZ, duration: 1.0, ease: "power2.inOut" });
+    gsap.to(controls.target, { x: 0, y: camTargetY, z: 0, duration: 1.0, ease: "power2.inOut" });
+
+   // 5. 生成對應場景 (路由)
+    let interactionLogic = null;
+    if (type === 'read') interactionLogic = setupReadingInteraction(entGroup, finish);
+    else if (type === 'sport') interactionLogic = setupSportInteraction(entGroup, finish);
+    else if (type === 'movie') interactionLogic = setupMovieInteraction(entGroup, finish);
+    else if (type === 'shopping') interactionLogic = setupShoppingInteraction(entGroup, finish);
+    else if (type === 'dinner') interactionLogic = setupDinnerInteraction(entGroup, finish);
+    else if (type === 'grading') interactionLogic = setupGradingInteraction(entGroup, finish, param);
+    else if (type === 'admin') interactionLogic = setupAdminInteraction(entGroup, finish); // ★ 確保這裡有行政路由
+
+    // 啟動 2D 標籤位置更新循環
+    const updateLabelsLoop = () => {
+        if (!isInteracting) return;
+        activeLabels.forEach(item => update2DPosition(item.el, item.pos));
+        requestAnimationFrame(updateLabelsLoop);
+    };
+    updateLabelsLoop();
+
+    // 點擊事件監聽
+    const handler = (e) => {
+        if (!interactionLogic) return;
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(entGroup.children, true);
+        if (intersects.length > 0) {
+            interactionLogic(intersects[0].object);
+        }
+    };
+    window.addEventListener('pointerup', handler);
+
+    // === 6. 結束與清理函數 (修正重點在此) ===
+    function finish() {
+        window.removeEventListener('pointerup', handler);
+        clear2DLabels(); // 清除文字
+        
+        // 縮小並移除場景
+        gsap.to(entGroup.scale, { x: 0, y: 0, z: 0, duration: 0.5, onComplete: () => {
+            scene.remove(entGroup);
+            entGroup = null;
+            
+            // ★★★ 修正邏輯：判斷應該回到哪個介面 ★★★
+            // 如果是 'admin'，或者是在日間進行的 'grading'，都應該視為日間工作，回到 Dashboard。
+            // 只有那些純娛樂 (dinner, movie...) 或是從下班介面觸發的 grading 才視為下班活動。
+            
+            // 下班介面原本是開啟的嗎？(如果是從下班按鈕進來，offwork-overlay 應該不是 none，但我們在第2步把它 none 了...)
+            // 更穩定的做法：明確列出哪些是日間活動
+            const isDaytimeActivity = (type === 'admin') || (type === 'grading' && document.getElementById('btn-offwork').style.display !== 'none');
+            
+            // 如果是日間活動，恢復主控台
+            if (isDaytimeActivity) { 
+                document.getElementById('top-dashboard').style.display = 'flex';
+                document.getElementById('labels-container').style.display = 'block';
+                document.querySelector('.copyright-footer').style.display = 'block';
+            }
+
+            // 相機歸位
+            gsap.to(camera.position, { 
+                x: savedCameraState.pos.x, 
+                y: savedCameraState.pos.y, 
+                z: savedCameraState.pos.z, 
+                duration: 1.0 
+            });
+            gsap.to(controls.target, { 
+                x: savedCameraState.target.x, 
+                y: savedCameraState.target.y, 
+                z: savedCameraState.target.z, 
+                duration: 1.0, 
+                onComplete: () => {
+                    isInteracting = false;
+                    
+                    // 如果不是日間活動 (即下班娛樂)，則重新顯示下班介面
+                    if (!isDaytimeActivity) {
+                        document.getElementById('offwork-overlay').style.display = 'flex';
+                    }
+                    
+                    // 執行回調 (這裡會觸發扣血和顯示「徒勞無功」)
+                    if (onComplete) onComplete();
+                }
+            });
+        }});
+    }
+}
+// --------------------------------------------------------
+// 4. 各互動場景實作
+// --------------------------------------------------------
+
+// 1. 閱讀 (Constraint 5: 抽象文字頁面 + 明顯翻頁)
+function setupReadingInteraction(group, onDone) {
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 0.5, 32), new THREE.MeshStandardMaterial({color: 0xD3D4D0}));
+    table.position.y = -0.5;
+    group.add(table);
+
+    const bookGroup = new THREE.Group();
+    group.add(bookGroup);
+
+    // 書皮
+    const coverMat = new THREE.MeshStandardMaterial({ color: 0x6E7C7C, roughness: 0.8 });
+    const coverGeo = new THREE.BoxGeometry(6.2, 0.2, 4.2);
+    const cover = new THREE.Mesh(coverGeo, coverMat);
+    cover.position.y = 0.1;
+    bookGroup.add(cover);
+
+    // --- 製作抽象文字貼圖 ---
+    const createPageTexture = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        
+        // 背景微黃
+        ctx.fillStyle = '#FFFAFA'; 
+        ctx.fillRect(0, 0, 256, 256);
+        
+        // 繪製抽象線條 (模擬文字)
+        ctx.fillStyle = '#333';
+        const lineHeight = 12;
+        for(let y = 20; y < 240; y += lineHeight * 1.5) {
+            let x = 20;
+            while(x < 230) {
+                const wordWidth = Math.random() * 30 + 5;
+                if (x + wordWidth > 236) break;
+                // 畫一條灰線代表文字
+                ctx.fillRect(x, y, wordWidth, 4);
+                x += wordWidth + 8;
             }
         }
+        
+        // 加上頁碼
+        ctx.font = '10px Arial';
+        ctx.fillText('-', 120, 250);
+        
+        return new THREE.CanvasTexture(canvas);
+    };
+    const pageTex = createPageTexture();
+
+    // 頁面材質 (使用貼圖)
+    const pageMat = new THREE.MeshStandardMaterial({ 
+        map: pageTex,
+        roughness: 0.5,
+        side: THREE.DoubleSide // 確保雙面可見
+    });
+    // 側面材質 (純白，模擬紙張厚度)
+    const sideMat = new THREE.MeshStandardMaterial({ color: 0xEEEEEE });
+    const bookMaterials = [sideMat, sideMat, pageMat, sideMat, sideMat, sideMat]; // 只有 Top 面有字
+
+    // 左側堆疊
+    const leftStack = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.3, 3.8), bookMaterials);
+    leftStack.position.set(-1.5, 0.35, 0);
+    bookGroup.add(leftStack);
+
+    // 右側堆疊
+    const rightStack = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.3, 3.8), bookMaterials);
+    rightStack.position.set(1.5, 0.35, 0);
+    bookGroup.add(rightStack);
+
+    // 翻動的頁面 (Pivot Group)
+    const pagePivot = new THREE.Group();
+    pagePivot.position.set(0, 0.35, 0); 
+    bookGroup.add(pagePivot);
+    
+    // 翻動頁本體 (雙面都有字)
+    const flyPageGeo = new THREE.BoxGeometry(2.9, 0.02, 3.8); // 很薄
+    const flyPage = new THREE.Mesh(flyPageGeo, [sideMat, sideMat, pageMat, pageMat, sideMat, sideMat]); // Top & Bottom 都有字
+    flyPage.position.set(1.45, 0, 0); 
+    pagePivot.add(flyPage);
+
+    // 2D 文字
+    const labelPos = new THREE.Vector3(0, 502, -2);
+    const instruction = create2DLabel("點擊翻書 (3次)", labelPos, "#6E7C7C");
+
+    let flips = 0;
+    let isAnimating = false;
+
+    return (obj) => {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        // 重置頁面角度到右邊
+        pagePivot.rotation.z = 0;
+        
+        // 翻頁動畫
+        gsap.to(pagePivot.rotation, { 
+            z: Math.PI - 0.1, // 翻到左邊
+            duration: 0.6, 
+            ease: "power2.inOut",
+            onComplete: () => {
+                // 瞬間重置回右邊 (模擬下一頁準備好)
+                pagePivot.rotation.z = 0;
+                isAnimating = false;
+                flips++;
+                
+                create2DFeedback("知識 +1", new THREE.Vector3(2, 503, 0), "#8F9E8B");
+                
+                if (flips >= 3) {
+                    instruction.innerText = "閱畢";
+                    instruction.style.color = "#8F9E8B";
+                    setTimeout(onDone, 600);
+                }
+            }
+        });
+    };
+}
+
+// ==========================================
+// 3. 吃飯互動 (高擬真壽司定食)
+// ==========================================
+function setupDinnerInteraction(group, onDone) {
+    // 莫蘭迪桌面
+    const table = new THREE.Mesh(new THREE.BoxGeometry(10, 0.5, 8), new THREE.MeshStandardMaterial({color: 0xD5C4A1}));
+    table.position.y = -0.5;
+    group.add(table);
+
+    // 壽司木板
+    const board = new THREE.Mesh(new THREE.BoxGeometry(6, 0.2, 4), new THREE.MeshStandardMaterial({color: 0x8F775B}));
+    board.position.y = 0;
+    group.add(board);
+
+    // 建立單件壽司的輔助函數
+    const createSushi = (x, z, color, name) => {
+        const sushiGroup = new THREE.Group();
+        sushiGroup.position.set(x, 0.1, z);
+
+        // 飯糰 (白色長方微圓角)
+        const rice = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 0.6), new THREE.MeshStandardMaterial({color: 0xFFFAFA, roughness: 1.0}));
+        rice.position.y = 0.25;
+
+        // 刺身/配料 (覆蓋在飯上)
+        const topping = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.2, 0.7), new THREE.MeshStandardMaterial({color: color}));
+        topping.position.y = 0.6;
+
+        sushiGroup.add(rice, topping);
+        sushiGroup.userData = { isFood: true, name: name };
+        return sushiGroup;
+    };
+
+    // 擺放三件莫蘭迪色系壽司 (鮭魚、玉子、鮪魚)
+    const s1 = createSushi(-1.8, 0, 0xE08A8A, "鮭魚壽司");
+    const s2 = createSushi(0, 0, 0xD4A017, "玉子燒壽司");
+    const s3 = createSushi(1.8, 0, 0xC47B7B, "鮪魚壽司");
+    board.add(s1, s2, s3);
+
+    const labelPos = new THREE.Vector3(0, 503, -3);
+    const instruction = create2DLabel("點擊壽司享用", labelPos, "#6E7C7C");
+
+    let eatenCount = 0;
+    return (obj) => {
+        // 尋找被點擊的壽司 Group
+        let target = obj;
+        while(target.parent && !target.userData.isFood && target.parent !== group) {
+            target = target.parent;
+        }
+
+        if (target && target.userData.isFood) {
+            // 吃掉動畫
+            gsap.to(target.scale, { x: 0, y: 0, z: 0, duration: 0.3, ease: "back.in" });
+            
+            // 獲取實際座標顯示文字
+            const worldPos = new THREE.Vector3();
+            target.getWorldPosition(worldPos);
+            // 微調 y 軸讓文字浮在原本上方
+            create2DFeedback("Yummy!", new THREE.Vector3(worldPos.x, 502, worldPos.z), "#D2691E");
+            
+            target.userData.isFood = false; 
+            eatenCount++;
+            
+            if (eatenCount >= 3) {
+                instruction.innerText = "多謝款待";
+                instruction.style.color = "#8F9E8B";
+                setTimeout(onDone, 800);
+            }
+        }
+    };
+}
+
+// 3. 電影
+function setupMovieInteraction(group, onDone) {
+    const room = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20), new THREE.MeshBasicMaterial({color: 0x111111, side: THREE.BackSide}));
+    group.add(room);
+
+    const screenGeo = new THREE.PlaneGeometry(10, 6);
+    const screenMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+    const screen = new THREE.Mesh(screenGeo, screenMat);
+    screen.position.set(0, 2, -5);
+    screen.rotation.x = 0.1;
+    group.add(screen);
+
+    const seatGeo = new THREE.BoxGeometry(1.5, 2, 1.5);
+    const seatMat = new THREE.MeshStandardMaterial({color: 0x6E7C7C});
+    for(let x=-4; x<=4; x+=2) {
+        const seat = new THREE.Mesh(seatGeo, seatMat);
+        seat.position.set(x, -2, 2);
+        group.add(seat);
+    }
+
+    const labelPos = new THREE.Vector3(0, 505, 0);
+    const instruction = create2DLabel("點擊螢幕觀賞", labelPos, "#AAAAAA");
+
+    const beamGeo = new THREE.ConeGeometry(8, 15, 32, 1, true);
+    const beamMat = new THREE.MeshBasicMaterial({ 
+        color: 0xFFFFFF, transparent: true, opacity: 0.1, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const beam = new THREE.Mesh(beamGeo, beamMat);
+    beam.rotation.x = -Math.PI / 2;
+    beam.position.set(0, 2, 2.5); 
+    group.add(beam);
+
+    let isWatching = false;
+
+    return (obj) => {
+        if (isWatching) return;
+        isWatching = true;
+        instruction.innerText = "觀賞中...";
+
+        const colors = [0xC89F9C, 0x8C9E9E, 0xD5C4A1, 0x111111];
+        const tl = gsap.timeline({
+            onComplete: () => {
+                screen.material.color.setHex(0x000000); 
+                beam.visible = false;
+                instruction.innerText = "劇終";
+                instruction.style.color = "#D5C4A1";
+                setTimeout(onDone, 1000);
+            }
+        });
+
+        colors.forEach(col => {
+            tl.to(screen.material.color, { r: new THREE.Color(col).r, g: new THREE.Color(col).g, b: new THREE.Color(col).b, duration: 1.0 });
+        });
+    };
+}
+
+// 4. 購物
+function setupShoppingInteraction(group, onDone) {
+    const labelPos = new THREE.Vector3(0, 504, -2);
+    const instruction = create2DLabel("點擊包包", labelPos, "#6E7C7C");
+
+    let caught = 0;
+    const maxBags = 4;
+
+    const spawnBag = () => {
+        if (caught >= maxBags) return;
+
+        const bagGroup = new THREE.Group();
+        const bagGeo = new THREE.CylinderGeometry(0.8, 0.6, 1.2, 4);
+        const color = getMorandiColor();
+        const bagMat = new THREE.MeshStandardMaterial({ color: color, flatShading: true });
+        const bag = new THREE.Mesh(bagGeo, bagMat);
+        bag.rotation.y = Math.PI / 4; 
+        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 8, 16, Math.PI), new THREE.MeshStandardMaterial({color: 0x333333}));
+        handle.position.y = 0.6;
+        bagGroup.add(bag, handle);
+        
+        bagGroup.position.set((Math.random()-0.5)*8, 8, (Math.random()-0.5)*2);
+        bagGroup.userData = { isBag: true };
+        group.add(bagGroup);
+
+        gsap.to(bagGroup.position, { y: -4, duration: 2.5, ease: "power1.in", onComplete: () => {
+            if (group.children.includes(bagGroup)) {
+                group.remove(bagGroup);
+                if (caught < maxBags) spawnBag();
+            }
+        }});
+        gsap.to(bagGroup.rotation, { y: Math.random()*2, duration: 2.5 });
+    };
+
+    spawnBag();
+
+    return (obj) => {
+        let target = obj;
+        while(target.parent && target.parent !== group) target = target.parent;
+
+        if (target.userData.isBag) {
+            create2DFeedback("Get!", target.position, "#C89F9C");
+            group.remove(target);
+            caught++;
+            if (caught >= maxBags) {
+                instruction.innerText = "滿載而歸";
+                instruction.style.color = "#C89F9C";
+                setTimeout(onDone, 800);
+            } else {
+                spawnBag();
+            }
+        }
+    };
+}
+
+// 1. 批改 (超顯眼紅色「閱」字蓋章)
+// === 修訂版：批改互動 (修正文字清晰度) ===
+function setupGradingInteraction(group, onDone, count = 1) {
+    const table = new THREE.Mesh(new THREE.BoxGeometry(12, 0.5, 8), new THREE.MeshStandardMaterial({color: 0x6E7C7C}));
+    table.position.y = -0.5;
+    group.add(table);
+
+    const paperGroup = new THREE.Group();
+    group.add(paperGroup);
+
+    const papers =[];
+    for(let i=0; i<count; i++) {
+        const paper = new THREE.Mesh(new THREE.PlaneGeometry(3, 4), new THREE.MeshStandardMaterial({color: 0xFFFFFF, side: THREE.DoubleSide}));
+        paper.rotation.x = -Math.PI / 2;
+        paper.position.set(0, i * 0.05, 0);
+        paper.rotation.z = (Math.random() - 0.5) * 0.2;
+        paperGroup.add(paper);
+        papers.push(paper);
+    }
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.9 });
+    const stampGroup = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.4, 32), woodMat);
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.2, 16), woodMat);
+    handle.position.y = 0.8;
+    const topNode = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), woodMat);
+    topNode.position.y = 1.4;
+    
+    stampGroup.add(base, handle, topNode);
+    stampGroup.position.set(4, 2, 0); 
+    stampGroup.rotation.z = 0.5; 
+    group.add(stampGroup);
+
+    // ★ 修改點 3：文字顏色改為深黑色 ★
+    const labelPos = new THREE.Vector3(0, 503, -3);
+    const instruction = create2DLabel("點擊蓋章", labelPos, "#111111"); // 改用深黑色，對比度最高
+    instruction.style.fontWeight = "bold"; // 加粗
+
+    let currentIndex = count - 1;
+    let isStamping = false;
+
+    return (obj) => {
+        if (isStamping || currentIndex < 0) return;
+        isStamping = true;
+
+        const targetPaper = papers[currentIndex];
+        
+        const tl = gsap.timeline({
+            onComplete: () => {
+                gsap.to(targetPaper.position, { x: -8, y: targetPaper.position.y + 2, z: -5, opacity: 0, duration: 0.5 });
+                gsap.to(targetPaper.rotation, { z: Math.random(), duration: 0.5 });
+                
+                currentIndex--;
+                isStamping = false;
+                
+                if (currentIndex < 0) {
+                    instruction.innerText = "完成";
+                    instruction.style.color = "#333";
+                    setTimeout(onDone, 800);
+                }
+            }
+        });
+
+        tl.to(stampGroup.position, { x: 0, y: 1.5, z: 0, duration: 0.2 });
+        tl.to(stampGroup.rotation, { z: 0, duration: 0.2 }, "<");
+        tl.to(stampGroup.position, { y: 0.2 + (currentIndex * 0.05), duration: 0.1, ease: "power1.in" });
+        tl.call(() => {
+            const stampWorldPos = new THREE.Vector3();
+            targetPaper.getWorldPosition(stampWorldPos);
+            stampWorldPos.y = 502; 
+            
+            create2DStamp("閱", stampWorldPos, "#C0392B");
+        });
+        tl.to(stampGroup.position, { x: 4, y: 2, z: 0, duration: 0.3, ease: "back.out" });
+        tl.to(stampGroup.rotation, { z: 0.5, duration: 0.3 }, "<");
+    };
+}
+
+// 2. 新增：行政 (敲擊鍵盤處理文件)
+// === 修訂版：行政互動 (修正文字顏色與清晰度) ===
+function setupAdminInteraction(group, onDone) {
+    // 1. 建立莫蘭迪色系辦公桌
+    const table = new THREE.Mesh(
+        new THREE.BoxGeometry(14, 0.5, 9), 
+        new THREE.MeshStandardMaterial({color: 0x8F9E8B}) 
+    );
+    table.position.y = -0.5;
+    group.add(table);
+
+    // 2. 電腦螢幕組
+    const monitorGroup = new THREE.Group();
+    group.add(monitorGroup);
+
+    // 底座與支架
+    const monitorBase = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 2), new THREE.MeshStandardMaterial({color: 0x333333}));
+    monitorBase.position.set(0, 0, -2);
+    const monitorStand = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.5), new THREE.MeshStandardMaterial({color: 0x555555}));
+    monitorStand.position.set(0, 0.8, -2);
+    
+    // 螢幕本體
+    const monitorScreen = new THREE.Mesh(new THREE.BoxGeometry(7, 4, 0.4), new THREE.MeshStandardMaterial({color: 0x222222}));
+    monitorScreen.position.set(0, 2.8, -1.5);
+    
+    // 發光螢幕面
+    const screenFace = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 3.6), new THREE.MeshBasicMaterial({color: 0x0a192f}));
+    screenFace.position.set(0, 2.8, -1.29);
+    
+    monitorGroup.add(monitorBase, monitorStand, monitorScreen, screenFace);
+
+    // 3. 鍵盤
+    const keyboard = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.3, 1.8), new THREE.MeshStandardMaterial({color: 0xD3D4D0}));
+    keyboard.position.set(0, 0, 1.5); 
+    keyboard.rotation.x = 0.1;
+    keyboard.userData = { isKeyboard: true }; 
+    
+    const keyDetail = new THREE.Mesh(new THREE.PlaneGeometry(4, 1.2), new THREE.MeshBasicMaterial({color: 0x999999}));
+    keyDetail.position.set(0, 0.16, 0);
+    keyDetail.rotation.x = -Math.PI/2;
+    keyboard.add(keyDetail);
+    
+    group.add(keyboard);
+
+    // 4. 文件堆
+    const paperStack = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 2.5), new THREE.MeshStandardMaterial({color: 0xFFFFFF}));
+    paperStack.position.set(-5, 0.75, 0);
+    paperStack.rotation.y = 0.2;
+    group.add(paperStack);
+
+    // ★ 修改重點：文字清晰度優化 ★
+    const labelPos = new THREE.Vector3(0, 506, -5); 
+    
+    // 1. 改用純白色 (#FFFFFF)
+    const instruction = create2DLabel("點擊鍵盤處理行政", labelPos, "#FFFFFF");
+    
+    // 2. 加上黑色文字陰影/描邊，確保在任何背景都清晰可見
+    instruction.style.textShadow = "0px 0px 4px #000000, 1px 1px 2px #000000"; 
+    instruction.style.fontWeight = "bold"; 
+    instruction.style.whiteSpace = "nowrap";
+
+    let clicks = 0;
+    let isTyping = false;
+    const requiredClicks = 5;
+
+    return (obj) => {
+        let target = obj;
+        while(target.parent && !target.userData.isKeyboard && target.parent !== group) {
+            target = target.parent;
+        }
+
+        if (target.userData.isKeyboard) {
+            if (isTyping) return;
+            isTyping = true;
+            clicks++;
+
+            // 鍵盤動畫
+            gsap.to(keyboard.position, {
+                y: -0.2, duration: 0.05, yoyo: true, repeat: 1, 
+                onComplete: () => isTyping = false
+            });
+
+            // 螢幕顯示代碼行
+            const line = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.15), new THREE.MeshBasicMaterial({color: 0x64ffda}));
+            line.position.set(0, 4.2 - (clicks * 0.5), -1.28); 
+            group.add(line);
+            
+            create2DFeedback("Processing...", new THREE.Vector3(0, 503, 1.5), "#64ffda");
+
+            if (clicks >= requiredClicks) {
+                // 互動畫面內直接顯示結果
+                instruction.innerText = "徒勞無功，毫無收穫。";
+                instruction.style.color = "#FF4444"; // 亮紅色，強調警告意味
+                instruction.style.fontSize = "24px"; 
+                instruction.style.textShadow = "0px 0px 10px #000000"; // 強烈陰影
+
+                // 螢幕變黑
+                setTimeout(() => {
+                    screenFace.material.color.setHex(0x000000);
+                    group.remove(...group.children.filter(c => c.geometry && c.geometry.type === 'PlaneGeometry' && c.position.z === -1.28));
+                }, 400);
+
+                setTimeout(onDone, 2500);
+            }
+        }
+    };
+}
+        
+// 6. 運動
+function setupSportInteraction(group, onDone) {
+    const mat = new THREE.Mesh(new THREE.BoxGeometry(4, 0.2, 8), new THREE.MeshStandardMaterial({color: 0x8C9E9E}));
+    mat.position.y = -0.5;
+    group.add(mat);
+
+    const dumbbell = new THREE.Group();
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 5, 16), new THREE.MeshStandardMaterial({color: 0x6E7C7C}));
+    bar.rotation.z = Math.PI / 2;
+    const wGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 32);
+    const wMat = new THREE.MeshStandardMaterial({color: 0x333333});
+    const w1 = new THREE.Mesh(wGeo, wMat); w1.rotation.z = Math.PI/2; w1.position.x = -2;
+    const w2 = new THREE.Mesh(wGeo, wMat); w2.rotation.z = Math.PI/2; w2.position.x = 2;
+    dumbbell.add(bar, w1, w2);
+    group.add(dumbbell);
+
+    const labelPos = new THREE.Vector3(0, 503, -2);
+    const instruction = create2DLabel("點擊舉重 (5下)", labelPos, "#D5C4A1");
+
+    let reps = 0;
+    let isLifting = false;
+
+    return (obj) => {
+        if (isLifting) return;
+        isLifting = true;
+        reps++;
+
+        gsap.to(dumbbell.position, { y: 3, duration: 0.4, ease: "power2.out", yoyo: true, repeat: 1, onComplete: () => {
+            isLifting = false;
+            create2DFeedback(reps.toString(), new THREE.Vector3(0, 504, 0), "#fff");
+            
+            if (reps >= 5) {
+                instruction.innerText = "燃燒！";
+                instruction.style.color = "#C0392B";
+                setTimeout(onDone, 600);
+            }
+        }});
+    };
+}
+
+
+
+// 6. 睡覺 (自動播放修復版 - Critique 4)
+function setupSleepInteraction(group, onDone) {
+    // 全黑遮罩 (固定在相機前)
+    const veilGeo = new THREE.PlaneGeometry(100, 100);
+    const veilMat = new THREE.MeshBasicMaterial({color: 0x000000, transparent: true, opacity: 0, depthTest: false});
+    const veil = new THREE.Mesh(veilGeo, veilMat);
+    // 讓遮罩始終面對相機並填滿視野
+    veil.position.set(0, 5, 5); 
+    veil.lookAt(camera.position);
+    group.add(veil); // 注意：這裡還是加在 group，但靠位置覆蓋
+
+    // Zzz 文字 (初始隱藏)
+    const zText = create3DText("Z z z ...", group, 0, 2, 0, 0xFFFFFF);
+    zText.material.opacity = 0;
+    zText.position.y += 500; // 修正高度
+
+    // 自動執行序列
+    const tl = gsap.timeline({
+        onComplete: onDone
+    });
+
+    // 1. 漸黑
+    tl.to(veil.material, { opacity: 1, duration: 1.5 });
+    // 2. 出現 Zzz
+    tl.to(zText.material, { opacity: 1, duration: 0.5, yoyo: true, repeat: 3 }); // 閃爍 Zzz
+    // 3. 停頓
+    tl.to({}, { duration: 1.0 });
+
+    // 回傳空函數，因為是自動播放，不接受點擊
+    return () => {};
+}
+
+// 7. 運動 (舉啞鈴)
+function setupSportInteraction(group, onDone) {
+    // 地板
+    const mat = new THREE.Mesh(new THREE.BoxGeometry(4, 0.2, 8), new THREE.MeshStandardMaterial({color: 0x8C9E9E}));
+    mat.position.y = -0.5;
+    group.add(mat);
+
+    // 啞鈴
+    const dumbbell = new THREE.Group();
+    // 握把
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 5, 16), new THREE.MeshStandardMaterial({color: 0x6E7C7C}));
+    bar.rotation.z = Math.PI / 2;
+    // 重片
+    const wGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 32);
+    const wMat = new THREE.MeshStandardMaterial({color: 0x333333});
+    const w1 = new THREE.Mesh(wGeo, wMat); w1.rotation.z = Math.PI/2; w1.position.x = -2;
+    const w2 = new THREE.Mesh(wGeo, wMat); w2.rotation.z = Math.PI/2; w2.position.x = 2;
+    dumbbell.add(bar, w1, w2);
+    
+    group.add(dumbbell);
+
+    create3DText("點擊舉重 (5下)", group, 0, 4, -3, 0xD5C4A1);
+
+    let reps = 0;
+    let isLifting = false;
+
+    return (obj) => {
+        if (isLifting) return;
+        isLifting = true;
+        reps++;
+
+        // 舉重動作
+        gsap.to(dumbbell.position, { y: 3, duration: 0.4, ease: "power2.out", yoyo: true, repeat: 1, onComplete: () => {
+            isLifting = false;
+            createFloatingText(reps.toString(), group, 0, 3, 0);
+            if (reps >= 5) {
+                create3DText("燃燒！", group, 0, 4, 0, 0xC0392B);
+                setTimeout(onDone, 600);
+            }
+        }});
+    };
+}
+
+// --- 輔助：3D 文字生成 (使用 Canvas) ---
+function create3DText(text, parent, x, y, z, color = 0xFFFFFF) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    
+    // 清空
+    ctx.clearRect(0, 0, 512, 128);
+    
+    ctx.font = 'bold 80px "Noto Serif TC", serif'; // 配合遊戲字體
+    ctx.fillStyle = '#' + new THREE.Color(color).getHexString();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = "rgba(0,0,0,0.3)";
+    ctx.shadowBlur = 4;
+    ctx.fillText(text, 256, 64);
+    
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 2.5), mat);
+    
+    // 面向相機 (注意：相機現在是斜視，所以文字要立起來或調整角度)
+    // 簡單做法：讓文字 billboarding 或者固定角度
+    // 這裡我們固定角度，稍微後仰
+    mesh.rotation.x = -0.2; 
+    mesh.position.set(x, y, z);
+    parent.add(mesh);
+    return mesh;
+}
+
+function createFloatingText(text, parent, x, y, z) {
+    const mesh = create3DText(text, parent, x, y, z, 0xFFD700);
+    gsap.to(mesh.position, { y: y + 3, duration: 0.8 });
+    gsap.to(mesh.material, { opacity: 0, duration: 0.8, onComplete: () => parent.remove(mesh) });
+}
+
+        
         document.getElementById('btn-holiday-rest').addEventListener('click', () => {
             const amount = parseInt(document.getElementById('rng-holiday-rest').value);
             TEACHER.maxEnergy += amount * 0.5; TEACHER.bonusEnergyNextDay = amount; changeHappiness(amount * 8);
@@ -2600,129 +3741,251 @@ function updateOffWorkUI() {
     document.getElementById('principal-msg').innerText = "你的教書生涯到此結束。";
     document.getElementById('modal-overlay').style.display = 'flex';
 }
-        function showSummary() {
-            let startEnergy = 0;
-            if(!TEACHER.isHoliday) {
-                let base = TEACHER.maxEnergy; let bonus = (!TEACHER.hasEntertainedTonight) ? 2 : 1; let debt = TEACHER.energyDebt;
-                startEnergy = base + bonus - debt; if (startEnergy < 0) startEnergy = 0;
-                document.getElementById('sum-work').innerText = `行政 x${TEACHER.dailyStats.adminCount}, 批改餘 ${TEACHER.gradingPile}`;
-                document.getElementById('sum-fun').innerText = TEACHER.dailyStats.entertained ? "有" : "無";
-                const hChange = TEACHER.dailyStats.happyChange; const hEl = document.getElementById('sum-happy');
-                hEl.innerText = (hChange > 0 ? "+" : "") + hChange.toFixed(1);
-                hEl.className = hChange > 0 ? "summary-val val-pos" : (hChange < 0 ? "summary-val val-neg" : "summary-val val-neu");
-                document.getElementById('sum-pile').innerText = `+${TEACHER.dailyStats.workAdded} 份`;
-                document.getElementById('sum-energy').innerText = startEnergy.toFixed(1);
-                document.getElementById('offwork-overlay').style.display = 'none'; document.getElementById('summary-overlay').style.display = 'flex';
-            } else { document.getElementById('offwork-overlay').style.display = 'none'; performNextDayLogic(); }
-        }
-        document.getElementById('btn-confirm-summary').addEventListener('click', () => { document.getElementById('summary-overlay').style.display = 'none'; performNextDayLogic(); });
-        document.getElementById('btn-end-day').addEventListener('click', () => {
-            if (!TEACHER.isHoliday && TEACHER.daysInYear >= 3 && TEACHER.gradingPile > 0) { if (!confirm(`警告！學年即將結束，你還有 ${TEACHER.gradingPile} 份課業未批改。如果不現在批改，你將被學校解僱。確定要睡覺嗎？`)) return; }
-            if (!TEACHER.hasEntertainedTonight && !TEACHER.isHoliday) { TEACHER.bonusEnergyNextDay = 2; changeHappiness(5); TEACHER.dailyStats.happyChange += 5; } 
-            else if (TEACHER.hasEntertainedTonight) { TEACHER.bonusEnergyNextDay = 1; changeHappiness(3); TEACHER.dailyStats.happyChange += 3; }
-            showSummary();
+       function showSummary() {
+    if(!TEACHER.isHoliday) {
+        let base = TEACHER.maxEnergy; 
+        
+        // 核心邏輯：直接讀取已經設定好的 bonusEnergyNextDay (+1 或 +3)
+        let bonus = TEACHER.bonusEnergyNextDay; 
+        let debt = TEACHER.energyDebt;
+        let startEnergy = base + bonus - debt; 
+        if (startEnergy < 0) startEnergy = 0;
+        
+        document.getElementById('sum-work').innerText = `行政 x${TEACHER.dailyStats.adminCount}, 批改餘 ${TEACHER.gradingPile}`;
+        document.getElementById('sum-fun').innerText = TEACHER.dailyStats.entertained ? "有" : "無";
+        
+        const hChange = TEACHER.dailyStats.happyChange; 
+        const hEl = document.getElementById('sum-happy');
+        hEl.innerText = (hChange > 0 ? "+" : "") + hChange.toFixed(1);
+        hEl.className = hChange > 0 ? "summary-val val-pos" : (hChange < 0 ? "summary-val val-neg" : "summary-val val-neu");
+        
+        document.getElementById('sum-pile').innerText = `+${TEACHER.dailyStats.workAdded} 份`;
+        document.getElementById('sum-energy').innerText = startEnergy.toFixed(1);
+        
+        document.getElementById('offwork-overlay').style.display = 'none'; 
+        document.getElementById('summary-overlay').style.display = 'flex';
+    } else { 
+        // 假期結束，直接播黑屏動畫
+        document.getElementById('offwork-overlay').style.display = 'none'; 
+        playSleepAnimation(() => {
+            performNextDayLogic(); 
         });
-        function performNextDayLogic() {
-            if (TEACHER.isHoliday) { TEACHER.isHoliday = false; startNewYear(); } 
-            else { if (TEACHER.daysInYear >= 3) { if (TEACHER.gradingPile > 0) { showGameOver(`本學年結束時，你仍積壓了 ${TEACHER.gradingPile} 份課業未批改。你被解僱了。`); return; } startHoliday(); } else { TEACHER.daysInYear++; startNextDay(); } }
-        }
-       function startNextDay() {
-            const newWork = Math.floor(Math.random() * 3) + 1; TEACHER.gradingPile += newWork;
-            TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: newWork, complaintLoss: 0 };
-            changeHappiness(-5);
-            let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; TEACHER.bonusEnergyNextDay = 0; 
-            if (TEACHER.energyDebt > 0) { netEnergy -= TEACHER.energyDebt; setStatus(`新的一天：${TEACHER.daysInYear}/3。償還昨日透支 ${TEACHER.energyDebt.toFixed(1)} 心力。`, true); TEACHER.energyDebt = 0; if (netEnergy < 0) netEnergy = 0; } 
-            else { setStatus(`新的一天：${TEACHER.daysInYear}/3。精力充沛！`); }
-            
-            // ▼▼▼ 刪除或註釋掉下面這一行 ▼▼▼
-            // hasDoneAdmin = false;  <-- 這行導致每一天都會重置行政狀態
-            // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    }
+}
 
-            TEACHER.currentEnergy = netEnergy; 
-            // hasDoneAdmin = false; // 應該刪除這裡，只保留在 updateUI(); 
-            updateUI();
+// ----------------------------------------------------
+// 按鈕監聽器覆寫 (必須替換原有的 onclick)
+// ----------------------------------------------------
+
+// 1. 下方藍色「睡覺」大按鍵 (固定只加 1 點心力)
+document.getElementById('btn-end-day').onclick = () => {
+    if (!TEACHER.isHoliday) {
+        if (TEACHER.daysInYear >= 3 && TEACHER.gradingPile > 0) { 
+            if (!confirm(`警告！學年即將結束，你還有 ${TEACHER.gradingPile} 份課業未批改。如果不現在批改，你將被學校解僱。確定要睡覺嗎？`)) return; 
         }
-     function startNewYear() {
-            if (document.getElementById('modal-overlay').style.display === 'flex') return;
-            
-            TEACHER.age++; 
-            if (TEACHER.age > 60) { 
-                document.getElementById('disp-age').innerText = TEACHER.age; 
-                showRetirement(); 
+        // 下方的藍色睡覺鍵，固定給予 +1 點心力
+        TEACHER.bonusEnergyNextDay = 1; 
+    } else {
+        TEACHER.bonusEnergyNextDay = 0; // 放假自然推進不加額外心力
+    }
+    
+    showSummary(); // 打開結算表
+};
+
+// 2. 結算報告上的「迎接新的一天」 (加入黑屏睡覺過渡)
+document.getElementById('btn-confirm-summary').onclick = () => { 
+    document.getElementById('summary-overlay').style.display = 'none'; 
+    // 強制播放黑屏動畫，播完再推進新的一天
+    playSleepAnimation(() => {
+        performNextDayLogic(); 
+    });
+};
+
+// 3. 假期「好好休息」按鈕 (修復原本會錯誤覆蓋心力的 BUG)
+document.getElementById('btn-holiday-rest').onclick = () => {
+    const amount = parseInt(document.getElementById('rng-holiday-rest').value);
+    TEACHER.maxEnergy += amount * 0.5; 
+    TEACHER.bonusEnergyNextDay = amount; // 假期休息的回復量
+    changeHappiness(amount * 8);
+    
+    // 直接進入結算與黑屏，不經過 btn-end-day
+    showSummary(); 
+};
+       // ==========================================
+// 核心流程修復：確保新一天 UI 與相機重置
+// ==========================================
+
+function performNextDayLogic() {
+    // 確保所有遮罩關閉
+    document.getElementById('offwork-overlay').style.display = 'none';
+    document.getElementById('sleep-overlay').style.display = 'none';
+    document.getElementById('summary-overlay').style.display = 'none';
+
+    // 強制恢復主介面 (修復 BUG 的關鍵)
+    document.getElementById('top-dashboard').style.display = 'flex';
+    document.getElementById('labels-container').style.display = 'block';
+    document.querySelector('.copyright-footer').style.display = 'block';
+
+    if (TEACHER.isHoliday) { 
+        TEACHER.isHoliday = false; 
+        startNewYear(); 
+    } else { 
+        if (TEACHER.daysInYear >= 3) { 
+            if (TEACHER.gradingPile > 0) { 
+                showGameOver(`本學年結束時，你仍積壓了 ${TEACHER.gradingPile} 份課業未批改。你被解僱了。`); 
                 return; 
-            }
-            
-            calcMaxEnergy(); 
-            if (currentGradeIndex < 5) currentGradeIndex++;
-            TEACHER.daysInYear = 1; 
-            
-            if (GAME_MODE === 'partial') TEACHER.recoveriesLeft = 3;
-            
-            // 計算新學年初始心力
-            let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
-            
-            if (GAME_MODE === 'full') { 
-                TEACHER.gradingPile += 2; 
-                TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 }; 
-            }
-            
-            // === 修正：嚴格執行債務扣除 ===
-            let statusMsg = `新學年：${GRADES[currentGradeIndex]}。`;
-            
-            if (TEACHER.energyDebt > 0) { 
-                if (netEnergy >= TEACHER.energyDebt) {
-                    // 足夠還債
-                    netEnergy -= TEACHER.energyDebt; 
-                    statusMsg += ` (已從初始心力扣除 ${TEACHER.energyDebt.toFixed(1)} 透支)`;
-                    TEACHER.energyDebt = 0; 
-                } else {
-                    // 不足還債
-                    TEACHER.energyDebt -= netEnergy;
-                    netEnergy = 0;
-                    statusMsg += ` (心力全數抵債，仍欠 ${TEACHER.energyDebt.toFixed(1)}...)`;
-                }
-            }
-            // ==========================
-            
-            TEACHER.currentEnergy = netEnergy; 
-            TEACHER.bonusEnergyNextDay = 0; 
-            hasDoneAdmin = false; 
-            randomizeStudentNeed();
-            
-            // 全屏幕學年通知
-            const gradeText = GRADES[currentGradeIndex];
-            const notifEl = document.getElementById('year-notification');
-            if (notifEl) {
-                const titleEl = document.getElementById('notif-title');
-                const descEl = document.getElementById('notif-desc');
-                titleEl.innerText = gradeText;
-                descEl.innerText = "新學年開始・教學加油";
-                notifEl.classList.add('active');
-                setTimeout(() => { notifEl.classList.remove('active'); }, 3000);
-            }
-            
-            setStatus(statusMsg, TEACHER.currentEnergy === 0);
-            
-            students.forEach(s => {
-                s.growGrade();
-                let change = 0;
-                if (s.type === STUDENT_TYPES.HIGH) change = Math.random()>0.6 ? Math.floor(Math.random()*3)+1 : -1;
-                else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random()*4+2);
-                else change = -Math.floor(Math.random()*5+6);
-                
-                if (change < 0) { 
-                    for(let i=0; i<Math.abs(change); i++) { 
-                        const p = s.landedParticles.pop(); 
-                        if(p) { scene.remove(p); particles = particles.filter(x=>x!==p); } 
-                    } 
-                } else { 
-                    for(let i=0; i<change; i++) spawnDirectLandedParticle(s); 
-                }
-                s.updateLabelText();
-            });
-            
-            updateUI();
+            } 
+            startHoliday(); 
+        } else { 
+            TEACHER.daysInYear++; 
+            startNextDay(); 
+        } 
+    }
+}
+
+function startNextDay() {
+    const newWork = Math.floor(Math.random() * 3) + 1; 
+    TEACHER.gradingPile += newWork;
+    TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: newWork, complaintLoss: 0 };
+    changeHappiness(-5);
+    
+    let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
+    TEACHER.bonusEnergyNextDay = 0; 
+    
+    if (TEACHER.energyDebt > 0) { 
+        netEnergy -= TEACHER.energyDebt; 
+        setStatus(`新的一天：${TEACHER.daysInYear}/3。償還昨日透支 ${TEACHER.energyDebt.toFixed(1)} 心力。`, true); 
+        TEACHER.energyDebt = 0; 
+        if (netEnergy < 0) netEnergy = 0; 
+    } else { 
+        setStatus(`新的一天：${TEACHER.daysInYear}/3。精力充沛！`); 
+    }
+    
+    TEACHER.currentEnergy = netEnergy; 
+    updateUI();
+
+    // ★★★ 關鍵修復：強制相機回到教室視角 ★★★
+    updateCamera(students.length);
+}
+
+function startNewYear() {
+    if (document.getElementById('modal-overlay').style.display === 'flex') return;
+    
+    // 確保 UI 顯示
+    document.getElementById('top-dashboard').style.display = 'flex';
+    document.getElementById('labels-container').style.display = 'block';
+
+    TEACHER.age++; 
+    if (TEACHER.age > 60) { 
+        document.getElementById('disp-age').innerText = TEACHER.age; 
+        showRetirement(); 
+        return; 
+    }
+    
+    calcMaxEnergy(); 
+    if (currentGradeIndex < 5) currentGradeIndex++;
+    TEACHER.daysInYear = 1; 
+    
+    if (GAME_MODE === 'partial') TEACHER.recoveriesLeft = 3;
+    
+    let netEnergy = TEACHER.maxEnergy + TEACHER.bonusEnergyNextDay; 
+    
+    if (GAME_MODE === 'full') { 
+        TEACHER.gradingPile += 2; 
+        TEACHER.dailyStats = { happyChange: 0, adminCount: 0, entertained: false, workAdded: 2, complaintLoss: 0 }; 
+    }
+    
+    // 債務計算
+    let statusMsg = `新學年：${GRADES[currentGradeIndex]}。`;
+    if (TEACHER.energyDebt > 0) { 
+        if (netEnergy >= TEACHER.energyDebt) {
+            netEnergy -= TEACHER.energyDebt; 
+            statusMsg += ` (已扣除 ${TEACHER.energyDebt.toFixed(1)} 透支)`;
+            TEACHER.energyDebt = 0; 
+        } else {
+            TEACHER.energyDebt -= netEnergy;
+            netEnergy = 0;
+            statusMsg += ` (仍欠 ${TEACHER.energyDebt.toFixed(1)} 心力...)`;
         }
+    }
+    
+    TEACHER.currentEnergy = netEnergy; 
+    TEACHER.bonusEnergyNextDay = 0; 
+    hasDoneAdmin = false; 
+    randomizeStudentNeed();
+    
+    // 躺平狀態更新
+    let awakenedNames = [];
+    let relapsedNames = [];
+    
+    students.forEach(s => {
+        if (s.isOriginalUltraLow) {
+            if (Math.random() < 0.5) {
+                s.isUltraLow = !s.isUltraLow;
+                s.updateAvatarPose();
+                if (s.isUltraLow) relapsedNames.push(s.name);
+                else awakenedNames.push(s.name);
+            }
+        }
+        s.growGrade();
+        let change = 0;
+        if (s.type === STUDENT_TYPES.HIGH) change = Math.random()>0.6 ? Math.floor(Math.random()*3)+1 : -1;
+        else if (s.type === STUDENT_TYPES.AVG) change = -Math.floor(Math.random()*4+2);
+        else change = -Math.floor(Math.random()*5+6);
+        
+        if (change < 0) { 
+            for(let i=0; i<Math.abs(change); i++) { 
+                const p = s.landedParticles.pop(); 
+                if(p) { scene.remove(p); particles = particles.filter(x=>x!==p); } 
+            } 
+        } else { 
+            for(let i=0; i<change; i++) spawnDirectLandedParticle(s); 
+        }
+        s.updateLabelText();
+    });
+    
+    // 全屏通知
+    const gradeText = GRADES[currentGradeIndex];
+    const notifEl = document.getElementById('year-notification');
+    if (notifEl) {
+        const titleEl = document.getElementById('notif-title');
+        const descEl = document.getElementById('notif-desc');
+        titleEl.innerText = gradeText;
+        let changeMsg = "新學年開始";
+        if (awakenedNames.length > 0 || relapsedNames.length > 0) {
+            changeMsg = "";
+            if (awakenedNames.length > 0) changeMsg += `[覺醒] ${awakenedNames.join(', ')} 決定發憤圖強！<br>`;
+            if (relapsedNames.length > 0) changeMsg += `[躺平] ${relapsedNames.join(', ')} 失去了動力...`;
+        } else {
+            changeMsg += "・學生狀態維持不變";
+        }
+        descEl.innerHTML = changeMsg;
+        descEl.style.fontSize = "18px";
+        descEl.style.lineHeight = "1.5";
+        notifEl.classList.add('active');
+        setTimeout(() => { notifEl.classList.remove('active'); }, 5000);
+    }
+    
+    setStatus(statusMsg, TEACHER.currentEnergy === 0);
+    updateUI();
+    
+    // ★★★ 關鍵修復：強制相機回到教室視角 ★★★
+    updateCamera(students.length);
+}
+
+// 確保 updateCamera 能正確運作
+function updateCamera(count) {
+    const isMobile = window.innerWidth < 800;
+    const targetY = isMobile ? 13.0 : 9.0;
+    const zDist = (isMobile ? 40 : 28) + (count * 5.5); 
+    
+    // 停止任何可能正在進行的 GSAP 動畫，強制覆蓋
+    gsap.killTweensOf(controls.target);
+    gsap.killTweensOf(camera.position);
+
+    gsap.to(controls.target, { x: 0, y: targetY, z: 0, duration: 1.0 });
+    gsap.to(camera.position, { x: 0, y: 15, z: zDist, duration: 1.0, onUpdate: () => controls.update() });
+}
       function showRetirement() {
     document.getElementById('offwork-overlay').style.display = 'none'; 
     document.getElementById('summary-overlay').style.display = 'none';
@@ -3015,7 +4278,13 @@ window.addEventListener('pointerup', (event) => {
         </div>
     </div>
 
-
+<!-- 純 HTML 睡覺遮罩 (解決 Three.js 卡死問題) -->
+<div id="sleep-overlay">
+    <div class="sleep-content">
+        <div class="zzz-anim">Z z z ...</div>
+        <div class="sleep-desc">休息是為了走更長的路</div>
+    </div>
+</div>
 
 </body>
 </html>
