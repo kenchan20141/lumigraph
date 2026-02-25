@@ -1028,7 +1028,7 @@
             <span class="btn-icon"></span><span class="btn-txt">休息恢復</span>
         </button>
         <button id="btn-grade-work" class="btn-grade-work mode-full-el">
-            <span class="btn-icon"></span><span class="btn-txt">批改堆積</span>
+            <span class="btn-icon"></span><span class="btn-txt">批改課業</span>
             <span class="btn-cost">-1 E / -2 Hap</span>
         </button>
         <button id="btn-offwork" class="btn-offwork mode-full-el" style="display:none;">
@@ -1273,6 +1273,20 @@ function playKeyboardSound() {
         // 忽略自動播放限制的錯誤
     });
 }
+
+        // === 新增：落款蓋章音效 ===
+const stampSoundBase = new Audio('落款.mp3');
+stampSoundBase.volume = 0.8; // 音量可自行調整 (0.0 ~ 1.0)
+
+function playStampSound() {
+    // 使用 cloneNode 確保連續批改時聲音不會被切斷
+    const sound = stampSoundBase.cloneNode();
+    sound.volume = 0.8;
+    sound.play().catch(e => {
+        // 忽略自動播放限制的錯誤
+    });
+}
+        
 
         // ==========================================
         // 1. 設定與常量
@@ -3486,16 +3500,23 @@ function setupGradingInteraction(group, onDone, count = 1) {
             }
         });
 
-        tl.to(stampGroup.position, { x: 0, y: 1.5, z: 0, duration: 0.2 });
+      tl.to(stampGroup.position, { x: 0, y: 1.5, z: 0, duration: 0.2 });
         tl.to(stampGroup.rotation, { z: 0, duration: 0.2 }, "<");
         tl.to(stampGroup.position, { y: 0.2 + (currentIndex * 0.05), duration: 0.1, ease: "power1.in" });
+        
+        // --- 修改處開始 ---
         tl.call(() => {
             const stampWorldPos = new THREE.Vector3();
             targetPaper.getWorldPosition(stampWorldPos);
             stampWorldPos.y = 502; 
             
+            // 播放落款音效
+            playStampSound();
+            
             create2DStamp("閱", stampWorldPos, "#C0392B");
         });
+        // --- 修改處結束 ---
+
         tl.to(stampGroup.position, { x: 4, y: 2, z: 0, duration: 0.3, ease: "back.out" });
         tl.to(stampGroup.rotation, { z: 0.5, duration: 0.3 }, "<");
     };
@@ -3647,7 +3668,7 @@ function setupSportInteraction(group, onDone) {
     group.add(dumbbell);
 
     const labelPos = new THREE.Vector3(0, 503, -2);
-    const instruction = create2DLabel("點擊舉重 (5下)", labelPos, "#D5C4A1");
+    const instruction = create2DLabel("點擊舉重", labelPos, "#D5C4A1");
 
     let reps = 0;
     let isLifting = false;
