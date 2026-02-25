@@ -1317,226 +1317,277 @@ function playLandSound() {
             transmission: 0.5, transparent: true, opacity: 0.8, side: THREE.DoubleSide 
         });
 
-        // 學生類別 (含 3D 形象)
-       class Student {
-            constructor(id, xPos, typeOverride = null) {
-                this.id = id; this.xPos = xPos;
-                this.isSelected = true; // --- 新增：預設為受眾 ---
-                this.name = STUDENT_NAMES[Math.floor(Math.random() * STUDENT_NAMES.length)];
-                
-                if (typeOverride) this.type = typeOverride;
-                else {
-                    const r = Math.random();
-                    if (r < 0.2) this.type = STUDENT_TYPES.HIGH;
-                    else if (r < 0.7) this.type = STUDENT_TYPES.AVG;
-                    else this.type = STUDENT_TYPES.LOW;
-                }
-                
-                // 物理容量設定
-               // 修改後：
-if (this.type.id === 'low') {
-    this.particleCap = 15; // 初始容量保持 15
-    // 設定隨機上限：25 至 35 之間 (包含 25 和 35)
-    this.maxCapLimit = Math.floor(Math.random() * 11) + 25; 
-} else {
-    this.particleCap = 999;
-    this.maxCapLimit = 999;
-}
-                this.baseHeight = 0.8 * this.type.baseScale; 
-                this.readingHeight = 0; 
-                this.landedParticles = [];
-                this.bubbleOffsetY = (id % 2 === 0) ? 6.5 : 5.0; 
-
-                // === 視覺參數 (保持抬高設定) ===
-                this.containerOffset = 1.5; 
-                this.containerBottom = this.containerOffset - 0.5; 
-
-                // DOM 元素
-                this.labelEl = document.createElement('div'); this.labelEl.className = 'student-label';
-                document.getElementById('labels-container').appendChild(this.labelEl); 
-
-                this.bubbleEl = document.createElement('div'); this.bubbleEl.className = 'speech-bubble';
-                document.getElementById('labels-container').appendChild(this.bubbleEl);
-
-                // Three.js 群組
-                this.group = new THREE.Group(); this.group.position.set(xPos, 0, 0); scene.add(this.group);
-                
-                // 1. 學生形象 (Avatar)
-                this.avatar = this.createAvatar();
-                this.group.add(this.avatar);
-
-                // 2. 玻璃容器材質
-                const typeColor = new THREE.Color(this.type.color);
-                this.glassMaterial = new THREE.MeshPhysicalMaterial({ 
-                    color: typeColor, metalness: 0.1, roughness: 0.1, 
-                    transmission: 0.6, transparent: true, opacity: 0.8, side: THREE.DoubleSide 
-                });
-
-                // 3. 容器本體
-                this.baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), this.glassMaterial);
-                this.group.add(this.baseMesh);
-
-                // 4. 容器底蓋
-                const bottomCap = new THREE.Mesh(new THREE.CircleGeometry(2, 64), this.glassMaterial);
-                bottomCap.rotation.x = -Math.PI/2; 
-                bottomCap.position.y = this.containerBottom; 
-                this.group.add(bottomCap);
-
-                // 5. 閱讀增長環
-                this.readGroup = new THREE.Group(); 
-                this.group.add(this.readGroup);
-
-                this.readMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), matGlassRead);
-                this.readGroup.add(this.readMesh);
-                
-                const ring = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.05, 16, 100), new THREE.MeshStandardMaterial({color: 0x7f8c8d}));
-                ring.rotation.x = Math.PI/2; 
-                this.readGroup.add(ring);
-                
-                this.updateVisuals(true);
-                this.updateLabelText();
-            }
-
-            createAvatar() {
-                const avatarGroup = new THREE.Group();
-                avatarGroup.position.y = -2.5; 
-
-                // === 修改處：校服顏色 ===
-                // 身體 (上衣) - 使用學生類型的顏色
-                const bodyGeo = new THREE.CylinderGeometry(0.5, 0.7, 1.4, 16);
-                const bodyMat = new THREE.MeshStandardMaterial({ color: this.type.color }); 
-                const body = new THREE.Mesh(bodyGeo, bodyMat);
-                body.position.y = 0.7;
-                avatarGroup.add(body);
-
-                // 褲子 (深灰色，保持統一)
-                const legGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.8, 16);
-                const legMat = new THREE.MeshStandardMaterial({ color: 0x34495e });
-                const legs = new THREE.Mesh(legGeo, legMat);
-                legs.position.y = 0.2;
-                avatarGroup.add(legs);
-
-                // 領帶 (改為白色，以便在有顏色的校服上突出)
-                const tieGeo = new THREE.BoxGeometry(0.3, 0.6, 0.1);
-                const tieMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-                const tie = new THREE.Mesh(tieGeo, tieMat);
-                tie.position.set(0, 1.0, 0.45);
-                avatarGroup.add(tie);
-
-                // 頭部
-                const headGeo = new THREE.SphereGeometry(0.55, 32, 32);
-                const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-                const head = new THREE.Mesh(headGeo, headMat);
-                head.position.y = 1.6;
-                avatarGroup.add(head);
-
-                avatarGroup.rotation.y = (Math.random() - 0.5) * 0.5;
-                return avatarGroup;
-            }
-            
-            getContainerHeight() { return this.baseHeight + this.readingHeight; }
-            getRimY() { return this.containerBottom + this.getContainerHeight(); }
-            
-            getCurrentCapacity() {
-                if (this.type.id === 'low') return this.particleCap;
-                return Math.floor(this.getContainerHeight() / 0.006);
-            }
-            
-          tryGrowReading() {
-    if (this.type.id === 'low') {
-        // 修改這裡：將 < 25 改為 < this.maxCapLimit
-        if (this.particleCap < this.maxCapLimit) {
-            this.particleCap++; 
-            this.readingHeight += this.type.readGrow; 
-            this.updateVisuals(); 
-    
-            return true; 
-        } else { 
-            this.shake(); 
-            return false; 
+      // ==========================================
+// Student 類別 - 修訂版 (100% 完整輸出)
+// ==========================================
+class Student {
+    constructor(id, xPos, typeOverride = null) {
+        this.id = id;
+        this.xPos = xPos;
+        this.isSelected = true; // 預設為受眾
+        this.name = STUDENT_NAMES[Math.floor(Math.random() * STUDENT_NAMES.length)];
+        
+        // 確定學生資質類型
+        if (typeOverride) {
+            this.type = typeOverride;
+        } else {
+            const r = Math.random();
+            if (r < 0.2) this.type = STUDENT_TYPES.HIGH;
+            else if (r < 0.7) this.type = STUDENT_TYPES.AVG;
+            else this.type = STUDENT_TYPES.LOW;
         }
-    }
-                if (!this.type.canGrow || this.getContainerHeight() >= this.type.maxHeight) { this.shake(); return false; }
-                this.readingHeight += this.type.readGrow; 
-                this.updateVisuals(); 
-          
-                return true;
-            }
-
-            growGrade() {
-                if (this.type.id === 'low') { if (this.particleCap < 25) { this.particleCap++; this.readingHeight += 0.05; } }
-                if (this.getContainerHeight() >= this.type.maxHeight) return;
-                const min = this.type.growRate[0], max = this.type.growRate[1];
-                let growth = Math.random() * (max - min) + min;
-                if (this.getContainerHeight() + growth > this.type.maxHeight) growth = this.type.maxHeight - this.getContainerHeight();
-                this.baseHeight += growth; this.updateVisuals();
-            }
-
-            shake() { gsap.to(this.group.position, { x: this.xPos + 0.1, duration: 0.05, yoyo: true, repeat: 3 }); }
-            
-           // 在 Student 類別定義中找到並替換此函數
-updateLabelText() {
-    // 計算當前受眾人數
-    const selectedCount = students.filter(st => st.isSelected !== false).length;
-    // 判定是否符合小班加成條件 (受眾人數 <= 總人數的一半)
-    const isSmallClass = (selectedCount > 0 && selectedCount <= students.length / 2);
-    // 該學生是否為受眾
-    const isTarget = (this.isSelected !== false);
-    
-    // 如果是受眾且觸發小班加成，顯示 x2
-    const bonusHtml = (isSmallClass && isTarget) ? '<span class="x2-indicator">x2</span>' : '';
  
-    this.labelEl.innerHTML = `
-        <span style="font-size:12px; color:#333;">${this.name}</span>${bonusHtml}
-        <br>
-        <span style="color:${this.type.color}">${this.type.name}</span>: ${this.landedParticles.length}
-    `;
+        // --- 新增：動機極低學生判定 (天資差的學生中有 30% 機率) ---
+        this.isUltraLow = (this.type.id === 'low' && Math.random() < 0.3);
+        this.soloActionCount = 0; // 追蹤被「單獨教學」的次數
+ 
+        // 物理容量與高度設定
+        if (this.type.id === 'low') {
+            this.particleCap = 15;
+            // 設定隨機上限：25 至 35 之間
+            this.maxCapLimit = Math.floor(Math.random() * 11) + 25;
+        } else {
+            this.particleCap = 999;
+            this.maxCapLimit = 999;
+        }
+        
+        this.baseHeight = 0.8 * this.type.baseScale;
+        this.readingHeight = 0;
+        this.landedParticles = [];
+        this.bubbleOffsetY = (id % 2 === 0) ? 6.5 : 5.0;
+ 
+        // 視覺參數：容器抬高
+        this.containerOffset = 1.5;
+        this.containerBottom = this.containerOffset - 0.5;
+ 
+        // 建立 DOM 元素 (標籤與對話框)
+        this.labelEl = document.createElement('div');
+        this.labelEl.className = 'student-label';
+        document.getElementById('labels-container').appendChild(this.labelEl);
+ 
+        this.bubbleEl = document.createElement('div');
+        this.bubbleEl.className = 'speech-bubble';
+        document.getElementById('labels-container').appendChild(this.bubbleEl);
+ 
+        // Three.js 群組設定
+        this.group = new THREE.Group();
+        this.group.position.set(xPos, 0, 0);
+        scene.add(this.group);
+        
+        // 1. 學生形象 (Avatar)
+        this.avatar = this.createAvatar();
+        this.group.add(this.avatar);
+ 
+        // 2. 玻璃容器材質 (若動機極低，顏色會稍深以示區別，或維持原色但透過標籤區分)
+        const typeColor = new THREE.Color(this.type.color);
+        this.glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: typeColor,
+            metalness: 0.1,
+            roughness: 0.1,
+            transmission: 0.6,
+            transparent: true,
+            opacity: 0.8,
+            side: THREE.DoubleSide
+        });
+ 
+        // 3. 容器本體
+        this.baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), this.glassMaterial);
+        this.group.add(this.baseMesh);
+ 
+        // 4. 容器底蓋
+        const bottomCap = new THREE.Mesh(new THREE.CircleGeometry(2, 64), this.glassMaterial);
+        bottomCap.rotation.x = -Math.PI/2;
+        bottomCap.position.y = this.containerBottom;
+        this.group.add(bottomCap);
+ 
+        // 5. 閱讀增長環
+        this.readGroup = new THREE.Group();
+        this.group.add(this.readGroup);
+ 
+        this.readMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 64, 1, true), matGlassRead);
+        this.readGroup.add(this.readMesh);
+        
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.05, 16, 100), new THREE.MeshStandardMaterial({color: 0x7f8c8d}));
+        ring.rotation.x = Math.PI/2;
+        this.readGroup.add(ring);
+        
+        this.updateVisuals(true);
+        this.updateLabelText();
+    }
+ 
+    createAvatar() {
+        const avatarGroup = new THREE.Group();
+        avatarGroup.position.y = -2.5;
+ 
+        // 身體 (上衣) - 使用學生類型的顏色
+        const bodyGeo = new THREE.CylinderGeometry(0.5, 0.7, 1.4, 16);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: this.type.color });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.7;
+        avatarGroup.add(body);
+ 
+        // 褲子 (深灰色)
+        const legGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.8, 16);
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x34495e });
+        const legs = new THREE.Mesh(legGeo, legMat);
+        legs.position.y = 0.2;
+        avatarGroup.add(legs);
+ 
+        // 領帶 (白色)
+        const tieGeo = new THREE.BoxGeometry(0.3, 0.6, 0.1);
+        const tieMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const tie = new THREE.Mesh(tieGeo, tieMat);
+        tie.position.set(0, 1.0, 0.45);
+        avatarGroup.add(tie);
+ 
+        // 頭部
+        const headGeo = new THREE.SphereGeometry(0.55, 32, 32);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 1.6;
+        avatarGroup.add(head);
+ 
+        avatarGroup.rotation.y = (Math.random() - 0.5) * 0.5;
+        return avatarGroup;
+    }
+    
+    getContainerHeight() {
+        return this.baseHeight + this.readingHeight;
+    }
+    
+    getRimY() {
+        return this.containerBottom + this.getContainerHeight();
+    }
+    
+    getCurrentCapacity() {
+        if (this.type.id === 'low') return this.particleCap;
+        return Math.floor(this.getContainerHeight() / 0.006);
+    }
+    
+    tryGrowReading() {
+        // 如果是 LOW 類型 (包含 UltraLow)
+        if (this.type.id === 'low') {
+            if (this.particleCap < this.maxCapLimit) {
+                this.particleCap++;
+                this.readingHeight += this.type.readGrow;
+                this.updateVisuals();
+                return true;
+            } else {
+                this.shake();
+                return false;
+            }
+        }
+        // 其他正常類型
+        if (!this.type.canGrow || this.getContainerHeight() >= this.type.maxHeight) {
+            this.shake();
+            return false;
+        }
+        this.readingHeight += this.type.readGrow;
+        this.updateVisuals();
+        return true;
+    }
+ 
+    growGrade() {
+        if (this.type.id === 'low') {
+            if (this.particleCap < this.maxCapLimit) {
+                this.particleCap++;
+                this.readingHeight += 0.05;
+            }
+        }
+        if (this.getContainerHeight() >= this.type.maxHeight) return;
+        const min = this.type.growRate[0], max = this.type.growRate[1];
+        let growth = Math.random() * (max - min) + min;
+        if (this.getContainerHeight() + growth > this.type.maxHeight) {
+            growth = this.type.maxHeight - this.getContainerHeight();
+        }
+        this.baseHeight += growth;
+        this.updateVisuals();
+    }
+ 
+    shake() {
+        gsap.to(this.group.position, { x: this.xPos + 0.1, duration: 0.05, yoyo: true, repeat: 3 });
+    }
+    
+    updateLabelText() {
+        // 計算當前受眾人數
+        const selectedCount = students.filter(st => st.isSelected !== false).length;
+        const isSmallClass = (selectedCount > 0 && selectedCount <= students.length / 2);
+        const isTarget = (this.isSelected !== false);
+        
+        // 判定加成顯示
+        const bonusHtml = (isSmallClass && isTarget) ? '<span class="x2-indicator">x2</span>' : '';
+        
+        // --- 核心邏輯：動機極低學生標籤化 ---
+        let typeName = this.type.name;
+        let typeColor = this.type.color;
+        let soloProgressHtml = "";
+ 
+        if (this.isUltraLow) {
+            typeName = "動機極低";
+            typeColor = "#666666"; // 使用深灰色表示無動機
+            // 如果正在被單獨關注，顯示進度
+            if (this.soloActionCount > 0) {
+                soloProgressHtml = `<br><span style="color:#e67e22; font-size:10px; font-weight:bold;">關注中: ${this.soloActionCount}/3</span>`;
+            }
+        }
+    
+        this.labelEl.innerHTML = `
+            <span style="font-size:12px; color:#333;">${this.name}</span>${bonusHtml}
+            <br>
+            <span style="color:${typeColor}">${typeName}</span>: ${this.landedParticles.length}
+            ${soloProgressHtml}
+        `;
+    }
+    
+    showBubble(text, className, index) {
+        this.bubbleEl.innerText = text;
+        this.bubbleEl.className = 'speech-bubble ' + className;
+        gsap.killTweensOf(this.bubbleEl);
+        gsap.set(this.bubbleEl, { opacity: 0, scale: 0.8, display: 'block' });
+        const delay = index * 0.15 + Math.random() * 0.5;
+        gsap.to(this.bubbleEl, {
+            opacity: 1,
+            scale: 1,
+            duration: 0.4,
+            delay: delay,
+            ease: "back.out(1.7)"
+        });
+        gsap.to(this.bubbleEl, {
+            opacity: 0,
+            scale: 0.8,
+            duration: 0.3,
+            delay: 3.5 + delay,
+            onComplete: () => { this.bubbleEl.style.display = 'none'; }
+        });
+    }
+    
+    updateVisuals(instant = false) {
+        const dur = instant ? 0 : 0.8;
+        
+        // BaseMesh 縮放與位置
+        gsap.to(this.baseMesh.scale, { y: this.baseHeight, duration: dur });
+        gsap.to(this.baseMesh.position, { y: this.containerBottom + (this.baseHeight / 2), duration: dur });
+        
+        const readH = Math.max(0.01, this.readingHeight);
+        // 閱讀環與閱讀管
+        gsap.to(this.readGroup.position, { y: this.containerBottom + this.baseHeight, duration: dur });
+        gsap.to(this.readMesh.scale, { y: readH, duration: dur });
+        gsap.to(this.readMesh.position, { y: readH / 2, duration: dur });
+    }
+ 
+    bump() {
+        gsap.killTweensOf(this.group.position, "y");
+        gsap.fromTo(this.group.position,
+            { y: 0 },
+            { y: -0.15, duration: 0.05, yoyo: true, repeat: 1, ease: "power1.out" }
+        );
+    }
+ 
+    dispose() {
+        if (this.labelEl) this.labelEl.remove();
+        if (this.bubbleEl) this.bubbleEl.remove();
+    }
 }
-            
-            showBubble(text, className, index) {
-                this.bubbleEl.innerText = text; this.bubbleEl.className = 'speech-bubble ' + className;
-                gsap.killTweensOf(this.bubbleEl);
-                gsap.set(this.bubbleEl, { opacity: 0, scale: 0.8, display: 'block' });
-                const delay = index * 0.15 + Math.random() * 0.5;
-                gsap.to(this.bubbleEl, { opacity: 1, scale: 1, duration: 0.4, delay: delay, ease: "back.out(1.7)" });
-                gsap.to(this.bubbleEl, { opacity: 0, scale: 0.8, duration: 0.3, delay: 3.5 + delay, onComplete: () => { this.bubbleEl.style.display = 'none'; } });
-            }
-            
-            updateVisuals(instant = false) {
-                const dur = instant ? 0 : 0.8;
-                
-                // BaseMesh
-                gsap.to(this.baseMesh.scale, { y: this.baseHeight, duration: dur });
-                gsap.to(this.baseMesh.position, { y: this.containerBottom + (this.baseHeight / 2), duration: dur });
-                
-                const readH = Math.max(0.01, this.readingHeight);
-                // 閱讀環
-                gsap.to(this.readGroup.position, { y: this.containerBottom + this.baseHeight, duration: dur });
-                gsap.to(this.readMesh.scale, { y: readH, duration: dur });
-                gsap.to(this.readMesh.position, { y: readH / 2, duration: dur });
-            }
-
-            // ============================================
-            // ★ 請將 bump() 貼在這裡 (updateVisuals 之後)
-            // ============================================
-            bump() {
-                // 使用 GSAP 讓容器 (this.group) 在 Y 軸上輕微下沉後彈回
-                // 為了避免動畫衝突，我們先殺掉正在進行的 Y 軸動畫
-                gsap.killTweensOf(this.group.position, "y");
-                
-                // 初始位置是 0，下沉至 -0.15 然後彈回
-                gsap.fromTo(this.group.position, 
-                    { y: 0 },
-                    { y: -0.15, duration: 0.05, yoyo: true, repeat: 1, ease: "power1.out" }
-                );
-            }
-            // ============================================
-
-            dispose() { 
-                if (this.labelEl) this.labelEl.remove(); 
-                if (this.bubbleEl) this.bubbleEl.remove(); 
-            }
-        } // <--- 這是 class Student 的結束括號
 
 
 
@@ -1804,25 +1855,45 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
     const isNeed = (actionId === currentNeed);
     let isBored = (consecutiveActionCount >= 4 && !isNeed);
     let effectiveBase = isNeed ? 14 : baseParticles;
-    const selectedCount = students.filter(st => st.isSelected !== false).length;
+    const selectedStudents = students.filter(st => st.isSelected !== false);
+    const selectedCount = selectedStudents.length;
     const currentMultiplier = (selectedCount > 0 && selectedCount <= students.length / 2) ? 2 : 1;
     if (spendEnergy(cost) > 0) {
-        // --- 連擊初始化 ---
         if (batchSnapshot === null) {
             batchSnapshot = students.map(s => s.landedParticles.length);
-            batchStartHappy = TEACHER.happiness; // 紀錄點擊前的幸福度
+            batchStartHappy = TEACHER.happiness;
             batchTotalCost = 0;
         }
-        
         if (batchTimer) { clearTimeout(batchTimer); batchTimer = null; }
         batchTotalCost += cost;
-        
-        // 扣除按鈕的基本成本
+ 
         if (GAME_MODE === 'full') {
             if (happyCost > 0) { changeHappiness(-happyCost); }
             else if (happyCost < 0) { changeHappiness(Math.abs(happyCost)); }
         }
         setStatus(name + (isNeed ? " (回應需求！)" : ""));
+        
+        // --- 新增：單獨教學機制邏輯 ---
+        students.forEach(s => {
+            // 如果受眾不是「只有他一個人」，重置計數器
+            if (selectedCount === 1 && selectedStudents[0] === s) {
+                if (s.isUltraLow) {
+                    s.soloActionCount++;
+                    if (s.soloActionCount >= 3) {
+                        s.soloActionCount = 0; // 觸發後重置
+                        // 獎勵：直接給予 5 點元素 (不被排斥)
+                        for(let i=0; i<5; i++) {
+                            setTimeout(() => spawnDirectLandedParticle(s), i * 100);
+                        }
+                        s.showBubble("老師竟然特地為我準備...", "bubble-high", 0);
+                        changeHappiness(5); // 老師感到欣慰
+                    }
+                }
+            } else {
+                s.soloActionCount = 0; // 只要不是唯一受眾，次數歸零
+            }
+        });
+ 
         let currentClickMaxDelay = 0;
         const physicsFallTime = 2500;
         students.forEach((s, idx) => {
@@ -1831,7 +1902,7 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
             particlesToSpawn *= currentMultiplier;
             if (actionId === 'read') {
                 for(let m=0; m < currentMultiplier; m++) {
-                    s.tryGrowReading(); // 內部已移除 changeHappiness(0.1)
+                    s.tryGrowReading();
                     spawnDirectLandedParticle(s);
                 }
             }
@@ -1845,31 +1916,17 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
                     setTimeout(() => spawnParticle(actionId, s), i * interval);
                 }
             }
-            // 這裡會觸發對話，對話會呼叫 changeHappiness 改動數值
             triggerStudentDialogue(s, actionId, idx);
         });
         if (actionId !== 'hea') randomizeStudentNeed();
-        // 延遲結算
         batchTimer = setTimeout(() => {
             const studentChanges = students.map((s, index) => ({
                 student: s,
                 added: s.landedParticles.length - batchSnapshot[index]
             }));
- 
-            // 計算這段時間內幸福度的總淨變化量
             const totalHappyNetChange = TEACHER.happiness - batchStartHappy;
-            createActionReport(
-                batchTotalCost,
-                totalHappyNetChange, // 傳入淨變化量
-                studentChanges,
-                TEACHER.currentEnergy,
-                TEACHER.happiness,
-                currentMultiplier
-            );
-            batchSnapshot = null;
-            batchTimer = null;
-            batchTotalCost = 0;
-            batchStartHappy = 0;
+            createActionReport(batchTotalCost, totalHappyNetChange, studentChanges, TEACHER.currentEnergy, TEACHER.happiness, currentMultiplier);
+            batchSnapshot = null; batchTimer = null; batchTotalCost = 0; batchStartHappy = 0;
         }, currentClickMaxDelay);
     }
 }
@@ -2069,19 +2126,23 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
         });
 
         function spawnParticle(type, student) {
-            const isRejected = Math.random() < student.type.rejectRate;
-            let color = CONFIG.colors.pPlan; let geo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
-            if (type === 'read') { color = CONFIG.colors.pRead; geo = new THREE.IcosahedronGeometry(0.18, 0); }
-            else if (type === 'fun') { color = CONFIG.colors.pFun; geo = new THREE.DodecahedronGeometry(0.20, 0); }
-            else if (type === 'drill') { color = CONFIG.colors.pDrill; geo = new THREE.TetrahedronGeometry(0.25); }
-            else if (type === 'hea') { color = CONFIG.colors.pHea; geo = new THREE.SphereGeometry(0.15, 8, 8); }
-            if (isRejected) color = CONFIG.colors.pReject;
-            const p = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: color, roughness: 0.4 }));
-            p.position.set(student.xPos + (Math.random()-0.5)*0.8, student.getRimY() + 8 + Math.random()*3, (Math.random()-0.5)*0.8);
-            let vx = (Math.random()-0.5)*0.05, vz = (Math.random()-0.5)*0.05;
-            p.userData = { vel: new THREE.Vector3(vx, -0.25, vz), student: student, state: 'falling', rejected: isRejected };
-            scene.add(p); particles.push(p);
-        }
+    // --- 修改：動機極低的學生 100% 排斥所有元素 ---
+    const isRejected = student.isUltraLow ? true : (Math.random() < student.type.rejectRate);
+    
+    let color = CONFIG.colors.pPlan; let geo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+    if (type === 'read') { color = CONFIG.colors.pRead; geo = new THREE.IcosahedronGeometry(0.18, 0); }
+    else if (type === 'fun') { color = CONFIG.colors.pFun; geo = new THREE.DodecahedronGeometry(0.20, 0); }
+    else if (type === 'drill') { color = CONFIG.colors.pDrill; geo = new THREE.TetrahedronGeometry(0.25); }
+    else if (type === 'hea') { color = CONFIG.colors.pHea; geo = new THREE.SphereGeometry(0.15, 8, 8); }
+    
+    if (isRejected) color = CONFIG.colors.pReject;
+    
+    const p = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: color, roughness: 0.4 }));
+    p.position.set(student.xPos + (Math.random()-0.5)*0.8, student.getRimY() + 8 + Math.random()*3, (Math.random()-0.5)*0.8);
+    let vx = (Math.random()-0.5)*0.05, vz = (Math.random()-0.5)*0.05;
+    p.userData = { vel: new THREE.Vector3(vx, -0.25, vz), student: student, state: 'falling', rejected: isRejected };
+    scene.add(p); particles.push(p);
+}
 
        function spawnDirectLandedParticle(student) {
             const rimY = student.getRimY();
