@@ -1724,12 +1724,13 @@ initIcons();
     // === 修改後的 createActionReport ===
 function createActionReport(energyCost, totalHappyChange, studentChanges, currentEnergy, currentHappy, multiplier) {
     const rptEnergy = document.getElementById('rpt-energy');
+    // 心力消耗永遠顯示負號
     rptEnergy.innerHTML = `${currentEnergy.toFixed(1)} <span class="rpt-total val-neg">(-${energyCost.toFixed(1)})</span>`;
     
     const rptHappy = document.getElementById('rpt-happy');
     if (GAME_MODE === 'full') {
-        // 根據總變化量決定符號
-        let sign = totalHappyChange > 0 ? "+" : "";
+        // totalHappyChange 是我們從上面傳進來的變量（例如 -10.0）
+        let sign = totalHappyChange > 0 ? "+" : ""; // 如果是正數顯示 +，負數則本身帶有 -
         let colorClass = totalHappyChange > 0 ? "val-pos" : (totalHappyChange < 0 ? "val-neg" : "val-neu");
         
         rptHappy.innerHTML = `${Math.floor(currentHappy)} <span class="rpt-total ${colorClass}">(${sign}${totalHappyChange.toFixed(1)})</span>`;
@@ -2332,30 +2333,47 @@ function updateOffWorkUI() {
             }
         });
         document.getElementById('btn-next-partial').addEventListener('click', () => { if (!hasDoneAdmin) { setStatus("必須先完成行政工作！", true); return; } startNewYear(); });
-      document.getElementById('btn-admin').addEventListener('click', () => {
-            // === 新增：按鈕震動 ===
-            triggerButtonShake('btn-admin');
-            // ====================
-
-            const cost = parseFloat(document.getElementById('rng-admin').value);
-            if (!hasDoneAdmin) {
-                if (TEACHER.currentEnergy >= cost) {
-                    TEACHER.currentEnergy -= cost; if (GAME_MODE === 'full') changeHappiness(-10);
-                    TEACHER.dailyStats.adminCount = 1; setStatus("完成行政工作，毫無收穫。");
-                    
-                    createActionReport(cost, 10, [], TEACHER.currentEnergy, TEACHER.happiness);
-
-                } else {
-                    const overdraft = cost - TEACHER.currentEnergy;
-                    TEACHER.energyDebt += overdraft; TEACHER.currentEnergy = 0;
-                    if (GAME_MODE === 'full') changeHappiness(-15);
-                    setStatus(`勉強應付行政 (透支 ${overdraft.toFixed(1)})...`, true);
-                    
-                    createActionReport(TEACHER.currentEnergy, 15, [], TEACHER.currentEnergy, TEACHER.happiness);
-                }
-                hasDoneAdmin = true; updateUI();
-            }
-        });
+     document.getElementById('btn-admin').addEventListener('click', () => {
+    triggerButtonShake('btn-admin');
+ 
+    // 1. 取得當前設定的行政消耗
+    const eCost = parseFloat(document.getElementById('rng-admin').value);
+    
+    // 2. 計算動態幸福度消耗 (3心力=10幸福，比例 10/3)
+    // 使用 Math.max(1.0, ...) 實作保底扣 1 點
+    let hCost = Math.max(1.0, eCost * (10 / 3));
+    
+    if (!hasDoneAdmin) {
+        // 紀錄點擊前的幸福度用於結算報告顯示淨變化
+        const batchStartHappy = TEACHER.happiness;
+ 
+        if (TEACHER.currentEnergy >= eCost) {
+            // 正常支付
+            TEACHER.currentEnergy -= eCost;
+            if (GAME_MODE === 'full') changeHappiness(-hCost);
+            setStatus(`完成行政工作，身心俱疲。`);
+            
+            // 傳送結算報告：注意幸福度變化要傳負數 (-hCost)
+            createActionReport(eCost, -hCost, [], TEACHER.currentEnergy, TEACHER.happiness, 1);
+        } else {
+            // 精力透支 (原本透支會額外扣 5 點壓力，這裡維持此邏輯並加上動態消耗)
+            const overdraft = eCost - TEACHER.currentEnergy;
+            const totalPenalty = hCost + 5; // 透支懲罰
+            
+            TEACHER.energyDebt += overdraft;
+            TEACHER.currentEnergy = 0;
+            
+            if (GAME_MODE === 'full') changeHappiness(-totalPenalty);
+            setStatus(`強行處理行政，透支了 ${overdraft.toFixed(1)} 心力！`, true);
+            
+            // 傳送結算報告
+            createActionReport(eCost, -totalPenalty, [], TEACHER.currentEnergy, TEACHER.happiness, 1);
+        }
+        
+        hasDoneAdmin = true;
+        updateUI();
+    }
+});
         
         // 下班相關 (OffWork)
         document.getElementById('btn-offwork').addEventListener('click', startOffWork);
