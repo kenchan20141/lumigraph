@@ -1511,10 +1511,8 @@ class Student {
         this.updateLabelText();
     }
  
-    createAvatar() {
+ createAvatar() {
         const avatarGroup = new THREE.Group();
-        // 基本位置
-        avatarGroup.position.y = -2.5;
  
         // 身體 (上衣顏色由資質決定)
         const bodyGeo = new THREE.CylinderGeometry(0.5, 0.7, 1.4, 16);
@@ -1545,38 +1543,28 @@ class Student {
         avatarGroup.add(head);
         
         // --- 視覺躺平邏輯 ---
-        // 如果是躺平狀態，將整個人物旋轉 90 度並調整高度貼地
         if (this.isUltraLow) {
-            avatarGroup.rotation.z = Math.PI / 2; // 向右倒下
-            avatarGroup.position.y = -3.8; // 調整至地板高度
-            avatarGroup.position.x = 0.5;  // 稍微置中修正
+            // 沿 Z 軸旋轉 90 度 (使頭部向左側，腳向右側，面朝前方)
+            avatarGroup.rotation.z = Math.PI / 2; 
             
-            // 加入"Zzz" 睡眠符號 (簡單的視覺提示)
-            const zGeo = new THREE.PlaneGeometry(0.8, 0.8);
-            // 這裡使用動態 Canvas 貼圖來繪製 Zzz，避免依賴外部圖片
-            const canvas = document.createElement('canvas');
-            canvas.width = 64; canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'transparent';
-            ctx.fillRect(0,0,64,64);
-            ctx.font = 'bold 40px Arial';
-            ctx.fillStyle = '#555';
-            ctx.fillText('Zzz', 0, 48);
-            const zTex = new THREE.CanvasTexture(canvas);
-            const zMat = new THREE.MeshBasicMaterial({ map: zTex, transparent: true, side: THREE.DoubleSide });
-            const zMesh = new THREE.Mesh(zGeo, zMat);
-            zMesh.position.set(1.5, 2.0, 0); // 浮在頭部上方
-            zMesh.rotation.z = -Math.PI / 2; // 抵消人物旋轉，讓字正向
+            // 修正高度：原本 -3.8 會掉到地板 (Y=-2) 下方導致完全隱形
+            // 改為 -1.5，讓身體側邊剛好貼齊虛擬地板表面
+            avatarGroup.position.y = -1.5; 
             
-            // 簡單的浮動動畫參照
-            zMesh.userData = { isZzz: true, offset: Math.random() };
-            avatarGroup.add(zMesh);
+            // 精確修正中軸對齊：
+            // 頭部(1.6)與腳部(0.2)的中心大約在 Y=0.9。
+            // 旋轉90度後，原本的上方會朝向 X 軸負向。因此我們需要把整個群組向 X 軸正向平移 0.9，使其完美置中於容器下方。
+            avatarGroup.position.x = 0.9;  
         } else {
+            // 一般站立狀態
+            avatarGroup.position.y = -2.5;
+            avatarGroup.position.x = 0;
             avatarGroup.rotation.y = (Math.random() - 0.5) * 0.5;
         }
  
         return avatarGroup;
     }
+
     
     // 用於狀態改變時重新生成 Avatar (躺平 <-> 站立)
     updateAvatarPose() {
@@ -4078,7 +4066,7 @@ function startNextBatch() {
 }
 
 
-      function animate() {
+   function animate() {
     requestAnimationFrame(animate); 
     controls.update();
     
@@ -4092,8 +4080,18 @@ function startNextBatch() {
     const time = Date.now() * 0.002;
     students.forEach((s, idx) => {
         if (s.avatar) {
-            s.avatar.position.y = -2.5 + Math.sin(time + idx) * 0.03; 
-            s.avatar.rotation.z = Math.sin(time * 0.5 + idx) * 0.02; 
+            if (s.isUltraLow) {
+                // 躺平狀態：保持水平，頭向左腳向右，維持 X 軸補償置中，並作微弱呼吸起伏
+                // 同步修正高度為 -1.5，避免掉出視線
+                s.avatar.position.y = -1.5 + Math.sin(time + idx) * 0.015; 
+                s.avatar.position.x = 0.9;
+                s.avatar.rotation.z = Math.PI / 2; 
+            } else {
+                // 站立狀態：常規彈跳與搖晃
+                s.avatar.position.y = -2.5 + Math.sin(time + idx) * 0.03; 
+                s.avatar.position.x = 0;
+                s.avatar.rotation.z = Math.sin(time * 0.5 + idx) * 0.02; 
+            }
         }
 
         // 標籤跟隨
@@ -4140,47 +4138,40 @@ function startNextBatch() {
                 const dist = Math.sqrt(Math.pow(p.position.x - s.xPos, 2) + Math.pow(p.position.z, 2));
                 
                 // 進入容器範圍
-               if (dist < 1.95) {
-    // 嚴格檢查：只要是 rejected，或者是滿載的 UltraLow 學生
-    if (p.userData.rejected || (s.isUltraLow && p.userData.state !== 'landed')) {
-        let ejectForce = s.isUltraLow ? 0.4 : 0.15; // 動機極低學生的排斥力更強
-        p.userData.vel.x = (p.position.x - s.xPos) * ejectForce + (Math.random()-0.5)*0.1;
-        p.userData.vel.z = p.position.z * ejectForce + (Math.random()-0.5)*0.1;
-        p.userData.vel.y = 0.2;
-        p.userData.state = 'spilling';
-    } else {
+                if (dist < 1.95) {
+                    // 嚴格檢查：只要是 rejected，或者是滿載的 UltraLow 學生
+                    if (p.userData.rejected || (s.isUltraLow && p.userData.state !== 'landed')) {
+                        let ejectForce = s.isUltraLow ? 0.4 : 0.15; // 動機極低學生的排斥力更強
+                        p.userData.vel.x = (p.position.x - s.xPos) * ejectForce + (Math.random()-0.5)*0.1;
+                        p.userData.vel.z = p.position.z * ejectForce + (Math.random()-0.5)*0.1;
+                        p.userData.vel.y = 0.2;
+                        p.userData.state = 'spilling';
+                    } else {
                         // 嘗試著陸
-                        // 計算目前的堆疊高度
                         const currentFillY = s.containerBottom + (s.landedParticles.length * 0.006);
                         
                         if (currentFillY < s.getRimY()) { 
-                            // 著陸成功判定
                             if (p.position.y <= Math.max(currentFillY + 0.2, s.containerBottom + 0.2)) {
                                 p.position.y = currentFillY + Math.random() * 0.2; 
                                 p.userData.state = 'landed'; 
                                 s.landedParticles.push(p); 
                                 s.updateLabelText(); 
                                 
-                                // === 修改處：觸發震動與音效 ===
                                 s.bump();       // 觸發容器震動
                                 playLandSound(); // 播放音效
-                                // ==========================
 
                                 p.rotation.set(0, Math.random()*Math.PI, 0); 
                                 const r = Math.random() * 1.5, t = Math.random() * Math.PI * 2; 
                                 p.position.x = s.xPos + r * Math.cos(t); 
                                 p.position.z = r * Math.sin(t);
-                         
                             }
                         } else { 
-                            // 物理溢出
                             p.userData.vel.x = (p.position.x - s.xPos)*0.15; 
                             p.userData.vel.z = p.position.z*0.15; 
                             p.userData.state = 'spilling'; 
                         }
                     }
                 } else if (dist < 2.4) { 
-                    // 撞到邊緣
                     p.userData.vel.x = (p.position.x - s.xPos)*0.2; 
                     p.userData.vel.z = p.position.z*0.2; 
                     p.userData.state = 'spilling'; 
@@ -4199,7 +4190,6 @@ function startNextBatch() {
     }
     renderer.render(scene, camera);
 }
-
 // === 新增：點擊選擇受眾邏輯 ===
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
