@@ -849,6 +849,60 @@
 }
 
 
+        /* 優化互動提示：毛玻璃膠囊設計 */
+        .interaction-label {
+            position: absolute;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #5E5A54; /* 預設莫蘭迪深棕灰色 */
+            background: rgba(255, 255, 255, 0.85);
+            padding: 10px 25px;
+            border-radius: 30px; /* 膠囊形狀 */
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08), 0 2px 5px rgba(0,0,0,0.03);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            text-align: center;
+            white-space: nowrap;
+            text-shadow: none !important; /* 徹底拔除舊版的黑邊陰影 */
+            font-weight: normal;
+        }
+
+        /* 處理失敗時的專屬優雅紅底樣式 */
+        .interaction-label.label-error {
+            color: #A65E5E !important;
+            background: rgba(255, 245, 245, 0.95) !important;
+            border-color: rgba(166, 94, 94, 0.3) !important;
+            transform: translate(-50%, -50%) scale(1.1);
+            font-weight: bold;
+        }
+
+        /* 飄浮回饋文字優化，移除生硬的黑邊/白邊，改用柔和光暈 */
+        .floating-text-2d {
+            position: absolute;
+            font-family: 'Noto Serif TC', serif;
+            font-weight: bold;
+            font-size: 16px;
+            letter-spacing: 2px;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 101;
+            animation: floatUpFadeElegant 1.5s forwards cubic-bezier(0.165, 0.84, 0.44, 1);
+            text-shadow: 0 2px 10px rgba(255,255,255,0.9), 0 0 5px rgba(255,255,255,0.5) !important; 
+        }
+
+        @keyframes floatUpFadeElegant {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            15% { transform: translate(-50%, -60%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -120%) scale(0.9); opacity: 0; }
+        }
+
+
     </style>
 </head>
 <body>
@@ -2036,7 +2090,7 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
             else if (happyCost < 0) { changeHappiness(Math.abs(happyCost)); }
         }
  
-        setStatus(name + (isNeed ? " (回應需求！)" : ""));
+        setStatus(name + (isNeed ? " 【回應需求】" : ""));
         
         students.forEach(s => {
     const isSoloTarget = (selectedCount === 1 && selectedStudents[0] === s);
@@ -2870,11 +2924,10 @@ function playSleepAnimation(onComplete) {
 // 2. 2D 文字工具函數
 // --------------------------------------------------------
 
-function create2DLabel(text, worldPos, color = "#fff") {
+function create2DLabel(text, worldPos) {
     const div = document.createElement('div');
     div.className = 'interaction-label';
     div.innerText = text;
-    div.style.color = color;
     document.body.appendChild(div);
     activeLabels.push({ el: div, pos: worldPos });
     return div;
@@ -3298,9 +3351,10 @@ function setupMovieInteraction(group, onDone) {
 }
 
 // 4. 購物
+// 4. 購物 (修改為扁平紙袋設計)
 function setupShoppingInteraction(group, onDone) {
     const labelPos = new THREE.Vector3(0, 504, -2);
-    const instruction = create2DLabel("點擊包包", labelPos, "#6E7C7C");
+    const instruction = create2DLabel("點擊包包", labelPos);
 
     let caught = 0;
     const maxBags = 4;
@@ -3309,26 +3363,40 @@ function setupShoppingInteraction(group, onDone) {
         if (caught >= maxBags) return;
 
         const bagGroup = new THREE.Group();
+        
+        // ========== 將包包變薄的魔法 ==========
         const bagGeo = new THREE.CylinderGeometry(0.8, 0.6, 1.2, 4);
+        bagGeo.rotateY(Math.PI / 4); // 先旋轉幾何體，讓平面對齊視角
+        bagGeo.scale(1.1, 1.0, 0.3); // X微加寬，Z大幅壓扁 (變成只有 30% 厚度)，形成紙袋的扁平狀
+        
         const color = getMorandiColor();
         const bagMat = new THREE.MeshStandardMaterial({ color: color, flatShading: true });
         const bag = new THREE.Mesh(bagGeo, bagMat);
-        bag.rotation.y = Math.PI / 4; 
-        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 8, 16, Math.PI), new THREE.MeshStandardMaterial({color: 0x333333}));
+        
+        // 把手稍微加寬，匹配現在的提袋寬度
+        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.03, 8, 16, Math.PI), new THREE.MeshStandardMaterial({color: 0x333333}));
         handle.position.y = 0.6;
+        
         bagGroup.add(bag, handle);
         
         bagGroup.position.set((Math.random()-0.5)*8, 8, (Math.random()-0.5)*2);
         bagGroup.userData = { isBag: true };
         group.add(bagGroup);
 
+        // 掉落動畫
         gsap.to(bagGroup.position, { y: -4, duration: 2.5, ease: "power1.in", onComplete: () => {
             if (group.children.includes(bagGroup)) {
                 group.remove(bagGroup);
                 if (caught < maxBags) spawnBag();
             }
         }});
-        gsap.to(bagGroup.rotation, { y: Math.random()*2, duration: 2.5 });
+        
+        // 替換原本的自轉，改為優雅地左右飄落搖擺，更符合紙袋的輕盈感
+        gsap.to(bagGroup.rotation, { 
+            y: (Math.random() - 0.5) * 1.0, 
+            z: (Math.random() - 0.5) * 0.4,
+            duration: 2.5 
+        });
     };
 
     spawnBag();
@@ -3343,7 +3411,6 @@ function setupShoppingInteraction(group, onDone) {
             caught++;
             if (caught >= maxBags) {
                 instruction.innerText = "滿載而歸";
-                instruction.style.color = "#C89F9C";
                 setTimeout(onDone, 800);
             } else {
                 spawnBag();
@@ -3351,9 +3418,9 @@ function setupShoppingInteraction(group, onDone) {
         }
     };
 }
-
 // 1. 批改 (超顯眼紅色「閱」字蓋章)
 // === 修訂版：批改互動 (修正文字清晰度) ===
+// === 優化版：批改互動 (移除生硬的字體代碼，套用毛玻璃) ===
 function setupGradingInteraction(group, onDone, count = 1) {
     const table = new THREE.Mesh(new THREE.BoxGeometry(12, 0.5, 8), new THREE.MeshStandardMaterial({color: 0x6E7C7C}));
     table.position.y = -0.5;
@@ -3385,10 +3452,9 @@ function setupGradingInteraction(group, onDone, count = 1) {
     stampGroup.rotation.z = 0.5; 
     group.add(stampGroup);
 
-    // ★ 修改點 3：文字顏色改為深黑色 ★
+    // ★ 同樣使用乾淨的呼叫方式
     const labelPos = new THREE.Vector3(0, 503, -3);
-    const instruction = create2DLabel("點擊蓋章", labelPos, "#111111"); // 改用深黑色，對比度最高
-    instruction.style.fontWeight = "bold"; // 加粗
+    const instruction = create2DLabel("點擊蓋章", labelPos);
 
     let currentIndex = count - 1;
     let isStamping = false;
@@ -3409,7 +3475,6 @@ function setupGradingInteraction(group, onDone, count = 1) {
                 
                 if (currentIndex < 0) {
                     instruction.innerText = "完成";
-                    instruction.style.color = "#333";
                     setTimeout(onDone, 800);
                 }
             }
@@ -3430,38 +3495,28 @@ function setupGradingInteraction(group, onDone, count = 1) {
     };
 }
 
-// 2. 新增：行政 (敲擊鍵盤處理文件)
-// === 修訂版：行政互動 (修正文字顏色與清晰度) ===
+// === 優化版：行政互動 (移除生硬的字體代碼，套用毛玻璃) ===
 function setupAdminInteraction(group, onDone) {
-    // 1. 建立莫蘭迪色系辦公桌
-    const table = new THREE.Mesh(
-        new THREE.BoxGeometry(14, 0.5, 9), 
-        new THREE.MeshStandardMaterial({color: 0x8F9E8B}) 
-    );
+    const table = new THREE.Mesh(new THREE.BoxGeometry(14, 0.5, 9), new THREE.MeshStandardMaterial({color: 0x8F9E8B}));
     table.position.y = -0.5;
     group.add(table);
 
-    // 2. 電腦螢幕組
     const monitorGroup = new THREE.Group();
     group.add(monitorGroup);
 
-    // 底座與支架
     const monitorBase = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 2), new THREE.MeshStandardMaterial({color: 0x333333}));
     monitorBase.position.set(0, 0, -2);
     const monitorStand = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.5), new THREE.MeshStandardMaterial({color: 0x555555}));
     monitorStand.position.set(0, 0.8, -2);
     
-    // 螢幕本體
     const monitorScreen = new THREE.Mesh(new THREE.BoxGeometry(7, 4, 0.4), new THREE.MeshStandardMaterial({color: 0x222222}));
     monitorScreen.position.set(0, 2.8, -1.5);
     
-    // 發光螢幕面
     const screenFace = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 3.6), new THREE.MeshBasicMaterial({color: 0x0a192f}));
     screenFace.position.set(0, 2.8, -1.29);
     
     monitorGroup.add(monitorBase, monitorStand, monitorScreen, screenFace);
 
-    // 3. 鍵盤
     const keyboard = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.3, 1.8), new THREE.MeshStandardMaterial({color: 0xD3D4D0}));
     keyboard.position.set(0, 0, 1.5); 
     keyboard.rotation.x = 0.1;
@@ -3474,22 +3529,14 @@ function setupAdminInteraction(group, onDone) {
     
     group.add(keyboard);
 
-    // 4. 文件堆
     const paperStack = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 2.5), new THREE.MeshStandardMaterial({color: 0xFFFFFF}));
     paperStack.position.set(-5, 0.75, 0);
     paperStack.rotation.y = 0.2;
     group.add(paperStack);
 
-    // ★ 修改重點：文字清晰度優化 ★
+    // ★ 使用乾淨的呼叫方式，不再傳入強制顏色
     const labelPos = new THREE.Vector3(0, 506, -5); 
-    
-    // 1. 改用純白色 (#FFFFFF)
-    const instruction = create2DLabel("點擊鍵盤處理行政", labelPos, "#FFFFFF");
-    
-    // 2. 加上黑色文字陰影/描邊，確保在任何背景都清晰可見
-    instruction.style.textShadow = "0px 0px 4px #000000, 1px 1px 2px #000000"; 
-    instruction.style.fontWeight = "bold"; 
-    instruction.style.whiteSpace = "nowrap";
+    const instruction = create2DLabel("點擊鍵盤處理行政", labelPos);
 
     let clicks = 0;
     let isTyping = false;
@@ -3506,27 +3553,23 @@ function setupAdminInteraction(group, onDone) {
             isTyping = true;
             clicks++;
 
-            // 鍵盤動畫
             gsap.to(keyboard.position, {
                 y: -0.2, duration: 0.05, yoyo: true, repeat: 1, 
                 onComplete: () => isTyping = false
             });
 
-            // 螢幕顯示代碼行
             const line = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.15), new THREE.MeshBasicMaterial({color: 0x64ffda}));
             line.position.set(0, 4.2 - (clicks * 0.5), -1.28); 
             group.add(line);
             
-            create2DFeedback("Processing...", new THREE.Vector3(0, 503, 1.5), "#64ffda");
+            // 回饋文字改用莫蘭迪灰藍色
+            create2DFeedback("生命誠可貴...", new THREE.Vector3(0, 503, 1.5), "#7B9ACC");
 
             if (clicks >= requiredClicks) {
-                // 互動畫面內直接顯示結果
+                // ★ 失敗時套用優雅的 CSS Class，不再使用 inline style
                 instruction.innerText = "徒勞無功，毫無收穫。";
-                instruction.style.color = "#FF4444"; // 亮紅色，強調警告意味
-                instruction.style.fontSize = "24px"; 
-                instruction.style.textShadow = "0px 0px 10px #000000"; // 強烈陰影
+                instruction.classList.add('label-error'); 
 
-                // 螢幕變黑
                 setTimeout(() => {
                     screenFace.material.color.setHex(0x000000);
                     group.remove(...group.children.filter(c => c.geometry && c.geometry.type === 'PlaneGeometry' && c.position.z === -1.28));
