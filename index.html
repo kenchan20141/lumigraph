@@ -2364,22 +2364,34 @@ function handleAction(actionId, cost, happyCost, baseParticles, name, growReadin
         }
 
         // 初始化與其他必要函數 (保持原結構)
-        function initStudents(count) {
-            students.forEach(s => { scene.remove(s.group); s.dispose(); });
-            students = []; particles.forEach(p => scene.remove(p)); particles = [];
-            const spacing = 5.0, startX = -((count - 1) * spacing) / 2;
-            let types = [];
-            if (count === 5) {
-                types = [STUDENT_TYPES.LOW, STUDENT_TYPES.LOW];
-                for(let k=0; k<3; k++) {
-                    const r = Math.random();
-                    if(r < 0.2) types.push(STUDENT_TYPES.HIGH); else if(r < 0.6) types.push(STUDENT_TYPES.AVG); else types.push(STUDENT_TYPES.LOW);
-                }
-                types.sort(() => Math.random() - 0.5);
-            }
-            for (let i = 0; i < count; i++) { students.push(new Student(i, startX + i * spacing, types.length > i ? types[i] : null)); }
-            updateCamera(count);
-        }
+       // ==========================================
+// 替換 1：學生初始化 (移除強制預設資質差學生的設定)
+// ==========================================
+function initStudents(count) {
+    students.forEach(s => { scene.remove(s.group); s.dispose(); });
+    students =[]; 
+    particles.forEach(p => scene.remove(p)); 
+    particles =[];
+    
+    const spacing = 5.0, startX = -((count - 1) * spacing) / 2;
+    let types =[];
+    
+    // 完全根據機率隨機生成，不再強制預設最少 2 個 LOW
+    for(let k = 0; k < count; k++) {
+        const r = Math.random();
+        // 20% 高資質, 40% 中等資質, 40% 差資質 (可自由調整機率)
+        if (r < 0.2) types.push(STUDENT_TYPES.HIGH); 
+        else if (r < 0.6) types.push(STUDENT_TYPES.AVG); 
+        else types.push(STUDENT_TYPES.LOW);
+    }
+    
+    for (let i = 0; i < count; i++) { 
+        students.push(new Student(i, startX + i * spacing, types.length > i ? types[i] : null)); 
+    }
+    
+    updateCamera(count);
+}
+
 
         function updateCamera(count) {
             const isMobile = window.innerWidth < 800;
@@ -3536,11 +3548,13 @@ function setupGradingInteraction(group, onDone, count = 1) {
 }
 
 // === 最終完美版：行政互動（解決疊色、重疊與手機適配問題） ===
+// ==========================================
+// 替換 2：行政互動場景 (替換檯燈為小盆栽與咖啡杯)
+// ==========================================
 function setupAdminInteraction(group, onDone) {
     const isMobile = window.innerWidth < 800;
     
     // --- 0. 響應式場景縮放 ---
-    // 如果是手機，將整個場景縮小到 85%，以確保視野完整
     if (isMobile) {
         group.scale.set(0.85, 0.85, 0.85);
     }
@@ -3554,7 +3568,7 @@ function setupAdminInteraction(group, onDone) {
     floor.position.y = -0.51;
     group.add(floor);
  
-    // 屏風：改為稍深的莫蘭迪灰綠，增加空間深度
+    // 屏風
     const partitionMat = new THREE.MeshStandardMaterial({ color: 0x7A8B8B, roughness: 0.9 });
     const backWall = new THREE.Mesh(new THREE.BoxGeometry(16, 8, 0.4), partitionMat);
     backWall.position.set(0, 3.5, -4.5);
@@ -3564,7 +3578,7 @@ function setupAdminInteraction(group, onDone) {
     sideWall.position.set(7.5, 3.5, 0);
     group.add(sideWall);
  
-    // --- 2. 辦公桌 (核心修正：改為木質沙色，解決紙張疊色問題) ---
+    // --- 2. 辦公桌 ---
     const table = new THREE.Mesh(
         new THREE.BoxGeometry(15, 0.6, 9),
         new THREE.MeshStandardMaterial({ color: 0xD5C4A1, roughness: 0.8 }) // 暖沙木色
@@ -3572,15 +3586,15 @@ function setupAdminInteraction(group, onDone) {
     table.position.y = -0.2;
     group.add(table);
  
-    // --- 3. 裝飾物件 (核心修正：調整位置防止重疊) ---
+    // --- 3. 裝飾物件 ---
     // 文件夾移至【左後方】角落
-    const folderColors = [0xC89F9C, 0x8D857F, 0x7B9ACC, 0x95a5a6];
+    const folderColors =[0xC89F9C, 0x8D857F, 0x7B9ACC, 0x95a5a6];
     for (let i = 0; i < 5; i++) {
         const folder = new THREE.Mesh(
             new THREE.BoxGeometry(0.6, 2.5, 1.8),
             new THREE.MeshStandardMaterial({ color: folderColors[i % 4] })
         );
-        folder.position.set(-6.5, 1.25, -3.2 + (i * 0.65)); // 往後方與左方推
+        folder.position.set(-6.5, 1.25, -3.2 + (i * 0.65));
         group.add(folder);
         // 標籤
         const label = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.8), new THREE.MeshBasicMaterial({color:0xffffff}));
@@ -3589,18 +3603,47 @@ function setupAdminInteraction(group, onDone) {
         group.add(label);
     }
  
-    // 檯燈 (右後方)
-    const lampGroup = new THREE.Group();
-    lampGroup.position.set(5.5, 0.1, -3);
-    const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.1, 16), new THREE.MeshStandardMaterial({color:0x333333}));
-    const lampArm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.5), new THREE.MeshStandardMaterial({color:0x333333}));
-    lampArm.position.y = 1.15; lampArm.rotation.x = -0.3;
-    const lampHead = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1, 16), new THREE.MeshStandardMaterial({color:0x555555}));
-    lampHead.position.set(0, 2.2, 0.5); lampHead.rotation.x = 1.0;
-    lampGroup.add(lampBase, lampArm, lampHead);
-    group.add(lampGroup);
+    // 【新物件】療癒小盆栽 (優化植物形狀為現代低多邊形風格)
+    const plantGroup = new THREE.Group();
+    // 稍微往左放一點，填補咖啡杯移走後的空位
+    plantGroup.position.set(4.5, 0.1, -2.5); 
+    
+    // 花盆
+    const potGeo = new THREE.CylinderGeometry(0.8, 0.5, 1.2, 16);
+    const potMat = new THREE.MeshStandardMaterial({color: 0xE0CDCF, roughness: 0.9}); // 莫蘭迪粉灰
+    const pot = new THREE.Mesh(potGeo, potMat);
+    pot.position.y = 0.6;
+    
+    // 泥土
+    const soil = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.1, 16), new THREE.MeshStandardMaterial({color: 0x4a3728}));
+    soil.position.y = 1.2;
+    
+    // 植物枝幹
+    const stemGeo = new THREE.CylinderGeometry(0.1, 0.15, 0.8, 8);
+    const stemMat = new THREE.MeshStandardMaterial({color: 0x6b5344, roughness: 0.9});
+    const stem = new THREE.Mesh(stemGeo, stemMat);
+    stem.position.y = 1.5;
+
+    // 植物葉片冠群 (利用 Dodecahedron 製作有設計感的立體切面)
+    const leafGeoMain = new THREE.DodecahedronGeometry(0.9);
+    const leafGeoSide1 = new THREE.DodecahedronGeometry(0.5);
+    const leafGeoSide2 = new THREE.DodecahedronGeometry(0.4);
+    // 開啟 flatShading 以呈現俐落的低多邊形幾何感
+    const leafMat = new THREE.MeshStandardMaterial({color: 0x7C9473, roughness: 0.8, flatShading: true}); 
+    
+    const leafMain = new THREE.Mesh(leafGeoMain, leafMat);
+    leafMain.position.set(0, 2.3, 0);
+    
+    const leafSide1 = new THREE.Mesh(leafGeoSide1, leafMat);
+    leafSide1.position.set(0.6, 1.9, 0.4);
+    
+    const leafSide2 = new THREE.Mesh(leafGeoSide2, leafMat);
+    leafSide2.position.set(-0.6, 2.0, -0.3);
+    
+    plantGroup.add(pot, soil, stem, leafMain, leafSide1, leafSide2);
+    group.add(plantGroup);
  
-    // --- 4. 螢幕組件 (鎖死線條範圍) ---
+    // --- 4. 螢幕組件 ---
     const monitorGroup = new THREE.Group();
     group.add(monitorGroup);
     const monitorBase = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 2), new THREE.MeshStandardMaterial({color: 0x333333}));
@@ -3633,7 +3676,7 @@ function setupAdminInteraction(group, onDone) {
         }
     }
  
-    // --- 6. 帶文字行政文件堆 (核心修正：移至左前方，避免重疊) ---
+    // --- 6. 帶文字行政文件堆 ---
     const paperStack = new THREE.Group();
     const sheetGeo = new THREE.BoxGeometry(2, 0.02, 2.8);
     const sheetMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.9 });
@@ -3655,7 +3698,6 @@ function setupAdminInteraction(group, onDone) {
         }
         paperStack.add(sheet);
     }
-    // 移至鍵盤左邊的空位，遠離書架文件夾
     paperStack.position.set(-4.2, 0.1, 1.2);
     paperStack.rotation.y = 0.1;
     group.add(paperStack);
@@ -4518,13 +4560,13 @@ function createNewYearReport(studentChanges) {
         let colorStyle = "";
         
         if (change > 0) {
-            changeText = `▲ +${change} (自主學習)`;
+            changeText = `▲ +${change} (積極自學)`;
             colorStyle = "color:#27ae60; font-weight:bold;";
         } else if (change < 0) {
-            changeText = `▼ ${change} (知識流失)`; 
+            changeText = `▼ ${change} (虛耗光陰)`; 
             colorStyle = "color:#c0392b; font-weight:bold;";
         } else {
-            changeText = "- 持平 -";
+            changeText = "- 維持水平 -";
             colorStyle = "color:#999;";
         }
 
