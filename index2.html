@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欠交功課處理制度模型 - v2.1 (修正版)</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --detention-color: #e74c3c;
+            --demerit-color: #f39c12;
+            --bg-color: #f4f7f6;
+            --danger-color: #c0392b;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        .priority-box {
+            background: #eee;
+            padding: 15px;
+            border-left: 5px solid #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .modes-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .mode-card {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mode-detention { border-top: 10px solid var(--detention-color); background-color: #fff9f9; }
+        .mode-demerit { border-top: 10px solid var(--demerit-color); background-color: #fffdf5; }
+
+        h2 { margin-top: 0; }
+        .mode-detention h2 { color: var(--detention-color); }
+        .mode-demerit h2 { color: var(--demerit-color); }
+
+        .rule-list { padding-left: 20px; flex-grow: 1; }
+        .rule-list li { margin-bottom: 10px; }
+
+        .important { color: var(--danger-color); font-weight: bold; }
+
+        .leave-rules {
+            background: #fce4e4;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            border: 1px solid #fab1a0;
+            margin-top: 10px;
+        }
+
+        .simulation-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        .simulation-area {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px dashed #bbb;
+        }
+
+        .slot-display {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .student-slot {
+            width: 90px;
+            height: 110px;
+            border: 2px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border-radius: 5px;
+        }
+
+        .student-slot.occupied { border-color: #333; background: #fff; }
+        .student-slot.locked { border-color: var(--danger-color); background: #ffecec; border-style: double; border-width: 4px; }
+
+        .tag {
+            font-size: 11px;
+            background: #34495e;
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .status-badge {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--danger-color);
+            margin-top: 3px;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .risk-alert {
+            color: #d35400;
+            background: #fff3e0;
+            padding: 15px;
+            border-left: 4px solid #e67e22;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .modes-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>欠交功課處理制度指南</h1>
+
+    <!-- 優先權規則 (保護中) -->
+    <div class="priority-box">
+        <h3>🚨 哪些行為會進入名單？（按優先順序）</h3>
+        <ol>
+            <li><strong>最優先：</strong>未完成 / 忘記上載 / 忘記帶 (一律視為欠交，<span class="important">不接受午膳補交</span>)</li>
+            <li><strong>其次：</strong>以應付心態完成課業 (草率完成)</li>
+            <li><strong>再其次：</strong>不準時繳交課業</li>
+        </ol>
+    </div>
+
+    <div class="modes-container">
+        <!-- 模式一：留堂模式 -->
+        <div class="mode-card mode-detention">
+            <h2>模式一：留堂模式</h2>
+            <ul class="rule-list">
+                <li><strong>名額：</strong>固定 5 位同學。</li>
+                <li><strong>時間：</strong>逢星期四、五留堂。</li>
+                <li><strong>機制：</strong>補交功課後仍需留堂，直至被頂替。</li>
+                <li><strong>更替：</strong>由新欠交者透過<strong>抽籤</strong>頂替名單內一人。</li>
+                <li><strong>限制：</strong>只能頂替同屬「留堂模式」的同學。</li>
+            </ul>
+            <div class="leave-rules">
+                <strong>📅 關於請假與缺席處分：</strong><br>
+                1. <strong>早退/活動：</strong>須提早繳交家長信。<br>
+                2. <strong>緊急情況：</strong>須家長親自致電老師。<br>
+                3. <strong>嚴懲：</strong>未經准許而缺席留堂者，將被記<strong>「缺點」</strong>。
+            </div>
+        </div>
+
+        <!-- 模式二：缺點模式 -->
+        <div class="mode-card mode-demerit">
+            <h2>模式二：缺點模式</h2>
+            <ul class="rule-list">
+                <li><strong>名額：</strong>固定 5 位同學。</li>
+                <li><strong>記錄：</strong>手冊記錄 1 次欠交。</li>
+                <li><strong>每日任務：</strong>須在限時內完成一份<strong>中文小功課</strong>。</li>
+                <li><strong>追加懲罰：</strong>若未完成小功課，手冊再加記 1 次。</li>
+                <li><strong>處分：</strong>累積至 <span class="important">5 次</span> 欠交記錄將直接被<strong>記缺點</strong>。</li>
+                <li><strong>更替：</strong>同名額制，由新欠交者頂替名單內一人。</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="simulation-section">
+        <!-- 展示一：標準運作 -->
+        <div class="simulation-area">
+            <h3>🔍 展示一：標準運作模式 (以 5 人滿員為前提)</h3>
+            <p>當該模式已有 5 人，第 6 位欠交者出現時，會抽籤踢走一人：</p>
+            <div class="slot-display" id="slotDisplay1">
+                <div class="student-slot occupied">👤<div class="tag">學生 A</div></div>
+                <div class="student-slot occupied">👤<div class="tag">學生 B</div></div>
+                <div class="student-slot occupied">👤<div class="tag">學生 C</div></div>
+                <div class="student-slot occupied">👤<div class="tag">學生 D</div></div>
+                <div class="student-slot occupied">👤<div class="tag">學生 E</div></div>
+            </div>
+            <button onclick="simulateFullReplacement()">模擬第 6 人欠交 (觸發抽籤)</button>
+            <p id="simResult1" style="margin-top: 10px; color: var(--detention-color); font-weight: bold;"></p>
+        </div>
+
+        <!-- 展示二：修正後的風險展示 -->
+        <div class="simulation-area" style="border: 2px solid var(--danger-color);">
+            <h3 style="color: var(--danger-color);">🔍 展示二：極高風險演示 (當選擇該模式的總人數不足 5 人)</h3>
+            <p>假設全班只有 2 人選擇了「留堂模式」，當這兩位同學都欠交時：</p>
+            
+            <div class="slot-display">
+                <div class="student-slot locked">👤<div class="tag">學生 X</div><div class="status-badge">[永久留堂]</div></div>
+                <div class="student-slot locked">👤<div class="tag">學生 Y</div><div class="status-badge">[永久留堂]</div></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名單未滿)</span></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名單未滿)</span></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名單未滿)</span></div>
+            </div>
+
+            <div class="risk-alert">
+                <strong>🚫 制度漏洞警示：</strong><br>
+                由於總參與人數只有 2 人，名單**永遠無法達到 5 人滿員**。<br>
+                因為沒有「第 6 位」同學可以出現來頂替他們，<br>
+                <strong>結論：</strong>這兩位同學一旦欠交進入名單，將<span class="important">永遠沒有人可以頂替他們</span>，必須在該學期無限期執行留堂/任務。
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align: center; margin-top: 30px; font-size: 0.8em; color: #888; border-top: 1px solid #eee; padding-top: 20px;">
+        請同學慎選模式並準時交功課。選擇人數較少的模式將面臨無法被頂替的風險。
+    </footer>
+</div>
+
+<script>
+    const studentsFull = ['學生 A', '學生 B', '學生 C', '學生 D', '學生 E'];
+    let newStudentCount = 1;
+
+    function simulateFullReplacement() {
+        const randomIndex = Math.floor(Math.random() * 5);
+        const replacedStudent = studentsFull[randomIndex];
+        const newStudentName = '新同學 ' + newStudentCount;
+        
+        studentsFull[randomIndex] = newStudentName;
+        newStudentCount++;
+
+        const slots = document.getElementById('slotDisplay1').children;
+        for(let i=0; i<5; i++) {
+            slots[i].innerHTML = `👤<div class="tag">${studentsFull[i]}</div>`;
+            slots[i].style.backgroundColor = (i === randomIndex) ? "#e1ffed" : "white";
+            slots[i].style.borderColor = (i === randomIndex) ? "#27ae60" : "#333";
+        }
+        document.getElementById('simResult1').innerText = `📢 抽籤結果：${replacedStudent} 已被頂替離開名單，${newStudentName} 進入名單。`;
+    }
+</script>
+
+</body>
+</html>
