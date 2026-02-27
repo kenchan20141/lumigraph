@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>欠交功課處理制度模型 - v2.1 (修正版)</title>
+    <title>欠交功課處理制度模型 - v2.2 (全面展示版)</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -11,6 +11,7 @@
             --demerit-color: #f39c12;
             --bg-color: #f4f7f6;
             --danger-color: #c0392b;
+            --info-color: #3498db;
         }
 
         body {
@@ -38,6 +39,7 @@
             padding-bottom: 10px;
         }
 
+        /* 優先級區塊 (100%保留) */
         .priority-box {
             background: #eee;
             padding: 15px;
@@ -72,6 +74,7 @@
 
         .important { color: var(--danger-color); font-weight: bold; }
 
+        /* 模式一專屬請假規則 (100%保留) */
         .leave-rules {
             background: #fce4e4;
             padding: 10px;
@@ -104,8 +107,8 @@
         }
 
         .student-slot {
-            width: 90px;
-            height: 110px;
+            width: 100px;
+            height: 120px;
             border: 2px solid #ccc;
             display: flex;
             flex-direction: column;
@@ -113,10 +116,12 @@
             justify-content: center;
             background: #fff;
             border-radius: 5px;
+            text-align: center;
         }
 
-        .student-slot.occupied { border-color: #333; background: #fff; }
-        .student-slot.locked { border-color: var(--danger-color); background: #ffecec; border-style: double; border-width: 4px; }
+        .student-slot.occupied { border-color: #333; }
+        .student-slot.locked-red { border-color: var(--danger-color); background: #ffecec; border-style: double; border-width: 4px; }
+        .student-slot.locked-orange { border-color: var(--demerit-color); background: #fffdf0; border-style: double; border-width: 4px; }
 
         .tag {
             font-size: 11px;
@@ -125,15 +130,15 @@
             padding: 2px 5px;
             border-radius: 3px;
             margin-top: 5px;
-            text-align: center;
         }
 
         .status-badge {
             font-size: 10px;
             font-weight: bold;
-            color: var(--danger-color);
-            margin-top: 3px;
+            margin-top: 5px;
         }
+        .status-red { color: var(--danger-color); }
+        .status-orange { color: #d35400; }
 
         button {
             padding: 10px 20px;
@@ -146,12 +151,12 @@
         }
 
         .risk-alert {
-            color: #d35400;
-            background: #fff3e0;
             padding: 15px;
-            border-left: 4px solid #e67e22;
+            border-left: 4px solid;
             margin-top: 15px;
         }
+        .alert-detention { color: #d35400; background: #fff3e0; border-color: #e67e22; }
+        .alert-demerit { color: #916400; background: #fff9db; border-color: var(--demerit-color); }
 
         @media (max-width: 768px) {
             .modes-container { grid-template-columns: 1fr; }
@@ -163,7 +168,7 @@
 <div class="container">
     <h1>欠交功課處理制度指南</h1>
 
-    <!-- 優先權規則 (保護中) -->
+    <!-- 優先權規則 (100%保留) -->
     <div class="priority-box">
         <h3>🚨 哪些行為會進入名單？（按優先順序）</h3>
         <ol>
@@ -174,7 +179,7 @@
     </div>
 
     <div class="modes-container">
-        <!-- 模式一：留堂模式 -->
+        <!-- 模式一：留堂模式 (100%保留) -->
         <div class="mode-card mode-detention">
             <h2>模式一：留堂模式</h2>
             <ul class="rule-list">
@@ -192,7 +197,7 @@
             </div>
         </div>
 
-        <!-- 模式二：缺點模式 -->
+        <!-- 模式二：缺點模式 (100%保留) -->
         <div class="mode-card mode-demerit">
             <h2>模式二：缺點模式</h2>
             <ul class="rule-list">
@@ -207,7 +212,7 @@
     </div>
 
     <div class="simulation-section">
-        <!-- 展示一：標準運作 -->
+        <!-- 展示一：標準運作 (100%保留) -->
         <div class="simulation-area">
             <h3>🔍 展示一：標準運作模式 (以 5 人滿員為前提)</h3>
             <p>當該模式已有 5 人，第 6 位欠交者出現時，會抽籤踢走一人：</p>
@@ -222,30 +227,42 @@
             <p id="simResult1" style="margin-top: 10px; color: var(--detention-color); font-weight: bold;"></p>
         </div>
 
-        <!-- 展示二：修正後的風險展示 -->
+        <!-- 展示二：留堂模式不足 5 人 (100%保留) -->
         <div class="simulation-area" style="border: 2px solid var(--danger-color);">
-            <h3 style="color: var(--danger-color);">🔍 展示二：極高風險演示 (當選擇該模式的總人數不足 5 人)</h3>
-            <p>假設全班只有 2 人選擇了「留堂模式」，當這兩位同學都欠交時：</p>
-            
+            <h3 style="color: var(--danger-color);">🔍 展示二：留堂模式風險演示 (僅 2 人參與)</h3>
+            <p>若只有 2 人選擇此模式，名單永遠無法滿額，無法觸發新欠交者的頂替機制：</p>
             <div class="slot-display">
-                <div class="student-slot locked">👤<div class="tag">學生 X</div><div class="status-badge">[永久留堂]</div></div>
-                <div class="student-slot locked">👤<div class="tag">學生 Y</div><div class="status-badge">[永久留堂]</div></div>
-                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名單未滿)</span></div>
-                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名單未滿)</span></div>
-                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名單未滿)</span></div>
+                <div class="student-slot locked-red">👤<div class="tag">學生 X</div><div class="status-badge status-red">[無法被頂替]</div></div>
+                <div class="student-slot locked-red">👤<div class="tag">學生 Y</div><div class="status-badge status-red">[無法被頂替]</div></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
             </div>
+            <div class="risk-alert alert-detention">
+                <strong>⚠️ 留堂風險：</strong>由於沒有第 6 位同學出現，學生 X 和 Y 將被<strong>困在名單內</strong>，逢星期四、五必須無限期留堂。
+            </div>
+        </div>
 
-            <div class="risk-alert">
-                <strong>🚫 制度漏洞警示：</strong><br>
-                由於總參與人數只有 2 人，名單**永遠無法達到 5 人滿員**。<br>
-                因為沒有「第 6 位」同學可以出現來頂替他們，<br>
-                <strong>結論：</strong>這兩位同學一旦欠交進入名單，將<span class="important">永遠沒有人可以頂替他們</span>，必須在該學期無限期執行留堂/任務。
+        <!-- 展示三：缺點模式不足 5 人 (新加入) -->
+        <div class="simulation-area" style="border: 2px solid var(--demerit-color);">
+            <h3 style="color: var(--demerit-color);">🔍 展示三：缺點模式風險演示 (僅 2 人參與)</h3>
+            <p>若只有 2 人選擇此模式，且兩人都因欠交進入名單：</p>
+            <div class="slot-display">
+                <div class="student-slot locked-orange">👤<div class="tag">學生 M</div><div class="status-badge status-orange">[每日任務中]</div></div>
+                <div class="student-slot locked-orange">👤<div class="tag">學生 N</div><div class="status-badge status-orange">[每日任務中]</div></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(color:#aaa;">(名額空缺)</span></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
+            </div>
+            <div class="risk-alert alert-demerit">
+                <strong>⚠️ 任務風險：</strong>由於參與總人數不足，名單永遠不會滿。<br>
+                <strong>後果：</strong>學生 M 和 N 必須<strong>每天</strong>無止境地完成「中文小功課」，直到有其他原本沒進名單的同學欠交且填滿名額為止（但因總人數只有 2 人，此情況永遠不會發生）。
             </div>
         </div>
     </div>
 
     <footer style="text-align: center; margin-top: 30px; font-size: 0.8em; color: #888; border-top: 1px solid #eee; padding-top: 20px;">
-        請同學慎選模式並準時交功課。選擇人數較少的模式將面臨無法被頂替的風險。
+        請同學慎選模式並準時交功課。一旦名額未滿，名單內的同學將無法透過頂替機制離開。
     </footer>
 </div>
 
