@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>欠交功課處理制度模型 - v2.2 (全面展示版)</title>
+    <title>欠交功課處理制度模型 - v2.3 (正式完善版)</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -11,7 +11,7 @@
             --demerit-color: #f39c12;
             --bg-color: #f4f7f6;
             --danger-color: #c0392b;
-            --info-color: #3498db;
+            --success-color: #27ae60;
         }
 
         body {
@@ -44,6 +44,14 @@
             background: #eee;
             padding: 15px;
             border-left: 5px solid #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        /* 新增：頂替優先級區塊 */
+        .replacement-priority {
+            background: #e8f6ef;
+            padding: 15px;
+            border-left: 5px solid var(--success-color);
             margin-bottom: 20px;
         }
 
@@ -107,8 +115,8 @@
         }
 
         .student-slot {
-            width: 100px;
-            height: 120px;
+            width: 105px;
+            height: 125px;
             border: 2px solid #ccc;
             display: flex;
             flex-direction: column;
@@ -117,9 +125,11 @@
             background: #fff;
             border-radius: 5px;
             text-align: center;
+            position: relative;
         }
 
         .student-slot.occupied { border-color: #333; }
+        .student-slot.finished { border-color: var(--success-color); background-color: #f0fff4; }
         .student-slot.locked-red { border-color: var(--danger-color); background: #ffecec; border-style: double; border-width: 4px; }
         .student-slot.locked-orange { border-color: var(--demerit-color); background: #fffdf0; border-style: double; border-width: 4px; }
 
@@ -139,6 +149,7 @@
         }
         .status-red { color: var(--danger-color); }
         .status-orange { color: #d35400; }
+        .status-green { color: var(--success-color); }
 
         button {
             padding: 10px 20px;
@@ -168,7 +179,7 @@
 <div class="container">
     <h1>欠交功課處理制度指南</h1>
 
-    <!-- 優先權規則 (100%保留) -->
+    <!-- 優先權規則：進入名單 (100%保留) -->
     <div class="priority-box">
         <h3>🚨 哪些行為會進入名單？（按優先順序）</h3>
         <ol>
@@ -178,6 +189,13 @@
         </ol>
     </div>
 
+    <!-- 優先權規則：離開名單 (新加入) -->
+    <div class="replacement-priority">
+        <h3>✅ 誰會優先被頂替？（離開名單）</h3>
+        <p>無論以上哪種模式，當新欠交者加入時：<br>
+        <strong><span class="important">補交完所有功課的同學</span> 優先被抽籤頂替離開名單。</strong></p>
+    </div>
+
     <div class="modes-container">
         <!-- 模式一：留堂模式 (100%保留) -->
         <div class="mode-card mode-detention">
@@ -185,9 +203,9 @@
             <ul class="rule-list">
                 <li><strong>名額：</strong>固定 5 位同學。</li>
                 <li><strong>時間：</strong>逢星期四、五留堂。</li>
-                <li><strong>機制：</strong>補交功課後仍需留堂，直至被頂替。</li>
-                <li><strong>更替：</strong>由新欠交者透過<strong>抽籤</strong>頂替名單內一人。</li>
-                <li><strong>限制：</strong>只能頂替同屬「留堂模式」的同學。</li>
+                <li><strong>機制：</strong>補交功課後仍需留堂，直至被新同學頂替。</li>
+                <li><strong>頂替規則：</strong><span class="important">已補交者優先頂替</span>。</li>
+                <li><strong>更替：</strong>由新欠交者透過<strong>抽籤</strong>頂替同模式名單內一人。</li>
             </ul>
             <div class="leave-rules">
                 <strong>📅 關於請假與缺席處分：</strong><br>
@@ -203,34 +221,33 @@
             <ul class="rule-list">
                 <li><strong>名額：</strong>固定 5 位同學。</li>
                 <li><strong>記錄：</strong>手冊記錄 1 次欠交。</li>
-                <li><strong>每日任務：</strong>須在限時內完成一份<strong>中文小功課</strong>。</li>
-                <li><strong>追加懲罰：</strong>若未完成小功課，手冊再加記 1 次。</li>
+                <li><strong>每日任務：</strong>須完成一份中文小功課。未完成者再加記 1 次。</li>
                 <li><strong>處分：</strong>累積至 <span class="important">5 次</span> 欠交記錄將直接被<strong>記缺點</strong>。</li>
-                <li><strong>更替：</strong>同名額制，由新欠交者頂替名單內一人。</li>
+                <li><strong>頂替規則：</strong><span class="important">已補交者優先頂替</span>。</li>
             </ul>
         </div>
     </div>
 
     <div class="simulation-section">
-        <!-- 展示一：標準運作 (100%保留) -->
+        <!-- 展示一：標準運作 (更新頂替邏輯) -->
         <div class="simulation-area">
-            <h3>🔍 展示一：標準運作模式 (以 5 人滿員為前提)</h3>
-            <p>當該模式已有 5 人，第 6 位欠交者出現時，會抽籤踢走一人：</p>
+            <h3>🔍 展示一：標準運作模式 (模擬頂替優先權)</h3>
+            <p>當新欠交者出現時，系統會從「已補交」的同學中選出一人離開：</p>
             <div class="slot-display" id="slotDisplay1">
-                <div class="student-slot occupied">👤<div class="tag">學生 A</div></div>
-                <div class="student-slot occupied">👤<div class="tag">學生 B</div></div>
-                <div class="student-slot occupied">👤<div class="tag">學生 C</div></div>
-                <div class="student-slot occupied">👤<div class="tag">學生 D</div></div>
-                <div class="student-slot occupied">👤<div class="tag">學生 E</div></div>
+                <div class="student-slot finished">👤<div class="tag">學生 A</div><div class="status-badge status-green">已補交(優先)</div></div>
+                <div class="student-slot occupied">👤<div class="tag">學生 B</div><div class="status-badge">未補交</div></div>
+                <div class="student-slot finished">👤<div class="tag">學生 C</div><div class="status-badge status-green">已補交(優先)</div></div>
+                <div class="student-slot occupied">👤<div class="tag">學生 D</div><div class="status-badge">未補交</div></div>
+                <div class="student-slot occupied">👤<div class="tag">學生 E</div><div class="status-badge">未補交</div></div>
             </div>
-            <button onclick="simulateFullReplacement()">模擬第 6 人欠交 (觸發抽籤)</button>
-            <p id="simResult1" style="margin-top: 10px; color: var(--detention-color); font-weight: bold;"></p>
+            <button onclick="simulateFullReplacement()">模擬新欠交者加入 (頂替已補交者)</button>
+            <p id="simResult1" style="margin-top: 10px; color: var(--success-color); font-weight: bold;"></p>
         </div>
 
         <!-- 展示二：留堂模式不足 5 人 (100%保留) -->
         <div class="simulation-area" style="border: 2px solid var(--danger-color);">
             <h3 style="color: var(--danger-color);">🔍 展示二：留堂模式風險演示 (僅 2 人參與)</h3>
-            <p>若只有 2 人選擇此模式，名單永遠無法滿額，無法觸發新欠交者的頂替機制：</p>
+            <p>若參與總人數不足 5 人，名單永遠無法滿額，頂替機制將無法啟動：</p>
             <div class="slot-display">
                 <div class="student-slot locked-red">👤<div class="tag">學生 X</div><div class="status-badge status-red">[無法被頂替]</div></div>
                 <div class="student-slot locked-red">👤<div class="tag">學生 Y</div><div class="status-badge status-red">[無法被頂替]</div></div>
@@ -239,52 +256,73 @@
                 <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
             </div>
             <div class="risk-alert alert-detention">
-                <strong>⚠️ 留堂風險：</strong>由於沒有第 6 位同學出現，學生 X 和 Y 將被<strong>困在名單內</strong>，逢星期四、五必須無限期留堂。
+                <strong>⚠️ 留堂風險：</strong>即使學生 X 已補交功課，由於沒有第 6 人出現觸發機制，他仍需無限期留堂。
             </div>
         </div>
 
-        <!-- 展示三：缺點模式不足 5 人 (新加入) -->
+        <!-- 展示三：缺點模式不足 5 人 (100%保留 + 修正代碼顯示) -->
         <div class="simulation-area" style="border: 2px solid var(--demerit-color);">
             <h3 style="color: var(--demerit-color);">🔍 展示三：缺點模式風險演示 (僅 2 人參與)</h3>
-            <p>若只有 2 人選擇此模式，且兩人都因欠交進入名單：</p>
+            <p>若總人數不足 5 人，欠交者將陷入每日任務循環：</p>
             <div class="slot-display">
                 <div class="student-slot locked-orange">👤<div class="tag">學生 M</div><div class="status-badge status-orange">[每日任務中]</div></div>
                 <div class="student-slot locked-orange">👤<div class="tag">學生 N</div><div class="status-badge status-orange">[每日任務中]</div></div>
                 <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
-                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(color:#aaa;">(名額空缺)</span></div>
+                <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
                 <div class="student-slot" style="background: #eee; border-style: dashed;"><span style="color:#aaa;">(名額空缺)</span></div>
             </div>
             <div class="risk-alert alert-demerit">
-                <strong>⚠️ 任務風險：</strong>由於參與總人數不足，名單永遠不會滿。<br>
-                <strong>後果：</strong>學生 M 和 N 必須<strong>每天</strong>無止境地完成「中文小功課」，直到有其他原本沒進名單的同學欠交且填滿名額為止（但因總人數只有 2 人，此情況永遠不會發生）。
+                <strong>⚠️ 任務風險：</strong>因為名單無法透過新欠交者頂替填滿，學生 M 和 N 必須每天完成中文小功課，無法離開名單。
             </div>
         </div>
     </div>
 
     <footer style="text-align: center; margin-top: 30px; font-size: 0.8em; color: #888; border-top: 1px solid #eee; padding-top: 20px;">
-        請同學慎選模式並準時交功課。一旦名額未滿，名單內的同學將無法透過頂替機制離開。
+        請同學慎選模式。提醒：補交完功課後仍需等待新欠交者加入名單才能觸發優先頂替離開。
     </footer>
 </div>
 
 <script>
-    const studentsFull = ['學生 A', '學生 B', '學生 C', '學生 D', '學生 E'];
-    let newStudentCount = 1;
+    let finishedStudents = ['學生 A', '學生 C'];
+    let workingStudents = ['學生 B', '學生 D', '學生 E'];
+    let nextNum = 1;
 
     function simulateFullReplacement() {
-        const randomIndex = Math.floor(Math.random() * 5);
-        const replacedStudent = studentsFull[randomIndex];
-        const newStudentName = '新同學 ' + newStudentCount;
+        const resultText = document.getElementById('simResult1');
+        const display = document.getElementById('slotDisplay1');
+        const newName = '新欠交者 ' + nextNum;
         
-        studentsFull[randomIndex] = newStudentName;
-        newStudentCount++;
-
-        const slots = document.getElementById('slotDisplay1').children;
-        for(let i=0; i<5; i++) {
-            slots[i].innerHTML = `👤<div class="tag">${studentsFull[i]}</div>`;
-            slots[i].style.backgroundColor = (i === randomIndex) ? "#e1ffed" : "white";
-            slots[i].style.borderColor = (i === randomIndex) ? "#27ae60" : "#333";
+        if (finishedStudents.length > 0) {
+            // 優先頂替已完成者
+            const randomIndex = Math.floor(Math.random() * finishedStudents.length);
+            const left = finishedStudents.splice(randomIndex, 1)[0];
+            workingStudents.push(newName);
+            resultText.innerText = `📢 成功觸發：${left} (已補交) 被優先頂替離開，${newName} 進入名單。`;
+        } else {
+            // 無人完成功課，隨機抽籤
+            const randomIndex = Math.floor(Math.random() * workingStudents.length);
+            const left = workingStudents.splice(randomIndex, 1)[0];
+            workingStudents.push(newName);
+            resultText.innerText = `📢 由於名單內無人完成功課，隨機抽籤：${left} 被頂替離開，${newName} 進入名單。`;
         }
-        document.getElementById('simResult1').innerText = `📢 抽籤結果：${replacedStudent} 已被頂替離開名單，${newStudentName} 進入名單。`;
+        
+        nextNum++;
+        renderSlots();
+    }
+
+    function renderSlots() {
+        const display = document.getElementById('slotDisplay1');
+        display.innerHTML = '';
+        
+        // 渲染已補交
+        finishedStudents.forEach(name => {
+            display.innerHTML += `<div class="student-slot finished">👤<div class="tag">${name}</div><div class="status-badge status-green">已補交(優先)</div></div>`;
+        });
+        
+        // 渲染未補交
+        workingStudents.forEach(name => {
+            display.innerHTML += `<div class="student-slot occupied">👤<div class="tag">${name}</div><div class="status-badge">未補交</div></div>`;
+        });
     }
 </script>
 
